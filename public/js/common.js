@@ -262,14 +262,18 @@ $(function () {
     $('.js-user-delete').click(function (e) {
         var $this = $(this);
         var id = $this.attr("data-id");
-        $.post("/manager/user/delete", {
-            id: id
-        }, function (data) {
-            if (data.success) {
-                $this.parent().parent().fadeOut()
-            }
-            myMsg(data.msg);
-        }, "json");
+        myAlert("删除后无法恢复，您确定要删除吗？", function () {
+            layer.close(index);
+            loading();
+            $.post("/manager/user/delete", {
+                id: id
+            }, function (data) {
+                if (data.success) {
+                    $this.parent().parent().fadeOut()
+                }
+                myMsg(data.msg);
+            }, "json");
+        });
     });
     $(".js-user-status").each(function (i, obj) {
         var status = $(this).attr("data-type");
@@ -375,14 +379,20 @@ $(function () {
     $('.js-category-delete').click(function (e) {
         var $this = $(this);
         var id = $this.attr("data-id");
-        $.post("/manager/category/delete", {
-            id: id
-        }, function (data) {
-            if (data.success) {
-                $this.parent().parent().fadeOut()
-            }
-            myMsg(data.msg);
-        }, "json");
+        myAlert("删除后无法恢复，您确定要删除此分类吗？", function () {
+            layer.close(index);
+            loading();
+            $.post("/manager/category/delete", {
+                id: id
+            }, function (data) {
+                layer.close(index);
+                if (data.success) {
+                    $this.parent().parent().fadeOut();
+                }
+                myMsg(data.msg);
+            }, "json");
+
+        })
     });
     $('.js-modify-category').click(function () {
         $('.js-modify-category-current').removeClass("js-modify-category-current");
@@ -393,7 +403,7 @@ $(function () {
             $('.js-category-name').val(value);
             $('.js-category-name').attr("data-id", id);
             $('.js-category-name').focus();
-            $('.js-save-category').text("Save Category Modify");
+            $('.js-save-category').text("修改");
             $this.addClass("js-modify-category-current");
         });
     });
@@ -444,17 +454,19 @@ $(function () {
     $('.js-content-delete').click(function (e) {
         var $this = $(this);
         var id = $this.attr("data-id");
-        loading();
-        layer.close(index);
-        $.post("/manager/content/delete", {
-            id: id
-        }, function (data) {
+        myAlert("删除后无法恢复，您确定要删除吗？", function () {
             layer.close(index);
-            if (data.success) {
-                $this.parent().parent().fadeOut()
-            }
-            myMsg(data.msg);
-        }, "json");
+            loading();
+            $.post("/manager/content/delete", {
+                id: id
+            }, function (data) {
+                layer.close(index);
+                if (data.success) {
+                    $this.parent().parent().fadeOut()
+                }
+                myMsg(data.msg);
+            }, "json");
+        });
     });
     $(window).bind('scroll resize', function () {
         if ($(window).scrollTop() > 50) {
@@ -708,14 +720,18 @@ $(function () {
     $('.js-log-delete').click(function (e) {
         var $this = $(this);
         var id = $this.attr("data-id");
-        $.post("/manager/log/delete", {
-            id: id
-        }, function (data) {
-            if (data.success) {
-                $this.parent().parent().fadeOut()
-            }
-            myMsg(data.msg);
-        }, "json");
+        myAlert("删除后无法恢复，您确定要删除吗？", function () {
+            layer.close(index);
+            loading();
+            $.post("/manager/log/delete", {
+                id: id
+            }, function (data) {
+                if (data.success) {
+                    $this.parent().parent().fadeOut()
+                }
+                myMsg(data.msg);
+            }, "json");
+        });
     });
     $(".js-user-role").each(function (i, obj) {
         var role = $(this).attr("data-type");

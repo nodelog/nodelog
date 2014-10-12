@@ -120,7 +120,8 @@ exports.findByPage = function (req, res) {
 
 exports.delete = function (req, res) {
     var id = req.body.id;
-    Content.delete(id, function (err) {
+    sessionUser = req.session.user;
+    Content.delete(id,sessionUser, function (err) {
         if (!err) {
             res.json({'success': true, 'msg': "删除成功"});
         } else {

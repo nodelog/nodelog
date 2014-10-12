@@ -40,6 +40,7 @@ var route = function (app) {
     });
 	app.post('/manager/content/share', filter.authorize, content.share);
     app.get('/manager/content/detail', filter.authorize, content.findById);
+    app.post('/manager/content/delete', filter.authorize, content.delete);
     app.post('/manager/user/delete', filter.authorizeAdmin, user.delete);
     app.post('/manager/user/update', filter.authorize, user.update);
     app.post('/manager/category/add', filter.authorizeAdmin, category.add);

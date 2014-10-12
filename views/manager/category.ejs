@@ -1,11 +1,11 @@
 <%- include header %>
 <ol class="breadcrumb">
-    <li><a href="/manager">Home</a></li>
-    <li class="active">Category Manager</li>
+    <li><a href="/manager">后台首页</a></li>
+    <li class="active">分类管理</li>
 </ol>
-<h3> Category Manager
+<h3> 分类管理
     <button type="button" class="btn btn-default pull-right js-add-category">
-        <i class="glyphicon glyphicon-plus"></i>&nbsp;Add Category
+        <i class="glyphicon glyphicon-plus"></i>&nbsp; 新增分类
     </button>
 </h3>
 
@@ -14,11 +14,11 @@
 <table class="table table-hover">
     <thead>
     <tr>
-        <th>No.</th>
-        <th>name</th>
-        <th>create time</th>
-        <th>modify time</th>
-        <th>operation</th>
+        <th>编号</th>
+        <th>名称</th>
+        <th>创建时间</th>
+        <th>最后修改时间</th>
+        <th>操作</th>
     </tr>
     </thead>
     <tbody>
@@ -26,7 +26,7 @@
     <tr>
         <td><%= i + 1 %></td>
         <td><a href="javascript:void(0)" data-id="<%= docs[i]._id %>" class="js-modify-category"
-               title="click modify category"><%= docs[i].name %></a></td>
+               title="点击修改分类"><%= docs[i].name %></a></td>
         <td><%=: docs[i].createTime | format %></td>
         <td><%=: docs[i].modifyTime | format %></td>
         <td><a href="javascript:void(0)" class="js-category-delete" data-id="<%= docs[i]._id %>">删除</a></td>
@@ -47,7 +47,7 @@
             </div>
             <div class="form-group">
                 <div class="col-sm-12 l-padding-vertical">
-                    <button type="submit" class="btn btn-primary col-sm-12 js-save-category">保存</button>
+                    <button type="submit" class="btn btn-primary col-sm-12 js-save-category">添加</button>
                 </div>
             </div>
         </form>

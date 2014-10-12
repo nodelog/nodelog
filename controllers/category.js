@@ -1,5 +1,6 @@
 var Category = require('./../models/Category.js');
 var cmsUtils = require('./cmsUtils.js');
+var Content = require('./../models/Content.js');
 var getCount = function (callback) {
     Category.getCount(function (err, total) {
         callback(err, total);
@@ -24,13 +25,27 @@ exports.findByPage = function (req, res) {
 
 exports.delete = function (req, res) {
     var id = req.body.id;
-    Category.delete(id, function (err) {
-        if (!err) {
-            res.json({'success': true, 'msg': "删除成功"});
-        } else {
-            res.json({'success': false, 'msg': "删除失败"});
+    Content.getCountByCategoryOnly(id,function(err,count){
+    var result,msg;
+        if(count <= 0) {
+            Category.delete(id, function (err) {
+                if (!err) {
+                    result = true;
+                    msg = "删除成功";
+                } else {
+                    result = false;
+                    msg = "删除失败";
+                }
+                res.json({'success': result, 'msg': msg});
+            });
+        }else{
+            result = false;
+            msg = "此类别被使用，无法删除";
+            res.json({'success': result, 'msg': msg});
         }
+
     });
+
 }
 exports.findAll = function (req, res) {
     Category.findAll(function (err, docs) {

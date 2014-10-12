@@ -125,14 +125,18 @@ ContentDAO.prototype.getCount = function (currentUser,callback) {
     });
 };
 ContentDAO.prototype.getCountByCategory = function (category, currentUser, callback) {
-	var term;
-	if (currentUser == null) {
-		term = {"category": category, "status": constants.CONTENT_ENABLE_STATUS};
-	}  else {
-		term = {"category": category, $or:[{"status": constants.CONTENT_ENABLE_STATUS},{"author": currentUser._id,  "status":{$ne: constants.CONTENT_UNABLE_STATUS}}]};
-	}
-	
+    var term;
+    if (currentUser == null) {
+        term = {"category": category, "status": constants.CONTENT_ENABLE_STATUS};
+    }  else {
+        term = {"category": category, $or:[{"status": constants.CONTENT_ENABLE_STATUS},{"author": currentUser._id,  "status":{$ne: constants.CONTENT_UNABLE_STATUS}}]};
+    }
     ContentModel.count(term, function (err, total) {
+        callback(err, total);
+    });
+};
+ContentDAO.prototype.getCountByCategoryOnly = function (category, callback) {
+    ContentModel.count({"category": category, "status":{$ne: constants.CONTENT_UNABLE_STATUS}}, function (err, total) {
         callback(err, total);
     });
 };
@@ -153,8 +157,14 @@ ContentDAO.prototype.getCountByWord = function (word, currentUser, callback) {
         callback(err, total);
     });
 };
-ContentDAO.prototype.delete = function (id, callback) {
-    ContentModel.update({"_id": id}, {$set: {"status": constants.COMMENT_UNABLE_STATUS }}, function (err) {
+ContentDAO.prototype.delete = function (id,currentUser, callback) {
+    var term;
+    if (currentUser.role == 0) {
+        term = {"_id": id};
+    } else {
+        term = {"_id": id,"author": currentUser._id};
+    }
+    ContentModel.update(term, {$set: {"status": constants.COMMENT_UNABLE_STATUS }}, function (err) {
         callback(err);
     });
 };

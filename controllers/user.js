@@ -31,6 +31,7 @@ exports.update = function (req, res) {
     var id = req.body.id;
     var status = req.body.status;
     var role = req.body.role;
+    console.log(role+" role number");
     var userName = req.body.userName;
     var realName = req.body.realName;
     var password = req.body.password;
@@ -44,6 +45,7 @@ exports.update = function (req, res) {
             }
             if (role) {
                 obj.role = role;
+                console.log(role+"new role number");
             }
             if (cmsUtils.isNotBlank(userName)) {
                 obj.userName = userName;
@@ -60,7 +62,9 @@ exports.update = function (req, res) {
                     res.json({"result":false});
                 }else{
                     console.log("update success");
-                    req.session.user = obj;
+                    if(obj._id==req.session.user._id) {
+                            req.session.user = obj;
+                    }
                     res.json({"result":true});
                 }
             });

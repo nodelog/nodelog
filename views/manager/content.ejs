@@ -25,7 +25,7 @@
         <td><a href="/content/detail?id=<%= docs[i]._id %>&view=manager/contentDetail"
                title="<%= docs[i].name %>"><%= docs[i].name.length > 10 ? docs[i].name.substring(0, 10) + "..." : docs[i].name %></a>
         </td>
-        <td><%- docs[i].userName %></td>
+        <td><%- docs[i].realName?docs[i].realName:docs[i].userName %></td>
         <td><%- docs[i].categoryName %></td>
         <td><%=: docs[i].createTime | format %></td>
         <td><%=: docs[i].modifyTime | format %></td>

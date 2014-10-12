@@ -63,7 +63,7 @@ UserDAO.prototype.getCount = function (callback) {
 };
 UserDAO.prototype.delete = function (id, callback) {
     UserModel.update(
-        {"_id": _id},
+        {"_id": id, "role": 1},
         {$set: {'status': constants.USER_DELETE_STATUS}},
         function (err) {
             callback(err);
@@ -74,7 +74,7 @@ UserDAO.prototype.update = function (obj, callback) {
         {'_id': obj._id},
         {$set: {
             'userName': obj.userName,
-            'realName': obj.realName,
+            'realName': obj.realName?obj.realName:obj.userName,
             'password': obj.password,
             'status': obj.status,
             'role': obj.role,
