@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title><%if(locals.title){%><%=title%><%}%></title>
+    <link href="/js/external/google-code-prettify/prettify.css" rel="stylesheet">
+    <link href="/css/font-awesome.css" rel="stylesheet">
+    <link rel='stylesheet' href='/css/bootstrap.css'/>
+    <link rel='stylesheet' href='/css/docs.min.css'/>
+    <link rel='stylesheet' href='/css/bootstrap-switch.min.css'/>
+    <link rel='stylesheet' href='/css/style.css'/>
+</head>
+<body class="bg-gray js-body">
+<div class="navbar bg-blue bottom-border">
+    <div class="container">
+        <div class="navbar-collapse">
+            <ul class="nav navbar-nav ">
+                <li class="transition"><a href="/manager" class="color-white transition" title="解点日志后台管理">
+                        <i class="glyphicon glyphicon-globe"></i>&nbsp;解点日志后台管理
+                    </a>
+                </li>
+            </ul>
+            <ul class="nav navbar-nav pull-right js-user-bar">
+                <% if(session.user != null){ %>
+                <li><a class="color-white js-user-center transition">
+                        <%= session.user.role==0?'管理员':'VIP用户' %>
+                        :&nbsp;<%= session.user.realName?session.user.realName:session.user.userName %></a></li>
+                <li><a href="/" class="color-white js-se
+                ttings-btn transition">
+                        <i class="glyphicon glyphicon-home"></i>&nbsp;首页
+                    </a>
+                </li>
+                <li><a href="javascript:void(0)" class="color-white js-logout-btn transition" title="退出系统">
+                        <i class="glyphicon glyphicon-log-out"></i>&nbsp;退出
+                    </a>
+                </li>
+                <% }else{ %>
+                <% } %>
+            </ul>
+        </div>
+    </div>
+</div>
+<div class="l-top-bottom ">
+    <article class="l-padding-horizontal">
+        <div class="row js-panel-row">
+            <!--不要修改下面一行的class-->
+            <div class="col-sm-3 js-menu-panel" style="">
+                <div class="panel-group l-top-bottom js-menu-bar" id="accordion">
+                    <div class="panel panel-default js-content-manager">
+                        <div class="panel-heading">
+                            <h4 class="panel-title"><a href="/manager/content?manager=true&page=1" class="transition">日志管理</a></h4>
+                        </div>
+                    </div>
+
+                    <!--<div class="panel panel-default panel-primary">
+                        <div class="panel-heading">
+                            <h4 class="panel-title"><a href="#">评论管理</a></h4>
+                        </div>
+                    </div>
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title"><a href="#">系统设置</a></h4>
+                        </div>
+                    </div>-->
+                    <div class="panel panel-default js-user-manager">
+                        <div class="panel-heading">
+                            <h4 class="panel-title"><a href="/manager/user?page=1" class="transition">用户管理</a></h4>
+                        </div>
+                    </div>
+                    <% if(session.user.role == 0){ %>
+                    <div class="panel panel-default js-category-manager">
+                        <div class="panel-heading">
+                            <h4 class="panel-title"><a href="/manager/category?page=1" class="transition">分类管理</a></h4>
+                        </div>
+                    </div>
+                    <div class="panel panel-default js-log-manager">
+                        <div class="panel-heading">
+                            <h4 class="panel-title"><a href="/manager/log?view=manager/log&page=1" class="transition">公告管理</a></h4>
+                        </div>
+                    </div>
+                    <% } %>
+                </div>
+            </div>
+            <div class="col-sm-9">
+                <div class="bg-white jumbotron clear-margin">

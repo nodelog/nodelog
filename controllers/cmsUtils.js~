@@ -1,0 +1,11 @@
+var constants = require('./../models/constants');
+String.prototype.trim = function () {
+    return this.replace(/(^\s*)|(\s*$)/g, "");
+}
+
+exports.page= function (page, total) {
+    var totalPage = Math.ceil(total / constants.PER_PAGE_COUNT);
+    page = ((page < 1) ? 1 : ((page == undefined) ? 1 : page));
+    page = ((page > totalPage) ? totalPage : page);
+    return {"page":page, "totalPage": totalPage};
+}

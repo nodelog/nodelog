@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>无标题文档</title>
+    <script src="http://code.jquery.com/jquery.min.js"></script>
+</head>
+
+<body>
+<textarea class="auto_textarea" style="color:#454545;width:100px;height:20px; min-height:20px;overflow:hidden;border:1px solid #003366;"></textarea>
+<script>
+    $(document).ready(function(){
+        $(".auto_textarea").keyup(function(){
+            if($("#_hidetextarea").length<=0){
+                $("body").append("<textarea id='_hidetextarea'></textarea>");
+            }
+            $("#_hidetextarea").css({"height":0,"width":$(this).width(),"border-width":"0px","overflow":"hidden","color":"#FFF"});
+            $("#_hidetextarea").val($(this).val());
+            var HideTextarea = document.getElementById("_hidetextarea");
+            $(this).css("height",Math.max(20,HideTextarea.scrollHeight));
+        });
+    });
+</script>
+</body>
+</html>

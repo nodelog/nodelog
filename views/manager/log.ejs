@@ -1,0 +1,45 @@
+<%- include header %>
+<ol class="breadcrumb">
+    <li><a href="/manager">后台首页</a></li>
+    <li class="active">公告管理</li>
+</ol>
+<h3> 公告管理
+    <a href="/manager/log/addPage" class="btn btn-default pull-right js-add-log-btn">
+        <i class="glyphicon glyphicon-plus"></i>&nbsp;发布公告
+    </a>
+</h3>
+
+<div class="clearfix"></div>
+<% if(docs.length > 0){ %>
+<table class="table table-hover">
+    <thead>
+    <tr>
+        <th>编号</th>
+        <th>标题</th>
+        <th>发布时间</th>
+        <th>最后修改时间</th>
+        <th>操作</th>
+    </tr>
+    </thead>
+    <tbody>
+    <% for(var i = 0;i < docs.length;i++){ %>
+    <tr>
+        <td><%= i + 1 %></td>
+        <td><a href="/manager/log/detail?id=<%= docs[i]._id %>&view=manager/logDetail" data-id="<%= docs[i]._id %>"><%= docs[i].name %></a></td>
+        <td><%=: docs[i].createTime | format %></td>
+        <td><%=: docs[i].modifyTime | format %></td>
+        <td><a href="javascript:void(0)" class="js-log-delete" data-id="<%= docs[i]._id %>">删除</a></td>
+    </tr>
+    <% } %>
+    </tbody>
+</table>
+<%- include ../common/pager %>
+<% }else{ %>
+<div class="alert alert-warning" role="alert">暂无数据</div>
+<% } %>
+<%- include footer %>
+<script>
+    $(function () {
+        $('.js-log-manager').addClass("panel-primary");
+    });
+</script>

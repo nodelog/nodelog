@@ -1,0 +1,101 @@
+<%- include header %>
+
+<div class="row js-panel-row">
+
+     <div class="col-sm-12 col-xs-12">
+        <input type="hidden" class="js-doc-id" value="<%-doc._id%>"/>
+        <% if (doc != null) { %>
+        <ol class="breadcrumb">
+            <li><a href="/" title="首页">首页</a></li>
+            <li>
+                <a href="/content/category?categoryId=<%= doc.category %>&page=1"
+                   title="<%= doc.categoryName %>"><%= doc.categoryName %></a>
+            </li>
+            <li class="active"><%= doc.name %></li>
+        </ol>
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h4>
+                    <a href="/content/detail?id=<%= doc._id %>&view=contentDetail" title="<%= doc.name %>"><i
+                                class="glyphicon glyphicon-bookmark"></i>&nbsp;<%= doc.name %></a>
+                    <% if(session.user != null && session.user._id == doc.author){ %>
+                    <a href="/content/edit?id=<%= doc._id %>&view=editContent" class="btn btn-primary pull-right"
+                       role="button">
+                        <i class="glyphicon glyphicon-pencil"></i>&nbsp;编辑
+                    </a>
+                    <% } %>
+                    <div class="clearfix"></div>
+                </h4>
+
+                <div class="media color-gray">
+                    <span title="作者"><i
+                                class="glyphicon glyphicon-user"></i>&nbsp;<%- doc.realName?doc.realName:doc.userName %></span>
+                    <span title="分类"><i
+                                class="glyphicon glyphicon-tag col-sm-offset-1"></i>&nbsp;<%- doc.categoryName %></span>
+                    <span title="修改时间"><i
+                                class="glyphicon glyphicon-time  col-sm-offset-1"></i>&nbsp;<%=: doc.modifyTime | format %></span>
+                    <span title="浏览量"><i
+                                class="glyphicon glyphicon-eye-open  col-sm-offset-1"></i>&nbsp;<%= doc.view %></span>
+                    <span>
+                    <% if(session.user == null || session.user._id != doc.author){ %>
+                        <a href="javascript:void(0)" class="js-open-comment-btn" role="button">
+                            <i class="glyphicon glyphicon-comment  col-sm-offset-1"></i>&nbsp;发表评论
+                        </a>
+                    <% }%>
+                    </span>
+                </div>
+
+            </div>
+            <div class="panel-body">
+                <div><%- doc.content %></div>
+            </div>
+        </div>
+        <!--all comments-->
+        <div class="panel panel-default">
+            <div class="panel-heading js-comment-title">所有评论</div>
+            <div class="panel-body">
+                <div class="">
+                    <div class="alert alert-warning js-all-comment hide" role="alert">暂无评论!</div>
+                    <div class="js-comment-panel">加载评论 ...</div>
+                    <div class="form-group hide js-more-comment">
+                        <div class="l-padding-vertical">
+                            <button type="submit" class="btn btn-primary col-sm-1 col-xs-12 js-more-comment-btn">更多
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!--post comment-->
+        <% if(session.user == null || session.user._id != doc.author){ %>
+        <div class="panel panel-default">
+            <div class="panel-heading">发表评论</div>
+            <div class="panel-body">
+                <div>
+                    <form role="form" action="javascript:void(0)">
+                        <div class="form-group">
+                            <textarea class="js-comment-input form-control l-heigh-100" placeholder="登录后方可评论
+"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <div class="l-padding-vertical">
+                                <button type="submit" class="btn btn-primary col-sm-1 col-xs-12 pull-right js-post-comment-btn"
+                                        data-id="<%= doc._id %>" disabled>评论
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <% } %>
+        <% } else { %>
+        <div class="alert alert-warning" role="alert">This Content not exists!</div>
+        <% } %>
+    </div>
+</div>
+<% if(session.user != null && session.user._id == doc.author){ %>
+<input type="hidden" class="js-current-menu" value="js-my-content-menu"/>
+<% } %>
+<%- include footer %>
+

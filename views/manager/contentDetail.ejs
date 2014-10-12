@@ -1,0 +1,48 @@
+<%- include header %>
+
+<div class="row js-panel-row">
+
+    <div class="col-sm-12  col-xs-12">
+        <% if (doc != null) { %>
+        <ol class="breadcrumb">
+            <li><a href="/manager">后台首页</a></li>
+            <li><a href="/manager/content?page=1&manager=true">日志管理</a></li>
+            <li class="active"><%= doc.name %></li>
+        </ol>
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h4>
+                    <a href="/content/detail?id=<%= doc._id %>&view=contentDetail" title="reload <%= doc.name %>"><i
+                                class="glyphicon glyphicon-bookmark"></i>&nbsp;<%= doc.name %></a>
+
+                    <div class="clearfix"></div>
+                </h4>
+
+                <div class="media color-gray">
+                    <span title="ahther"><i
+                                class="glyphicon glyphicon-pencil"></i>&nbsp;<%- doc.userName %></span>
+                    <span title="category"><i
+                                class="glyphicon glyphicon-tag col-sm-offset-1"></i>&nbsp;<%- doc.categoryName %></span>
+                    <span title="time"><i
+                                class="glyphicon glyphicon-time  col-sm-offset-1"></i>&nbsp;<%=: doc.createTime | format %></span>
+                    <span title="view count"><i
+                                class="glyphicon glyphicon-eye-open  col-sm-offset-1"></i>&nbsp;<%= doc.view %></span>
+                </div>
+
+            </div>
+            <div class="panel-body">
+                <div><%- doc.content %></div>
+            </div>
+        </div>
+        <% } else { %>
+        <div class="alert alert-warning" role="alert">This Content not exists!</div>
+        <% } %>
+    </div>
+    
+</div>
+<%- include footer %>
+<script>
+    $(function () {
+        $('.js-content-manager').addClass("panel-primary");
+    });
+</script>

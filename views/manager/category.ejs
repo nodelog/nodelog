@@ -1,0 +1,61 @@
+<%- include header %>
+<ol class="breadcrumb">
+    <li><a href="/manager">Home</a></li>
+    <li class="active">Category Manager</li>
+</ol>
+<h3> Category Manager
+    <button type="button" class="btn btn-default pull-right js-add-category">
+        <i class="glyphicon glyphicon-plus"></i>&nbsp;Add Category
+    </button>
+</h3>
+
+<div class="clearfix"></div>
+<% if(docs.length > 0){ %>
+<table class="table table-hover">
+    <thead>
+    <tr>
+        <th>No.</th>
+        <th>name</th>
+        <th>create time</th>
+        <th>modify time</th>
+        <th>operation</th>
+    </tr>
+    </thead>
+    <tbody>
+    <% for(var i = 0;i < docs.length;i++){ %>
+    <tr>
+        <td><%= i + 1 %></td>
+        <td><a href="javascript:void(0)" data-id="<%= docs[i]._id %>" class="js-modify-category"
+               title="click modify category"><%= docs[i].name %></a></td>
+        <td><%=: docs[i].createTime | format %></td>
+        <td><%=: docs[i].modifyTime | format %></td>
+        <td><a href="javascript:void(0)" class="js-category-delete" data-id="<%= docs[i]._id %>">删除</a></td>
+    </tr>
+    <% } %>
+    </tbody>
+</table>
+<%- include ../common/pager%>
+<% }else{ %>
+<div class="alert alert-warning" role="alert">暂无数据</div>
+<% } %>
+<div class="hide">
+    <div class="js-add-category-panel">
+        <form action="javascript:void(0)" class="form-horizontal l-login-panel" role="form">
+            <div class="input-group">
+                <span class="input-group-addon">分类名称</span>
+                <input type="text" class="form-control js-category-name" placeholder="输入分类名称" maxlength="20"/>
+            </div>
+            <div class="form-group">
+                <div class="col-sm-12 l-padding-vertical">
+                    <button type="submit" class="btn btn-primary col-sm-12 js-save-category">保存</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+<%- include footer %>
+<script>
+    $(function () {
+        $('.js-category-manager').addClass("panel-primary");
+    });
+</script>

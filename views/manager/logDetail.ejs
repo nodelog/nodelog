@@ -1,0 +1,42 @@
+<%- include header %>
+
+<div class="row js-panel-row">
+
+    <div class="col-sm-12  col-xs-12">
+        <% if (doc != null) { %>
+        <ol class="breadcrumb">
+            <li><a href="/manager">后台首页</a></li>
+            <li><a href="/manager/log?page=1&view=manager/log">公告管理</a></li>
+            <li class="active"><%=title%></li>
+        </ol>
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h4>
+                    <a href="/manager/log/detail?id=<%= doc._id %>&view=manager/logDetail" title="reload <%= doc.name %>"><i
+                                class="glyphicon glyphicon-bookmark"></i>&nbsp;<%= doc.name %></a>
+
+                    <div class="clearfix"></div>
+                </h4>
+
+                <div class="media color-gray">
+                    <span title="发布时间"><i
+                                class="glyphicon glyphicon-time"></i>&nbsp;<%=: doc.createTime | format %></span>
+                </div>
+
+            </div>
+            <div class="panel-body">
+                <div><%- doc.content %></div>
+            </div>
+        </div>
+        <% } else { %>
+        <div class="alert alert-warning" role="alert">公告已经失效!</div>
+        <% } %>
+    </div>
+    
+</div>
+<%- include footer %>
+<script>
+    $(function () {
+        $('.js-log-manager').addClass("panel-primary");
+    });
+</script>

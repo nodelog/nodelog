@@ -1,0 +1,17 @@
+<%- include header %>
+<div class="row js-panel-row">
+
+    <div class="col-sm-12 col-xs-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">所有日志 (<%=total%>)</div>
+            <div class="panel-body">
+                <%- include /contentPanel%>
+            </div>
+        </div>
+    </div>
+
+</div>
+<input type="hidden" class="js-login-flag" value="<%=login%>"/>
+<%- include footer %>
+
+

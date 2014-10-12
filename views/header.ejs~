@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<META HTTP-EQUIV="Cache-Control" CONTENT="no-cache" />
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title><%if(locals.title){%><%=title%><%}%></title>
+    <link href="/js/external/google-code-prettify/prettify.css" rel="stylesheet">
+    <link href="/css/font-awesome.css" rel="stylesheet">
+    <link rel='stylesheet' href='/css/bootstrap.css'/>
+    <link rel='stylesheet' href='/css/docs.min.css'/>
+    <link rel='stylesheet' href='/css/style.css'/>
+</head>
+<body class="bg-gray js-body">
+<div class="navbar bg-blue bottom-border">
+    <div class="container">
+        <div class="navbar-collapse">
+            <ul class="nav navbar-nav shadow full-width">
+                <li title="解点日志"><a href="/" class="color-white js-home-menu">
+                        <i class="glyphicon glyphicon-home"></i>&nbsp;解点日志
+                    </a>
+                </li>
+                <li  title="分类查看" role="presentation" class="dropdown js-category">
+                    <a class="dropdown-toggle color-white js-category-content" data-toggle="dropdown" href="javascript:void(0);">
+                        <!-- <i class="glyphicon glyphicon-list"></i> &nbsp;<span class="js-category-menu-name">分类查看</span> -->
+                        <i class="glyphicon glyphicon-list"></i> &nbsp;分类查看&nbsp;&nbsp;<i class="glyphicon glyphicon-chevron-down"></i>
+                    </a>
+                    <ul class="dropdown-menu l-select js-category-menu" role="menu"> </ul>
+                </li>
+                <li  title="我发表的日志"><a href="javascript:void(0);" class="color-white js-my-content-menu" >
+                        <i class="glyphicon glyphicon-book"></i>&nbsp;我的日志
+                    </a>
+                </li>
+                <li  title="我的评说"><a href="javascript:void(0);" class="color-white js-my-comment-menu" >
+                        <i class="glyphicon glyphicon-comment"></i>&nbsp;我的评说
+                    </a>
+                </li>
+                <li  title="发表日志">
+                    <a href="/content/addPage?view=addContent" class="color-white js-post-log">
+                        <i class="glyphicon glyphicon-pencil"></i>&nbsp;发表日志
+                    </a>
+                </li>
+                <li title="公告"><a href="/log?page=1&view=log" class="color-white js-log" >&nbsp;<i class="glyphicon glyphicon-volume-up"></i>&nbsp;公告</a></li>
+                <!--<li title="刷新"><a href="javascript:void(0);" class="color-white js-refresh" >&nbsp;<i class="glyphicon glyphicon-refresh"></i>&nbsp;刷新</a></li>-->
+                <li title="搜索" role="presentation" class="dropdown js-search-bar search-bar" style="padding: 0px 10px 0px 10px;">
+                    <input type="search" data-toggle="dropdown" class="dropdown-toggle form-control search-input js-search" value="<%if(locals.key){%><%=key%><%}%>" placeholder="回车搜索"/>
+                    <ul class="dropdown-menu l-search-select hide js-search-panel" role="menu"> </ul>
+		        </li>
+		        <% if(session.user != null){ %>
+                <li title="后台管理"><a href="/manager" class="color-white" >
+                        <i class="glyphicon glyphicon-user"></i>&nbsp;<%= session.user.userName %>
+                    </a>
+                </li>
+        		<li title="退出系统"><a href="javascript:void(0)" class="color-white js-logout-btn" >
+                        <i class="glyphicon glyphicon-log-out"></i>&nbsp;退出
+                    </a>
+                </li>
+                
+                <% }else{ %>
+                <li title="老用户登录"><a href="javascript:void(0)" class="js-login-btn color-white">
+                        <i class="glyphicon glyphicon-log-in"></i>&nbsp;登录
+                    </a>
+                </li>
+                <li title="新用户注册"><a href="javascript:void(0)" class="js-register-btn color-white">
+                        <i class="glyphicon glyphicon-registration-mark"></i>&nbsp;注册
+                    </a>
+                </li>
+                <% } %>
+            </ul>
+            <!--
+            <ul class="nav navbar-nav pull-right js-user-bar">
+            </ul>
+            -->
+            <div class="hide">
+                <div class="js-login-panel">
+                <div class="row js-panel-row">
+                    <div class="col-sm-12 col-xs-12">
+                    <form action="javascript:void(0)" class="form-horizontal l-login-panel" role="form">
+                        <div class="input-group">
+                            <span class="input-group-addon"><i class="glyphicon glyphicon-user"></i></span>
+                            <input type="text" class="form-control js-login-username" value="jack"
+                                   placeholder="用户名" maxlength="20"/>
+                        </div>
+                        <div class="input-group">
+                            <span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
+                            <input type="password" class="form-control js-login-password" value="ddd"
+                                   placeholder="密码" maxlength="20"/>
+                        </div>
+                        <div class="form-group">
+                            <div class="col-sm-12 l-padding-vertical">
+                                <button type="submit" class="btn btn-primary col-sm-12 col-xs-12 js-signIn-btn">登录</button>
+                            </div>
+                        </div>
+                    </form>
+                    </div>
+                    </div>
+                </div>
+                <div class="container js-register-panel">
+                    <div class="row js-panel-row">
+                    <div class="col-sm-12 col-xs-12">
+                    <form action="javascript:void(0)" class="form-horizontal l-register-panel" role="form">
+                        <div class="input-group">
+                            <span class="input-group-addon"><i class="glyphicon glyphicon-user"></i></span>
+                            <input type="text" class="form-control js-register-username" value=""
+                                   placeholder="用户名" maxlength="20"/>
+                        </div>
+                        <div class="input-group">
+                            <span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
+                            <input type="password" class="form-control js-register-password" value=""
+                                   placeholder="密码" maxlength="20"/>
+                        </div>
+                        <div class="input-group">
+                            <span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
+                            <input type="password" class="form-control js-register-password2" value=""
+                                   placeholder="确认密码" maxlength="20"/>
+                        </div>
+                        <div class="form-group">
+                            <div class="col-sm-12 l-padding-vertical">
+                                <button type="submit" class="btn btn-primary col-sm-12 col-xs-12 js-signUp-btn">注册</button>
+                            </div>
+                        </div>
+                    </form>
+                     </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="container bg-white ">
+    <article class="l-padding-vertical">

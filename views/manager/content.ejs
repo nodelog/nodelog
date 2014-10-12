@@ -1,0 +1,58 @@
+<%- include header %>
+<ol class="breadcrumb">
+    <li><a href="/manager">后台首页</a></li>
+    <li class="active">日志管理</li>
+</ol>
+<h3>日志管理</h3>
+<% if(docs.length > 0){ %>
+<table class="table table-hover">
+    <thead>
+    <tr>
+        <th>编号</th>
+        <th>标题</th>
+        <th>作者</th>
+        <th>分类</th>
+        <th>发表时间</th>
+        <th>修改时间</th>
+        <th>状态</th>
+        <th>操作</th>
+    </tr>
+    </thead>
+    <tbody>
+    <% for(var i = 0;i < docs.length;i++){ %>
+    <tr>
+        <td><%= i + 1 %></td>
+        <td><a href="/content/detail?id=<%= docs[i]._id %>&view=manager/contentDetail"
+               title="<%= docs[i].name %>"><%= docs[i].name.length > 10 ? docs[i].name.substring(0, 10) + "..." : docs[i].name %></a>
+        </td>
+        <td><%- docs[i].userName %></td>
+        <td><%- docs[i].categoryName %></td>
+        <td><%=: docs[i].createTime | format %></td>
+        <td><%=: docs[i].modifyTime | format %></td>
+        <td>
+        <%if(session.user._id==docs[i].author){%>
+            
+            <input type="checkbox" data-id="<%= docs[i]._id %>" data-type="<%= docs[i].status %>"
+                   class="js-content-status"/>
+        <%}else {%>
+            --
+        <%}%>
+        </td>
+        <td>
+            <a href="javascript:void(0)" class="js-content-delete" data-id="<%= docs[i]._id %>">删除</a>
+        </td>
+
+    </tr>
+    <% } %>
+    </tbody>
+</table>
+<%- include ../common/pager%>
+<% }else{ %>
+<div class="alert alert-warning" role="alert">暂无数据</div>
+<% } %>
+<%- include footer %>
+<script>
+    $(function () {
+        $('.js-content-manager').addClass("panel-primary");
+    });
+</script>

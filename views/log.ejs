@@ -1,0 +1,42 @@
+<%- include header %>
+<ol class="breadcrumb">
+    <li><a href="/" title="首页">首页</a></li>
+    <li class="active">系统公告</li>
+</ol>
+<div class="row js-panel-row">
+
+    <div class="col-sm-12 col-xs-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">所有公告 (<%=total%>)</div>
+            <div class="panel-body">
+                <% if(docs.length > 0){ %>
+                <% for(var i = 0;i < docs.length;i++){ %>
+                <div class="bs-callout bs-callout-info">
+                    <h4>
+                        <i class="glyphicon glyphicon-bookmark"></i>
+                        <a href="/log/detail?id=<%= docs[i]._id %>&view=logDetail"
+                           title="<%= docs[i].name %>"><%= docs[i].name.length > 50 ? docs[i].name.substring(0, 50) + "..." : docs[i].name %></a>
+                    </h4>
+                    <div class="clearfix"></div>
+                    <div class="media color-gray">
+                        <span title="修改时间"><i class="glyphicon glyphicon-time"></i>&nbsp;
+                            <%=: docs[i].modifyTime | format %>
+                        </span>
+                    </div>
+                </div>
+                <% } %>
+                <%- include /common/pager %>
+                <% }else{ %>
+                <div class="alert alert-warning" role="alert">暂无日志!</div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+</div>
+<input type="hidden" class="js-current-menu" value="js-log"/>
+<%- include footer %>
+
+
+
+
