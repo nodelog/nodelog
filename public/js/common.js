@@ -163,6 +163,7 @@ $(function () {
                     if (sessionUser == null) {
                         $('.js-login-btn').click();
                     }
+                    $(window).bind('beforeunload',function(){return '您输入的内容尚未保存，确定离开此页面吗？';});
                 }
             }, "json");
         }
@@ -209,6 +210,7 @@ $(function () {
                     layer.close(index);
                     myMsg(data.msg);
                     loading();
+                    $(window).unbind('beforeunload');
                     location.reload();
                 }else{
                      myMsg(data.msg);
@@ -255,6 +257,7 @@ $(function () {
             loading();
             $.get("/user/logout", {}, function (data) {
                 layer.close(index);
+                $(window).unbind('beforeunload');
                 location.reload();
             }, "json");
         })
@@ -440,6 +443,7 @@ $(function () {
                     layer.close(index);
                     myMsg(data.msg);
                     if (data.success) {//success
+                        $(window).unbind('beforeunload');
                         if (id != null) {
                             window.location = "/content/detail?view=contentDetail&id=" + id;
                         }
@@ -801,4 +805,5 @@ $(function () {
         };
         with (document)0[(getElementsByTagName('head')[0] || body).appendChild(createElement('script')).src = '/js/share.js?v=89860593.js?cdnversion=' + ~(-new Date() / 36e5)];
     }
+
 });
