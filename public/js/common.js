@@ -156,6 +156,7 @@ $(function () {
                     if (sessionUser == null) {
                         $('.js-login-btn').click();
                     }
+		    $(window).bind('beforeunload',function(){return '您输入的内容尚未保存，确定离开此页面吗？';});
                 }
                 if (url.indexOf("view=editContent") != -1) {
                     $('.js-editor').html($('.js-content-hide').html());
