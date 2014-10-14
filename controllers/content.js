@@ -370,7 +370,7 @@ exports.findByUser = function (req, res) {
         }]
     }, function (err, results) {
         var view = "myContent";
-        var title = user.realName?user.realName:user.userName + "的日志";
+        var title = "我的日志";
         if (req.query.manager === "true") {
             view = "manager/content";
             title = "日志管理";
