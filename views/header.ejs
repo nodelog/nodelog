@@ -4,7 +4,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <META HTTP-EQUIV="Cache-Control" CONTENT="no-cache" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <meta content="解点日志" name="keywords" />
+    <meta content="误码者" name="keywords" />
     <meta content="" name="description" />
     <title><%if(locals.title){%><%=title%><%}%></title>
     <link href="/js/external/google-code-prettify/prettify.css" rel="stylesheet">
@@ -28,20 +28,20 @@
     <div class="container">
         <div class="navbar-collapse">
             <ul class="nav navbar-nav shadow full-width">
-                <li title="解点日志">
-                    <a href="/" class="color-white js-home-menu">
-                        <i class="glyphicon glyphicon-home"></i>&nbsp;解点日志
+                <li title="误码者">
+                    <a href="/" class="color-white js-home-menu <%if((!locals.currentMenu)||currentMenu=="home"){%>current-menu<%}%>">
+                        <i class="glyphicon glyphicon-home"></i>&nbsp;误码者
                     </a>
                 </li>
                 <li  title="分类查看" role="presentation" class="dropdown js-category">
-                    <a class="dropdown-toggle color-white js-category-content" data-toggle="dropdown" href="javascript:void(0);">
+                    <a class="dropdown-toggle color-white js-category-content <%if(locals.currentMenu&&currentMenu=="category"){%>current-menu<%}%>" data-toggle="dropdown" href="javascript:void(0);">
                         <!-- <i class="glyphicon glyphicon-list"></i> &nbsp;<span class="js-category-menu-name">分类查看</span> -->
                         <i class="glyphicon glyphicon-list"></i> &nbsp;分类查看&nbsp;&nbsp;<i class="glyphicon glyphicon-chevron-down"></i>
                     </a>
                     <ul class="dropdown-menu l-select js-category-menu" role="menu"> </ul>
                 </li>
                 <li  title="我发表的日志">
-                    <a href="javascript:void(0);" class="color-white js-my-content-menu" >
+                    <a href="javascript:void(0);" class="color-white js-my-content-menu <%if(locals.currentMenu&&currentMenu=="mycontent"){%>current-menu<%}%>" >
                         <i class="glyphicon glyphicon-book"></i>&nbsp;我的日志
                     </a>
                 </li>
@@ -50,13 +50,14 @@
                     </a>
                 </li>-->
                 <li  title="发表日志">
-                    <a href="/content/addPage?view=addContent" class="color-white js-post-log">
+                    <a href="/content/addPage?view=addContent" class="color-white js-post-log <%if(locals.currentMenu&&currentMenu=="content"){%>current-menu<%}%>">
                         <i class="glyphicon glyphicon-pencil"></i>&nbsp;发表日志
                     </a>
                 </li>
                 <li title="公告">
-                    <a href="/log?view=log&page=1" class="color-white js-log" >
+                    <a href="/log?view=log&page=1" class="color-white js-log <%if(locals.currentMenu&&currentMenu=="log"){%>current-menu<%}%>">
                         &nbsp;<i class="glyphicon glyphicon-volume-up"></i>&nbsp;公告
+                        <span class="badge js-log-count"></span>
                     </a>
                 </li>
 		        <% if(session.user != null){ %>

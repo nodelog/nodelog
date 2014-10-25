@@ -98,13 +98,13 @@ Date.prototype.format = function (fmt) {
 }
 $(function () {
     var url = location.href;
-    var current_menu = $('.js-current-menu').val();
-    if (current_menu && $('.' + current_menu).length > 0) {
-        $('.current-menu').removeClass("current-menu");
-        $('.' + current_menu).addClass("current-menu");
-    } else {
-        $('.js-home-menu').addClass("current-menu");
-    }
+//    var current_menu = $('.js-current-menu').val();
+//    if (current_menu && $('.' + current_menu).length > 0) {
+//        $('.current-menu').removeClass("current-menu");
+//        $('.' + current_menu).addClass("current-menu");
+//    } else {
+//        $('.js-home-menu').addClass("current-menu");
+//    }
     var sessionUser;
     $.ajax({
         url: "/session",
@@ -617,7 +617,7 @@ $(function () {
      $('.js-category-menu').removeClass("showcategory");
      $('.js-category-content').blur();
      });*/
-    $('.js-menu-panel .bg-color').removeClass("bg-color");
+//    $('.js-menu-panel .bg-color').removeClass("bg-color");
     //回车搜索
     $('.js-search').on('keydown keyup focus click change', function (e) {
         var $this = $(this);
@@ -791,10 +791,12 @@ $(function () {
             }
         }, "json");
     });
-    if (url.indexOf("/manager") == -1) {
 
-
-        window._bd_share_config = {
+    if (url.indexOf("/manager") == -1) {//非管理端页面
+        $.post("/log/count",{},function(data) {
+            $('.js-log-count').text(data.count);
+        },"json");
+        window._bd_share_config = {//百度分享
             "common": {
                 "bdSnsKey": {"tsina": "NODELOG", "tqq": "NODELOG", "t163": "NODELOG", "tsohu": "NODELOG"},
                 "bdText": document.title + "-NODELOG-" + location.href,

@@ -14,15 +14,15 @@ exports.findByPage = function (req, res) {
             var totalPage = pageObj.totalPage;
             if (!err && totalPage > 0) {
                 User.findByPage(page, function (err, docs) {
-                    res.render("manager/user", {docs: docs, title: "用户管理", page: page, totalPage: totalPage, url:"/manager/user?"});
+                    res.render("manager/user", {docs: docs, title: "用户管理", page: page, totalPage: totalPage, url:"/manager/user?",currentMenu:"user"});
                 });
             } else {
                 console.log("data error");
-                res.render("manager/user", {docs: {}, title: "用户管理", page: page, totalPage: totalPage});
+                res.render("manager/user", {docs: {}, title: "用户管理", page: page, totalPage: totalPage,currentMenu:"user"});
             }
         });
     } else {
-        res.render("manager/user", {docs: req.session.user, title: "用户管理"});
+        res.render("manager/user", {docs: req.session.user, title: "用户管理",currentMenu:"user"});
     }
 }
 

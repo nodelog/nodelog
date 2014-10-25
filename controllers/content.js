@@ -106,13 +106,15 @@ exports.findByPage = function (req, res) {
         }
         var view = "index";
         var url = "/index?";
-        var title = "解点日志";
+        var title = "误码者";
+        var currentMenu = "home";
         if (req.query.manager === "true") {
             view = "manager/content";
             url = "/manager/content?manager=true&";
             title = "日志管理";
+            currentMenu = "content";
         }
-        res.render(view, {docs: docs, title: title, login: login, page: page, totalPage: totalPage, total: total,url: url});
+        res.render(view, {docs: docs, title: title, login: login, page: page, totalPage: totalPage, total: total,url: url,currentMenu:currentMenu});
     });
 
 };
@@ -288,7 +290,8 @@ exports.findByCategory = function (req, res) {
 			return;
 		}
         res.render("categoryContent", {docs: docs, category: category, title: category.name + " 相关日志",
-            page: page, totalPage: totalPage, total: total, url:"/content/category?categoryId="+categoryId+"&"});
+            page: page, totalPage: totalPage, total: total, url:"/content/category?categoryId="+categoryId+"&",
+            currentMenu:"category"});
 		
     });
 };
@@ -371,12 +374,14 @@ exports.findByUser = function (req, res) {
     }, function (err, results) {
         var view = "myContent";
         var title = "我的日志";
+        var currentMenu = "mycontent";
         if (req.query.manager === "true") {
             view = "manager/content";
             title = "日志管理";
+            currentMenu = "content";
         }
 		console.log(new Date());
-        res.render(view, {docs: docs, title: title, page: page, totalPage: totalPage, total: total, url:"/content/user?"});
+        res.render(view, {docs: docs, title: title, page: page, totalPage: totalPage, total: total, url:"/content/user?",currentMenu:"mycontent"});
     });
 };
 exports.findByWord = function (req, res) {

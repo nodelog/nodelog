@@ -11,13 +11,14 @@ exports.findByPage = function (req, res) {
         var pageObj = cmsUtils.page(req.query.page,total);
         var page = pageObj.page;
         var totalPage = pageObj.totalPage;
+        var currentMenu = "category";
         if (!err && totalPage > 0) {
             Category.findByPage(page, function (err, docs) {
-                res.render("manager/category", {docs: docs, title: "分类管理", page: page, totalPage: totalPage, url:"/manager/category?"});
+                res.render("manager/category", {docs: docs, title: "分类管理", page: page, totalPage: totalPage, url:"/manager/category?",currentMenu:currentMenu});
             });
         } else {
             console.log("data error");
-            res.render("manager/category", {docs: {}, title: "分类管理", page: page, totalPage: totalPage});
+            res.render("manager/category", {docs: {}, title: "分类管理", page: page, totalPage: totalPage,currentMenu:currentMenu});
         }
     });
 }

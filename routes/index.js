@@ -16,7 +16,7 @@ var route = function (app) {
     app.get('/user/logout', user.logout);
 
     app.get('/manager', filter.authorize, function (req, res) {
-        res.render('manager/index', { title: '解点日志'});
+        res.render('manager/index', { title: '误码者',currentMenu:"home"});
     });
     app.get('/manager/user', filter.authorize,  user.findByPage);
     app.get('/manager/category', filter.authorize, filter.authorizeAdmin, category.findByPage);
@@ -47,19 +47,20 @@ var route = function (app) {
     app.post('/manager/category/modify', filter.authorizeAdmin, category.update);
     app.post('/manager/category/delete', filter.authorizeAdmin, category.delete);
     app.get('/manager/log', filter.authorizeAdmin, log.findByPage);
-    app.get('/manager/log/addPage', filter.authorizeAdmin, function(req,res){res.render("manager/addLog",{title:"发布公告",template:"<br /><br /><br /><br />NODELOG ｜ 技术部<br />"+new Date().format("yyyy年MM月dd日")});});
+    app.get('/manager/log/addPage', filter.authorizeAdmin, function(req,res){res.render("manager/addLog",{title:"发布公告",template:"<br /><br /><br /><br />误码者 ｜ 技术部<br />"+new Date().format("yyyy年MM月dd日")});});
     app.post('/manager/log/add', filter.authorizeAdmin, log.add);
     app.post('/manager/log/delete', filter.authorizeAdmin, log.delete);
     app.get('/log/detail',  log.findById);
     app.get('/manager/log/detail',filter.authorizeAdmin, log.findById);
     app.get('/log',log.findByPage);
+    app.post('/log/count',log.logCount);
     app.get('/category/all', category.findAll);
     app.get('/content/detail', content.findById);
     app.get('/content/edit', filter.authorize, content.findById);
     app.get('/content/category', content.findByCategory);
     app.post('/content/add', filter.authorize, content.add);
     app.get('/content/addPage', function (req, res) {
-        res.render("addContent", {"title": "发表日志"});
+        res.render("addContent", {"title": "发表日志",currentMenu:"content"});
     });
     app.post('/comment/add', filter.authorize, comment.add);
     app.get('/comment/all', comment.findByPageAndContent);

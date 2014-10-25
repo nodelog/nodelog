@@ -7,7 +7,11 @@ var getCount = function (callback) {
         callback(err, total);
     });
 };
-
+exports.logCount = function(req, res) {
+    getCount(function(err, count) {
+        res.json({count:count});
+    });
+}
 exports.findByPage = function (req, res) {
     var total = 0, page = 0, totalPage = 0, docs = {};
     async.auto({
@@ -36,7 +40,7 @@ exports.findByPage = function (req, res) {
         if (view.indexOf("manager")) {
             title = "公告管理";
         }
-        res.render(view, {docs: docs, title: title, page: page, totalPage: totalPage, total: total, url:"/"+view+"?view="+view+"&"});
+        res.render(view, {docs: docs, title: title, page: page, totalPage: totalPage, total: total, url:"/"+view+"?view="+view+"&",currentMenu:"log"});
     });
 
 };
