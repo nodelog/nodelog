@@ -55,7 +55,7 @@
             <!--不要修改下面一行的class-->
             <div class="col-sm-3 js-menu-panel" style="">
                 <div class="panel-group l-top-bottom js-menu-bar" id="accordion">
-                    <div class="panel panel-default js-content-manager">
+                    <div class="panel js-content-manager">
                         <div class="panel-heading">
                             <h4 class="panel-title"><a href="/manager/content?manager=true&page=1" class="transition">日志管理</a></h4>
                         </div>
@@ -71,18 +71,18 @@
                             <h4 class="panel-title"><a href="#">系统设置</a></h4>
                         </div>
                     </div>-->
-                    <div class="panel panel-default js-user-manager">
+                    <div class="panel js-user-manager">
                         <div class="panel-heading">
                             <h4 class="panel-title"><a href="/manager/user?page=1" class="transition">用户管理</a></h4>
                         </div>
                     </div>
                     <% if(session.user.role == 0){ %>
-                    <div class="panel panel-default js-category-manager">
+                    <div class="panel js-category-manager">
                         <div class="panel-heading">
                             <h4 class="panel-title"><a href="/manager/category?page=1" class="transition">分类管理</a></h4>
                         </div>
                     </div>
-                    <div class="panel panel-default js-log-manager">
+                    <div class="panel js-log-manager">
                         <div class="panel-heading">
                             <h4 class="panel-title"><a href="/manager/log?view=manager/log&page=1" class="transition">公告管理</a></h4>
                         </div>

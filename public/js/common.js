@@ -99,7 +99,7 @@ Date.prototype.format = function (fmt) {
 $(function () {
     var url = location.href;
     var current_menu = $('.js-current-menu').val();
-    if (current_menu && $('.'+current_menu).length>0) {
+    if (current_menu && $('.' + current_menu).length > 0) {
         $('.current-menu').removeClass("current-menu");
         $('.' + current_menu).addClass("current-menu");
     } else {
@@ -125,7 +125,7 @@ $(function () {
                 var _categoryId = $('.js-edit-content-category').val();
                 $.each(docs, function (i, tempDoc) {
                     var _id = tempDoc._id, _name = tempDoc.name;
-                    _url = "/content/category?categoryId=" + _id+"&page=1";
+                    _url = "/content/category?categoryId=" + _id + "&page=1";
                     html += '<li><a href="' + _url + '"  class="l-option">' + _name + '</a></li>';
                     if (url.indexOf("content/addPage") != -1) {
                         _addHtml += '<option class="l-option" value="' + _id + '">' + _name + '</option>';
@@ -156,7 +156,9 @@ $(function () {
                     if (sessionUser == null) {
                         $('.js-login-btn').click();
                     }
-		    $(window).bind('beforeunload',function(){return '您输入的内容尚未保存，确定离开此页面吗？';});
+                    $(window).bind('beforeunload', function () {
+                        return '您输入的内容尚未保存，确定离开此页面吗？';
+                    });
                 }
                 if (url.indexOf("view=editContent") != -1) {
                     $('.js-editor').html($('.js-content-hide').html());
@@ -164,24 +166,26 @@ $(function () {
                     if (sessionUser == null) {
                         $('.js-login-btn').click();
                     }
-                    $(window).bind('beforeunload',function(){return '您输入的内容尚未保存，确定离开此页面吗？';});
+                    $(window).bind('beforeunload', function () {
+                        return '您输入的内容尚未保存，确定离开此页面吗？';
+                    });
                 }
             }, "json");
-        }
-    $('.js-category-menu').delegate('.js-category-auto','keyup focus click change',function(e){
+    }
+    $('.js-category-menu').delegate('.js-category-auto', 'keyup focus click change', function (e) {
         e.stopPropagation();
         var $this = $(this);
         var _val = $this.val().trim();
         if (_val != "") {
             $('.js-category-menu li').each(function () {
-                    _this = $(this).children("a:first");
-                    if (_this.text().toLowerCase().indexOf(_val.toLowerCase()) != -1) {//存在
-                        _this.parent().removeClass("hide");
-                    } else {
-                        _this.parent().addClass("hide");
+                _this = $(this).children("a:first");
+                if (_this.text().toLowerCase().indexOf(_val.toLowerCase()) != -1) {//存在
+                    _this.parent().removeClass("hide");
+                } else {
+                    _this.parent().addClass("hide");
 
-                    }
-                });
+                }
+            });
         } else {
             $('.js-category-menu li').removeClass("hide");
         }
@@ -213,8 +217,8 @@ $(function () {
                     loading();
                     $(window).unbind('beforeunload');
                     location.reload();
-                }else{
-                     myMsg(data.msg);
+                } else {
+                    myMsg(data.msg);
                 }
             }, "json");
         }
@@ -604,18 +608,18 @@ $(function () {
         }
     });
     /* $('.js-category-content').mouseenter(function (e) {
-         if (e.target == this) {
-             $('.js-category-menu').addClass("showcategory");
-             $('.js-category-content').focus();
-         }
+     if (e.target == this) {
+     $('.js-category-menu').addClass("showcategory");
+     $('.js-category-content').focus();
+     }
      });
      $('.js-category').mouseleave(function () {
-         $('.js-category-menu').removeClass("showcategory");
-         $('.js-category-content').blur();
+     $('.js-category-menu').removeClass("showcategory");
+     $('.js-category-content').blur();
      });*/
-    $('.js-menu-panel .panel-primary').removeClass("panel-primary");
+    $('.js-menu-panel .bg-color').removeClass("bg-color");
     //回车搜索
-    $('.js-search').on('keydown keyup focus click change', function(e){
+    $('.js-search').on('keydown keyup focus click change', function (e) {
         var $this = $(this);
         var maxlength = parseInt($this.attr("maxlength"), 10);
         if ($this.val().length >= maxlength) {
@@ -629,18 +633,18 @@ $(function () {
                 myMsg("请输入关键字");
                 return false;
             }
-            loading("开始搜索 \""+_word+"\" 相关日志...");
-            location.href = _searchUrl+"?word="+_word+"&page=1";
-        }else {
+            loading("开始搜索 \"" + _word + "\" 相关日志...");
+            location.href = _searchUrl + "?word=" + _word + "&page=1";
+        } else {
             var _html = '<li style="padding: 5px;"><input type="text" class="form-control js-search-auto" placeholder="筛选" x-webkit-speech /></li>';
             if (_word != "") {
-                $.post(_searchUrl, {"word":_word}, function (data) {
+                $.post(_searchUrl, {"word": _word}, function (data) {
                     var docs = data.docs;
-                    var _id,_name,_url;
+                    var _id, _name, _url;
                     if (docs.length > 0) {
                         $.each(docs, function (i, tempDoc) {
                             _id = tempDoc._id, _name = tempDoc.name;
-                            _url = "/content/detail?id="+_id+"&view=contentDetail";
+                            _url = "/content/detail?id=" + _id + "&view=contentDetail";
                             _html += '<li><a href="' + _url + '"  class="l-option" target="_blank">' + _name + '</a></li>';
                         });
                     } else {
@@ -655,19 +659,20 @@ $(function () {
         }
     });
     function searchState() {
-            if ($('.js-search').val().trim() != "") {
-                $('.js-search').addClass("search-focus");
-            } else {
-                $('.js-search').removeClass("search-focus");
-            }
+        if ($('.js-search').val().trim() != "") {
+            $('.js-search').addClass("search-focus");
+        } else {
+            $('.js-search').removeClass("search-focus");
+        }
     }
-    $('.js-search').blur(function(){
+
+    $('.js-search').blur(function () {
         searchState();
     });
     if (url.indexOf("/manager") == -1) {
         searchState();
     }
-    $('.js-search-panel').delegate('.js-search-auto','keyup focus click change',function(e){
+    $('.js-search-panel').delegate('.js-search-auto', 'keyup focus click change', function (e) {
         e.stopPropagation();
         var $this = $(this);
         var _val = $this.val().trim();
@@ -684,10 +689,10 @@ $(function () {
             $('.js-search-panel li').removeClass("hide");
         }
     });
-    $('.js-qq-feedback').hover(function(){
-        $(this).find("img").attr("src","/images/qq-enable.jpg");
-    },function(){
-        $(this).find("img").attr("src","/images/qq-disable.png");
+    $('.js-qq-feedback').hover(function () {
+        $(this).find("img").attr("src", "/images/qq-enable.jpg");
+    }, function () {
+        $(this).find("img").attr("src", "/images/qq-disable.png");
     });
     $('.js-add-log-name').bind('keyup change  focus blur', function () {
         var $this = $(this);
@@ -756,17 +761,18 @@ $(function () {
         }, function (data) {
         }, "json");
     });
-    function switchUserEditPanel(){
+    function switchUserEditPanel() {
         $('.js-current-user').fadeToggle();
         $('.js-user-edit-panel').fadeToggle();
     }
-    $('.js-user-edit').click(function() {
+
+    $('.js-user-edit').click(function () {
         switchUserEditPanel();
     });
-    $('.js-user-edit-cancel').click(function() {
+    $('.js-user-edit-cancel').click(function () {
         switchUserEditPanel();
     });
-    $('.js-user-edit-save').click(function() {
+    $('.js-user-edit-save').click(function () {
         var id = sessionUser._id;
         var userName = $('input[name=userName]').val().trim();
         var realName = $('input[name=realName]').val().trim();
@@ -786,9 +792,11 @@ $(function () {
         }, "json");
     });
     if (url.indexOf("/manager") == -1) {
+
+
         window._bd_share_config = {
             "common": {
-                "bdSnsKey": {},
+                "bdSnsKey": {"tsina": "NODELOG", "tqq": "NODELOG", "t163": "NODELOG", "tsohu": "NODELOG"},
                 "bdText": document.title + "-NODELOG-" + location.href,
                 "bdMini": "2",
                 "bdMiniList": false,
@@ -799,12 +807,14 @@ $(function () {
             },
             "slide": {
                 "type": "slide",
-                "bdImg": "2",
+                "bdImg": "5",
                 "bdPos": "right",
-                "bdTop": "160"
-            }
-        };
-        with (document)0[(getElementsByTagName('head')[0] || body).appendChild(createElement('script')).src = '/js/share.js?v=89860593.js?cdnversion=' + ~(-new Date() / 36e5)];
+                "bdTop": "100"
+            }};
+
+
+
+        with (document)0[(getElementsByTagName('head')[0] || body).appendChild(createElement('script')).src = 'http://bdimg.share.baidu.com/static/api/js/share.js?v=89860593.js?cdnversion='+~(-new Date()/36e5)];
     }
 
 });
