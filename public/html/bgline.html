@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="UTF-8"/>
+    <title>html5画渐变背景图片，并自动下载</title>
+</head>
+
+<body>
+<center>
+    <canvas id="c" width="1" height="200" ></canvas>
+</center>
+<script>
+
+    //第一步：获取canvas对象
+    var c = document.getElementById("c");
+    //第二步：获取canvas对象的上下文对象
+    var context = c.getContext("2d");
+
+    /*
+     * 这些是画其他图形代码
+     context.beginPath();
+     context.lineWidth=10;
+     context.strokeStyle="red";
+     context.moveTo(50,50);
+     context.lineTo(150,50);
+     context.stroke();
+     context.closePath();
+
+     //context.strokeRect(220,50,50,50);
+     context.fillStyle="blue";
+     context.fillRect(220,50,50,50);
+
+     context.beginPath();
+     context.arc(150,150,50,0*Math.PI/180,-180*Math.PI/180,false);
+     context.lineTo(150,150);
+     context.closePath();
+     context.stroke();
+
+
+     context.lineWidth=1;
+     context.font="50px 宋体";
+     context.fillText("briup",0,220);
+
+     context.save();
+     context.translate(50,50);
+     context.rotate(90*Math.PI/180);
+
+     context.beginPath();
+     context.lineWidth=10;
+     context.strokeStyle="red";
+     context.moveTo(0,0);
+     context.lineTo(100,0);
+     context.stroke();
+     context.closePath();
+
+     context.restore();
+     */
+    var g = context.createLinearGradient(0,0,0,200);
+    g.addColorStop(0,"90BFFF");
+    g.addColorStop(1,"white");
+    context.fillStyle = g;
+    context.fillRect(0,0,1,200);
+
+    window.location = c.toDataURL("image/jpeg").replace("image/jpeg","image/octet-stream");
+</script>
+
+</body>

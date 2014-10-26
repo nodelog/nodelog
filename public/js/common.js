@@ -479,9 +479,9 @@ $(function () {
     });
     $(window).bind('scroll resize', function () {
         if ($(window).scrollTop() > 50) {
-            $(".js-goto-top").addClass("showme")
+            $(".js-goto-top").show();
         } else {
-            $(".js-goto-top").removeClass("showme")
+            $(".js-goto-top").hide();
         }
     });
     $(".js-goto-top").on("click", function () {
