@@ -820,4 +820,11 @@ $(function () {
         with (document)0[(getElementsByTagName('head')[0] || body).appendChild(createElement('script')).src = 'http://bdimg.share.baidu.com/static/api/js/share.js?v=89860593.js?cdnversion='+~(-new Date()/36e5)];
     }
     $('#gotoTop').tooltip("hide");
+    $('#rightDockerBtn').popover({placement:'left',trigger:'hover',container:'body',template:popverTempl()});
+    function popverTempl() {
+        var template = '<div class="popover bg-gray fade"><div class="arrow"></div><div class="popover-content docker-right">' +
+        '<table class="table"><tbody><tr><td><div class="heading text-center">' +
+        ' 误码者微信</div><img src="/images/weixin.png" width="200" height="200"></td></tbody></table></div></div>';
+        return template;
+    }
 });
