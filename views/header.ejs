@@ -2,7 +2,8 @@
 <html lang="zh-CN">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <META HTTP-EQUIV="Cache-Control" CONTENT="no-cache" />
+    <!--<META HTTP-EQUIV="Cache-Control" CONTENT="no-cache" />-->
+    <META HTTP-EQUIV="Cache-Control" CONTENT="max-age=7200" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <meta content="误码者,errorcoder,error,coder,code,博客,日志,技术,个人" name="keywords" />
     <meta content="误码者,errorcoder,error,coder,code,博客,日志,技术,个人" name="description" />
@@ -13,15 +14,11 @@
     <link rel='stylesheet' href='/css/bootstrap.css'/>
     <link rel='stylesheet' href='/css/docs.min.css'/>
     <link rel='stylesheet' href='/css/style.css'/>
-   <!-- <script>
-        var _hmt = _hmt || [];
-        (function() {
-        var hm = document.createElement("script");
-        hm.src = "//hm.baidu.com/hm.js?fe2d9b2ced8c98a2b5ad94cd6c1ace5b";
-        var s = document.getElementsByTagName("script")[0]; 
-       s.parentNode.insertBefore(hm, s);
-       })();
-    </script>-->
+    <script type="text/javascript">
+        var _bdhmProtocol = (("https:" == document.location.protocol) ? " https://" : " http://");
+        document.write(unescape("%3Cscript src='" + _bdhmProtocol + "hm.baidu.com/h.js%3Fe61d71840b3f5db8010b0800b7b5e9ea' type='text/javascript'%3E%3C/script%3E"));
+    </script>
+
 
 </head>
 <body class="bg-gray js-body">
@@ -29,20 +26,20 @@
     <div class="container">
         <div class="navbar-collapse">
             <ul class="nav navbar-nav shadow full-width">
-                <li title="误码者">
-                    <a href="/" class="color-white js-home-menu <%if((!locals.currentMenu)||currentMenu=="home"){%>current-menu<%}%>">
+                <li >
+                    <a href="/" title="误码者" data-toggle="tooltip" data-placement="bottom" class="color-white js-home-menu <%if((!locals.currentMenu)||currentMenu=="home"){%>current-menu<%}%>">
                         <img src="/images/logo.png" class="logo"/>&nbsp;误码者
                     </a>
                 </li>
-                <li  title="分类查看" role="presentation" class="dropdown js-category">
-                    <a class="dropdown-toggle color-white js-category-content <%if(locals.currentMenu&&currentMenu=="category"){%>current-menu<%}%>" data-toggle="dropdown" href="javascript:void(0);">
+                <li role="presentation" class="dropdown js-category">
+                    <a title="分类查看" data-toggle="tooltip" data-placement="bottom" class="dropdown-toggle color-white js-category-content <%if(locals.currentMenu&&currentMenu=="category"){%>current-menu<%}%>" data-toggle="dropdown" href="javascript:void(0);">
                         <!-- <i class="glyphicon glyphicon-list"></i> &nbsp;<span class="js-category-menu-name">分类查看</span> -->
                         <i class="glyphicon glyphicon-list"></i> &nbsp;分类查看&nbsp;&nbsp;<i class="glyphicon glyphicon-chevron-down"></i>
                     </a>
                     <ul class="dropdown-menu l-select js-category-menu" role="menu"> </ul>
                 </li>
-                <li  title="我发表的日志">
-                    <a href="javascript:void(0);" class="color-white js-my-content-menu <%if(locals.currentMenu&&currentMenu=="mycontent"){%>current-menu<%}%>" >
+                <li>
+                    <a title="我发表的日志" data-toggle="tooltip" data-placement="bottom" href="javascript:void(0);" class="color-white js-my-content-menu <%if(locals.currentMenu&&currentMenu=="mycontent"){%>current-menu<%}%>" >
                         <i class="glyphicon glyphicon-book"></i>&nbsp;我的日志
                     </a>
                 </li>
@@ -50,40 +47,44 @@
                         <i class="glyphicon glyphicon-comment"></i>&nbsp;我的评说
                     </a>
                 </li>-->
-                <li  title="发表日志">
-                    <a href="/content/addPage?view=addContent" class="color-white js-post-log <%if(locals.currentMenu&&currentMenu=="content"){%>current-menu<%}%>">
+                <li>
+                    <a title="发表日志" data-toggle="tooltip" data-placement="bottom" href="/content/addPage?view=addContent" class="color-white js-post-log <%if(locals.currentMenu&&currentMenu=="content"){%>current-menu<%}%>">
                         <i class="glyphicon glyphicon-pencil"></i>&nbsp;发表日志
                     </a>
                 </li>
-                <li title="公告">
-                    <a href="/log?view=log&page=1" class="color-white js-log <%if(locals.currentMenu&&currentMenu=="log"){%>current-menu<%}%>">
+                <li>
+                    <a title="公告" data-toggle="tooltip" data-placement="bottom" href="/log?view=log&page=1" class="color-white js-log <%if(locals.currentMenu&&currentMenu=="log"){%>current-menu<%}%>">
                         &nbsp;<i class="glyphicon glyphicon-volume-up"></i>&nbsp;公告
                         <span class="badge js-log-count"></span>
                     </a>
                 </li>
 		        <% if(session.user != null){ %>
-                <li title="后台管理"><a href="/manager" class="color-white" >
+                <li>
+                    <a title="后台管理" data-toggle="tooltip" data-placement="bottom" href="/manager" class="color-white" >
                         <i class="glyphicon glyphicon-user"></i>&nbsp;
                         <%= session.user.realName?session.user.realName:session.user.userName %>
                     </a>
                 </li>
-        		<li title="退出系统"><a href="javascript:void(0)" class="color-white js-logout-btn" >
+        		<li>
+                    <a title="退出系统" data-toggle="tooltip" data-placement="bottom" href="javascript:void(0)" class="color-white js-logout-btn" >
                         <i class="glyphicon glyphicon-log-out"></i>&nbsp;退出
                     </a>
                 </li>
                 
                 <% }else{ %>
-                <li title="老用户登录"><a href="javascript:void(0)" class="js-login-btn color-white">
+                <li>
+                    <a title="老用户登录" data-toggle="tooltip" data-placement="bottom" href="javascript:void(0)" class="js-login-btn color-white">
                         <i class="glyphicon glyphicon-log-in"></i>&nbsp;登录
                     </a>
                 </li>
-                <li title="新用户注册"><a href="javascript:void(0)" class="js-register-btn color-white">
+                <li>
+                    <a title="新用户注册" data-toggle="tooltip" data-placement="bottom" href="javascript:void(0)" class="js-register-btn color-white">
                         <i class="glyphicon glyphicon-registration-mark"></i>&nbsp;注册
                     </a>
                 </li>
                 <% } %>
-                <li title="搜索" role="presentation" class="dropdown js-search-bar search-bar" style="padding: 0px 10px 0px 10px;">
-                    <input type="search" data-toggle="dropdown" maxlength="50" class="dropdown-toggle form-control search-input js-search" value="<%if(locals.key){%><%=key%><%}%>" placeholder="回车搜索" />
+                <li title="搜索" data-toggle="tooltip" data-placement="bottom" role="presentation" class="dropdown js-search-bar search-bar" style="padding: 0px 10px 0px 10px;">
+                    <input title="搜索" data-toggle="tooltip" data-placement="bottom"  type="search" data-toggle="dropdown" maxlength="50" class="dropdown-toggle form-control search-input js-search" value="<%if(locals.key){%><%=key%><%}%>" placeholder="回车搜索" />
                     <ul class="dropdown-menu l-search-select hide js-search-panel" role="menu"> </ul>
                 </li>
             </ul>

@@ -75,5 +75,6 @@ var route = function (app) {
     app.get('/error',function(req,res){res.render('error', {title: '没有找到'});});
     // 下面的路由必须放到最后，404页面
     // app.get('*', function(req, res){res.redirect('/error');});
+    app.get('/clock', function(req, res){res.render('clock',{title:"html5时钟"})});
 };
 exports.route = route;

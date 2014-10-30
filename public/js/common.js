@@ -484,6 +484,7 @@ $(function () {
             $(".js-goto-top").hide();
         }
     });
+    $(window).scroll();
     $(".js-goto-top").on("click", function () {
         $('body,html').animate({scrollTop: 0}, 500);
         return false;
@@ -818,5 +819,5 @@ $(function () {
 
         with (document)0[(getElementsByTagName('head')[0] || body).appendChild(createElement('script')).src = 'http://bdimg.share.baidu.com/static/api/js/share.js?v=89860593.js?cdnversion='+~(-new Date()/36e5)];
     }
-
+    $('#gotoTop').tooltip("hide");
 });
