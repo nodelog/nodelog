@@ -1,22 +1,10 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <!--<META HTTP-EQUIV="Cache-Control" CONTENT="no-cache" />-->
-    <META HTTP-EQUIV="Cache-Control" CONTENT="max-age=7200" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    <meta content="误码者,errorcoder,error,coder,code,博客,日志,技术,个人" name="keywords" />
-    <meta content="误码者,errorcoder,error,coder,code,博客,日志,技术,个人" name="description" />
-    <meta name="baidu-site-verification" content="QSHxFJymsY" />
-    <title><%if(locals.title){%><%=title%><%}%>--个人技术日志博客</title>
-    <link href="/js/external/google-code-prettify/prettify.css" rel="stylesheet">
-    <link href="/css/font-awesome.css" rel="stylesheet">
-    <link rel='stylesheet' href='/css/bootstrap.css'/>
-    <link rel='stylesheet' href='/css/docs.min.css'/>
-    <link rel='stylesheet' href='/css/style.css'/>
+    <%- include common/meta %>
 </head>
 <body class="bg-gray js-body">
-<div class="navbar navbar-inverse bottom-border">
+<div class="navbar nav-bg  bottom-border">
     <div class="container">
         <div class="navbar-collapse">
             <ul class="nav navbar-nav shadow full-width">
@@ -26,7 +14,7 @@
                     </a>
                 </li>
                 <li role="presentation" class="dropdown js-category">
-                    <a title="分类查看" data-toggle="tooltip" data-placement="bottom" class="dropdown-toggle color-white js-category-content <%if(locals.currentMenu&&currentMenu=="category"){%>current-menu<%}%>" data-toggle="dropdown" href="javascript:void(0);">
+                    <a title="分类查看"  data-placement="bottom" class="dropdown-toggle color-white js-category-content <%if(locals.currentMenu&&currentMenu=="category"){%>current-menu<%}%>" data-toggle="dropdown" href="javascript:void(0);">
                         <!-- <i class="glyphicon glyphicon-list"></i> &nbsp;<span class="js-category-menu-name">分类查看</span> -->
                         <i class="glyphicon glyphicon-list"></i> &nbsp;分类查看&nbsp;&nbsp;<i class="glyphicon glyphicon-chevron-down"></i>
                     </a>
@@ -47,7 +35,7 @@
                     </a>
                 </li>
                 <li>
-                    <a title="公告" data-toggle="tooltip" data-placement="bottom" href="/log?view=log&page=1" class="color-white js-log <%if(locals.currentMenu&&currentMenu=="log"){%>current-menu<%}%>">
+                    <a title="公告" data-toggle="tooltip" data-placement="bottom" href="/log?view=log&page=1" class="color-white badge-father js-log <%if(locals.currentMenu&&currentMenu=="log"){%>current-menu<%}%>">
                         &nbsp;<i class="glyphicon glyphicon-volume-up"></i>&nbsp;公告
                         <span class="badge js-log-count"></span>
                     </a>

@@ -342,9 +342,9 @@ $(function () {
             window.location = _url + "page=" + (parseInt(page) + 1);
         }
     });
-    $(".js-menu-bar").pin({
-        containerSelector: ".js-panel-row"
-    })
+//    $(".js-menu-bar").pin({
+//        containerSelector: ".js-panel-row"
+//    })
     var addCategoryHtml = $('.js-add-category-panel').html();
     $('.js-add-category-panel').html("");
     $('.js-add-category').click(function () {
@@ -814,17 +814,30 @@ $(function () {
                 "bdPos": "right",
                 "bdTop": "100"
             }};
-
-
-
         with (document)0[(getElementsByTagName('head')[0] || body).appendChild(createElement('script')).src = 'http://bdimg.share.baidu.com/static/api/js/share.js?v=89860593.js?cdnversion='+~(-new Date()/36e5)];
     }
     $('#gotoTop').tooltip("hide");
-    $('#rightDockerBtn').popover({placement:'left',trigger:'hover',container:'body',template:popverTempl()});
-    function popverTempl() {
+    $('.js-attention-weixin').popover({trigger:'hover',container:'body',template:popverWeixinTempl()});
+    $('.js-attention-weibo').popover({trigger:'hover',container:'body',template:popverWeiboTempl()});
+    $('.js-attention-weixinweibo').popover({trigger:'hover',container:'body',template:popverWeixinWeiboTempl()});
+    function popverWeixinTempl() {
         var template = '<div class="popover bg-gray fade"><div class="arrow"></div><div class="popover-content docker-right">' +
         '<table class="table"><tbody><tr><td><div class="heading text-center">' +
-        ' 误码者微信</div><img src="/images/weixin.png" width="200" height="200"></td></tbody></table></div></div>';
+        '<i class="icon-weixin">&nbsp;</i>误码者微信</div><img src="/images/weixin.png" width="200" height="200"></td></tr></tbody></table></div></div>';
+        return template;
+    }
+    function popverWeiboTempl() {
+        var template = '<div class="popover bg-gray fade"><div class="arrow"></div><div class="popover-content docker-right">' +
+        '<table class="table"><tbody><tr><td><div class="heading text-center">' +
+        '<i class="icon-weibo">&nbsp;</i>误码者微博</div><img src="/images/weibo.png" width="200" height="200"></td></tr></tbody></table></div></div>';
+        return template;
+    }
+    function popverWeixinWeiboTempl() {
+        var template = '<div class="popover bg-gray fade"><div class="arrow"></div><div class="popover-content docker-right">' +
+            '<table class="table"><tbody><tr><td><div class="heading text-center"><i class="icon-weixin">&nbsp;</i>误码者微信</div>' +
+            '<img src="/images/weixin.png" width="200" height="200" /></td><td><div class="heading text-center">' +
+            '<i class="icon-weibo">&nbsp;</i>误码者微博</div><img src="/images/weibo.png" width="200" height="200" />' +
+            '</td></tr></tbody></table></div></div>';
         return template;
     }
 });

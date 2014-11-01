@@ -72,7 +72,7 @@ var route = function (app) {
     //日志路由
     app.get('/log',filter.log);
     app.get('/test', function(req, res){res.render('test');});
-    app.get('/error',function(req,res){res.render('error', {title: '没有找到'});});
+    app.get('/error',function(req,res){res.render('error', {title: '没有找到',state: '404'});});
     // 下面的路由必须放到最后，404页面
     // app.get('*', function(req, res){res.redirect('/error');});
     app.get('/clock', function(req, res){res.render('clock',{title:"html5时钟"})});

@@ -7,6 +7,7 @@ var getCount = function (callback) {
     });
 };
 exports.findByPage = function (req, res) {
+    console.log("用户管理");
     if (req.session.user.role == 0) {
         getCount(function (err, total) {
             var pageObj = cmsUtils.page(req.query.page,total);
