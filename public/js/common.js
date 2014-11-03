@@ -96,6 +96,29 @@ Date.prototype.format = function (fmt) {
     }
     return fmt;
 }
+var dynamicLoading = {
+    css: function(path){
+        if(!path || path.length === 0){
+            throw new Error('argument "path" is required !');
+        }
+        var head = document.getElementsByTagName('head')[0];
+        var link = document.createElement('link');
+        link.href = path;
+        link.rel = 'stylesheet';
+        link.type = 'text/css';
+        head.appendChild(link);
+    },
+    js: function(path){
+        if(!path || path.length === 0){
+            throw new Error('argument "path" is required !');
+        }
+        var head = document.getElementsByTagName('head')[0];
+        var script = document.createElement('script');
+        script.src = path;
+        script.type = 'text/javascript';
+        head.appendChild(script);
+    }
+}
 $(function () {
     var url = location.href;
 //    var current_menu = $('.js-current-menu').val();
@@ -840,4 +863,18 @@ $(function () {
             '</td></tr></tbody></table></div></div>';
         return template;
     }
+    var theme= $.cookie('style-theme');
+    switch(theme) {
+        case "style-blue":
+        case "style-black":
+            dynamicLoading.css("/css/"+theme+".css");
+            $(".js-theme[data-theme='"+theme+"']").addClass("l-option-current");
+            break;
+        default :
+            dynamicLoading.css("/css/style-black.css");
+    }
+    $('.js-theme').click(function(){
+        $.cookie('style-theme', $(this).attr("data-theme"), {expires: 30});
+        location.reload();
+    });
 });

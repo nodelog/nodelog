@@ -1,15 +1,22 @@
 <div class="jumbotron clear-margin bg-footer">
     <div class="container color-gray font-normal">
         <p class="font-normal">
-            <span>友情链接：</span>
             <a href="/about"><i class="glyphicon glyphicon-info-sign"></i>&nbsp;关于我们</a>
             <a href="http://www.errorcoder.cn:8080/psp/" target="_blank"><i class="glyphicon glyphicon-link"></i>&nbsp;郑大公益</a>
             <a href="http://www.errorcoder.cn:81/zentao/" target="_blank"><i class="glyphicon glyphicon-link"></i>&nbsp;禅道</a>
-            <a href="http://www.errorcoder.cn/" target="_blank"><i class="glyphicon glyphicon-link"></i>&nbsp;www.errorcoder.cn</a>
-            <a href="http://psp51.xicp.net/" target="_blank"><i class="glyphicon glyphicon-link"></i>&nbsp;psp51.xicp.net</a>
+            <a href="http://www.errorcoder.cn/" target="_blank"><i class="glyphicon glyphicon-link"></i>&nbsp;误码者第一部</a>
+            <a href="http://psp51.xicp.net/" target="_blank"><i class="glyphicon glyphicon-link"></i>&nbsp;误码者第二部</a>
             <a href="/clock"><i class="glyphicon glyphicon-link"></i>&nbsp;HTML5时钟</a>
-            <a href="/html/register.html" target="_blank"><i class="glyphicon glyphicon-link"></i>&nbsp;HTML5注册</a>
-            <a href="/html/bgline.html" target="_blank"><i class="glyphicon glyphicon-link"></i>&nbsp;HTML5渐变背景</a>
+        <div class="dropdown dropup">
+            <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown">
+                选择主题
+                <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu l-select" role="menu" aria-labelledby="dropdownMenu1">
+                <li role="presentation" class="js-theme" data-theme="style-black"><a role="menuitem" class="l-option" tabindex="-1" href="javascript:void(0);">神秘黑（默认）</a></li>
+                <li role="presentation" class="js-theme" data-theme="style-blue"><a role="menuitem" class="l-option" tabindex="-1" href="javascript:void(0);">经典蓝</a></li>
+            </ul>
+        </div>
         </p>
         <p class="font-normal copyinfo">&copy; 2014 误码者 All Right Reserve</p>
     </div>
@@ -23,7 +30,12 @@
     </button>
 </div>
 <!--百度统计代码-->
-<script type="text/javascript">
-    var _bdhmProtocol = (("https:" == document.location.protocol) ? " https://" : " http://");
-    document.write(unescape("%3Cscript src='" + _bdhmProtocol + "hm.baidu.com/h.js%3Fe61d71840b3f5db8010b0800b7b5e9ea' type='text/javascript'%3E%3C/script%3E"));
+<script>
+    var _hmt = _hmt || [];
+    (function() {
+        var hm = document.createElement("script");
+        hm.src = "//hm.baidu.com/hm.js?e61d71840b3f5db8010b0800b7b5e9ea";
+        var s = document.getElementsByTagName("script")[0];
+        s.parentNode.insertBefore(hm, s);
+    })();
 </script>
