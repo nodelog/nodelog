@@ -418,3 +418,24 @@ input::-webkit-search-cancel-button {
     background: #d9534f;
     color: #fff;
 }
+.style-theme {
+    min-height: 40px !important;
+    line-height: 40px !important;
+    border-top: 1px solid #e5e5e5;
+    color: #fff !important;
+}
+.style-theme:hover {
+    font-size: 18px!important;
+}
+.style-black,.style-black a{
+    background: #222 !important;
+}
+.style-blue,.style-blue a {
+    background: #5bc0de !important;
+}
+.style-green,.style-green a {
+background: #5cb85c !important;
+}
+.style-red,.style-red a {
+    background: #d9534f !important;
+}

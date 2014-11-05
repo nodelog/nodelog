@@ -1,7 +1,7 @@
 <ul class="pager">
     <li class="previous"><a href="javascript:void(0)" class="js-pre-page" data-url="<%=url%>" data-page="<%= page %>"
                             data-total="<%= totalPage %>">&larr; 上一页</a></li>
-    <li>当前第<%= page %>页/共<%= totalPage %>页<%if(locals.total){%>(总共<%=total%>条数据)<%}%></li>
+    <li>第<%= page %>页/共<%= totalPage %>页</li>
     <li class="next"><a href="javascript:void(0)" class="js-next-page" data-url="<%=url%>" data-page="<%= page %>"
                         data-total="<%= totalPage %>">下一页 &rarr;</a></li>
 </ul>

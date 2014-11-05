@@ -96,29 +96,6 @@ Date.prototype.format = function (fmt) {
     }
     return fmt;
 }
-var dynamicLoading = {
-    css: function(path){
-        if(!path || path.length === 0){
-            throw new Error('argument "path" is required !');
-        }
-        var head = document.getElementsByTagName('head')[0];
-        var link = document.createElement('link');
-        link.href = path;
-        link.rel = 'stylesheet';
-        link.type = 'text/css';
-        head.appendChild(link);
-    },
-    js: function(path){
-        if(!path || path.length === 0){
-            throw new Error('argument "path" is required !');
-        }
-        var head = document.getElementsByTagName('head')[0];
-        var script = document.createElement('script');
-        script.src = path;
-        script.type = 'text/javascript';
-        head.appendChild(script);
-    }
-}
 $(function () {
     var url = location.href;
 //    var current_menu = $('.js-current-menu').val();
@@ -815,11 +792,25 @@ $(function () {
             }
         }, "json");
     });
-
+    var theme= $.cookie('style-theme');
+    var bdImg;//黑色
+    console.log(theme);
+    if (theme) {
+        $(".js-theme[data-theme='"+theme+"'] a i").addClass("glyphicon glyphicon-ok");
+        bdImg = $(".js-theme[data-theme='"+theme+"']").attr("data-bdimg");
+    } else {
+        $(".js-theme[data-theme='style-black'] a i").addClass("glyphicon glyphicon-ok");
+        bdImg = $(".js-theme[data-theme='style-black']").attr("data-bdimg");
+    }
+    $('.js-theme').click(function(){
+        $.cookie('style-theme', $(this).attr("data-theme"), {expires: 30, path:"/"});
+        location.reload();
+    });
     if (url.indexOf("/manager") == -1) {//非管理端页面
         $.post("/log/count",{},function(data) {
             $('.js-log-count').text(data.count);
         },"json");
+
         window._bd_share_config = {//百度分享
             "common": {
                 "bdSnsKey": {"tsina": "NODELOG", "tqq": "NODELOG", "t163": "NODELOG", "tsohu": "NODELOG"},
@@ -833,7 +824,7 @@ $(function () {
             },
             "slide": {
                 "type": "slide",
-                "bdImg": "5",
+                "bdImg": bdImg,
                 "bdPos": "right",
                 "bdTop": "100"
             }};
@@ -863,18 +854,4 @@ $(function () {
             '</td></tr></tbody></table></div></div>';
         return template;
     }
-    var theme= $.cookie('style-theme');
-    switch(theme) {
-        case "style-blue":
-        case "style-black":
-            dynamicLoading.css("/css/"+theme+".css");
-            $(".js-theme[data-theme='"+theme+"']").addClass("l-option-current");
-            break;
-        default :
-            dynamicLoading.css("/css/style-black.css");
-    }
-    $('.js-theme').click(function(){
-        $.cookie('style-theme', $(this).attr("data-theme"), {expires: 30});
-        location.reload();
-    });
 });

@@ -16,3 +16,32 @@
 <link rel='stylesheet' href='/css/docs.min.css'/>
 <link rel='stylesheet' href='/css/bootstrap-switch.min.css'/>
 <link rel='stylesheet' href='/css/style.css'/>
+<script>
+    function getCookie(name){
+        var arr,reg=new RegExp("(^| )"+name+"=([^;]*)(;|$)");
+        if(arr=document.cookie.match(reg))
+            return unescape(arr[2]);
+        else {
+            return null;
+        }
+    }
+    function loadCss(name){
+        document.write("<link rel='stylesheet' href='/css/" + name + ".css'/>")
+    }
+    var theme= getCookie('style-theme');
+    if (theme) {
+        loadCss(theme);
+    } else {
+        loadCss("style-black");
+    }
+    /*switch(theme) {
+     case "style-blue":
+     case "style-black":
+     case "style-green":
+     case "style-red":
+         loadCss(theme);
+     break;
+     default :
+         loadCss("style-black");
+     }*/
+</script>

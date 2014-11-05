@@ -1,0 +1,54 @@
+/*导航背景*/
+.nav-bg {
+    background: #449d44;
+}
+
+.navbar-nav > li > a.current-menu {
+    background: #fff;
+    color: #449d44 !important;
+}
+
+/*导航菜单鼠标划过效果*/
+.navbar-nav > li > a:hover, .navbar-nav > li > a:focus {
+    text-decoration: none;
+    color: #449d44 !important;
+    background-color: #fff;
+}
+
+.search-bar:focus, .search-bar:hover {
+    background-color: #eee !important;
+    border-color: #449d44 !important;
+}
+
+a {
+    color: #5cb85c;
+}
+
+a:hover {
+    color: #5cb85c;
+}
+
+/*下拉菜单背景*/
+.l-option:hover {
+    background: #5cb85c !important;
+    color: #fff !important;
+}
+
+.l-option-current, .l-option-current a {
+    background: #5cb85c !important;
+    color: #fff !important;
+}
+
+::-moz-selection {
+    background: #5cb85c;
+    color: #FFF;
+}
+
+::selection {
+    background: #5cb85c;
+    color: #FFF;
+}
+.bs-callout,.bs-callout h4 {
+    border-left-color: #5cb85c;
+    color: #5cb85c;
+}
