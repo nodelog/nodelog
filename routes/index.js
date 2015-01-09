@@ -7,6 +7,7 @@ var log = require('./../controllers/log');
 var cmsUtils = require('./../controllers/cmsUtils');
 var route = function (app) {
 	app.get('/', content.findByPage);
+//	app.get('/', res.redirect("/index"));
     app.get('/index', content.findByPage);
     app.get('/about', function (req, res) {
         res.render('about', { title: '关于我们'});
@@ -76,5 +77,6 @@ var route = function (app) {
     // 下面的路由必须放到最后，404页面
     // app.get('*', function(req, res){res.redirect('/error');});
     app.get('/clock', function(req, res){res.render('clock',{title:"html5时钟"})});
+    app.get('/nodelog', function(req, res){res.render('nodelog',{title:"域名出售"})});
 };
 exports.route = route;

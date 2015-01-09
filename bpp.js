@@ -8,11 +8,13 @@ var bodyParser = require('body-parser');
 var settings = require('./settings');
 var session = require('express-session');
 var MongoStore = require('connect-mongo')(session);
-
 var routes = require('./routes/index');
+var zlib = require("zlib");
 var app = express();
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
+
+
 
 app.use(favicon());
 app.use(logger('dev'));
@@ -46,10 +48,7 @@ app.use(function (req, res, next) {
 if (app.get('env') === 'development') {
     app.use(function (err, req, res, next) {
         res.status(err.status || 500);
-        res.render('error', {
-            message: err.message,
-            error: err
-        });
+        res.redirect('/error');
     });
 }
 
@@ -57,10 +56,12 @@ if (app.get('env') === 'development') {
 // no stacktraces leaked to user
 app.use(function (err, req, res, next) {
     res.status(err.status || 500);
-    res.render('error', {
-        message: err.message,
-        error: {}
-    });
+    res.redirect('/error');
+    /* res.redirect('error', {
+     title: '没有找到',
+     message: err.message,
+     error: {}
+     });*/
 });
 
 
@@ -71,7 +72,7 @@ app.set('port', process.env.PORT || settings.port1); // 设定监听端口
 
 // Environment sets...
 
-// module.exports = app; 这是 4.x 默认的配置，分离了 app 模块,将它注释即可，上线时可以重新改回来
+//module.exports = app; //这是 4.x 默认的配置，分离了 app 模块,将它注释即可，上线时可以重新改回来
 
 //启动监听
 var server = app.listen(app.get('port'), function () {

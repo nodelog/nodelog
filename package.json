@@ -18,6 +18,7 @@
     "connect-mongo": "*",
     "express-session": "*",
     "async": "*",
-    "moment": "*"
+    "moment": "*",
+    "compression": "*"
   }
 }
