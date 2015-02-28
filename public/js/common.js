@@ -854,4 +854,13 @@ $(function () {
             '</td></tr></tbody></table></div></div>';
         return template;
     }
+
+    //按ESC键 关闭弹出层
+    $(document).keydown(function(event){
+        if(event.keyCode == 27){ //ESC
+            if(index) {
+                layer.close(index);
+            }
+        }
+    });
 });
