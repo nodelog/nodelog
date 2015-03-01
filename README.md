@@ -4,9 +4,9 @@ nodelog 解点日志使用说明
 2、安装nodejs以及相关<br>
     sudo apt-get install nodejs<br>
     sudo apt-get install npm<br>
-    npm --registry "http://r.cnpmjs.org" install forever -g<br>
-    npm --registry "http://r.cnpmjs.org" install supervisor -g<br>
-    npm --registry "http://r.cnpmjs.org" install express -g<br>
+    npm --registry=http://r.cnpmjs.org install  forever -g<br>
+    npm --registry=http://r.cnpmjs.org install  supervisor -g<br>
+    npm --registry=http://r.cnpmjs.org install  express-generator@4 -g<br>
 3、安装mongodb<br>
 4、启动mongodb<br>
 5、运行nodelog<br>
