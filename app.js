@@ -2,6 +2,7 @@
 var express = require('express');
 var path = require('path');
 var favicon = require('static-favicon');
+var compress = require('compression');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
@@ -9,7 +10,6 @@ var settings = require('./settings');
 var session = require('express-session');
 var MongoStore = require('connect-mongo')(session);
 var routes = require('./routes/index');
-var zlib = require("zlib");
 var app = express();
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
@@ -18,6 +18,7 @@ app.set('view engine', 'ejs');
 
 app.use(favicon());
 app.use(logger('dev'));
+app.use(compress());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded());
 app.use(cookieParser());
@@ -57,22 +58,22 @@ if (app.get('env') === 'development') {
 app.use(function (err, req, res, next) {
     res.status(err.status || 500);
     res.redirect('/error');
-    /* res.redirect('error', {
-     title: '没有找到',
-     message: err.message,
-     error: {}
-     });*/
+   /* res.redirect('error', {
+        title: '没有找到',
+        message: err.message,
+        error: {}
+    });*/
 });
 
 
 var debug = require('debug')('my-application'); // debug模块
 module.exports = app;
 
-app.set('port', process.env.PORT || settings.port1); // 设定监听端口
+app.set('port', process.env.PORT || settings.port); // 设定监听端口
 
 // Environment sets...
 
-//module.exports = app; //这是 4.x 默认的配置，分离了 app 模块,将它注释即可，上线时可以重新改回来
+ //module.exports = app; //这是 4.x 默认的配置，分离了 app 模块,将它注释即可，上线时可以重新改回来
 
 //启动监听
 var server = app.listen(app.get('port'), function () {
