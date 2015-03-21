@@ -1,6 +1,6 @@
 module.exports = {
-    port: 88,
-    port1: 99,
+    port: 8888,
+    port1: 80,
     port2: 3002,
     port3: 3003,
     cookieSecret: 'ctitcookie',
