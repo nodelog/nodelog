@@ -44,7 +44,7 @@ CategoryDAO.prototype.findByPage = function (page, callback) {
     });
 };
 CategoryDAO.prototype.findAll = function (callback) {
-    CategoryModel.find({"status": constants.CATEGORY_ENABLE_STATUS},{},{sort:{"modifyTime":-1}}, function (err, docs) {
+    CategoryModel.find({"status": constants.CATEGORY_ENABLE_STATUS},{},{sort:{"name":1}}, function (err, docs) {
         callback(err, docs);
     });
 };
