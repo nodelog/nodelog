@@ -863,4 +863,14 @@ $(function () {
             }
         }
     });
+
 });
+
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?a7c4b1f8d1291862ada3a029d8cc183f";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+
