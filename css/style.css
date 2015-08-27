@@ -451,3 +451,8 @@ background: #5cb85c !important;
 .pointer {
     cursor: pointer;
 }
+#backToTop.Offscreen{
+    right:-100px;
+    -moz-transition-duration:1000ms;
+    -webkit-transition-duration:1000ms;
+}
