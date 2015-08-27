@@ -9,7 +9,8 @@ require.config({
         "hotkeys": "external/jquery.hotkeys",
         "prettify": "external/google-code-prettify/prettify",
         "switch": "bootstrap-switch.min",
-        "wysiwyg": "bootstrap-wysiwyg"
+        "wysiwyg": "bootstrap-wysiwyg",
+        "backtop": "backtop"
     },
     shim: {
         'pin': {
@@ -38,7 +39,7 @@ require.config({
             deps: ['jquery','cookie','bootstrap','layer']
         },
         'editor': {
-            deps: ['jquery','bootstrap','hotkeys','prettify','wysiwyg','common']
+            deps: ['jquery','bootstrap','hotkeys','prettify','wysiwyg','common','backtop']
         }
     }
 });

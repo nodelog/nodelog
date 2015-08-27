@@ -439,3 +439,15 @@ background: #5cb85c !important;
 .style-red,.style-red a {
     background: #d9534f !important;
 }
+
+#backToTop {
+    position: fixed;
+    right: 50px;
+    bottom: 80px;
+    font-size: 45px;
+    padding-left: 0px;
+    z-index: 10000;
+}
+.pointer {
+    cursor: pointer;
+}
