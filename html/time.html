@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<!-- ahthor: wangyachao-->
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style type="text/css">
+        body {
+            text-align: center;
+        }
+    </style>
+</head>
+<body class="text-center">
+<canvas id="c" width="500px" height="500px" >
+</canvas>
+<script>
+    function time(width, height){
+        var ct = document.getElementById("c").getContext("2d");
+        ct.save();
+        ct.clearRect(0, 0, width, height);//清空画布，重绘
+        var g = ct.createLinearGradient(0, 0, 0, 400);//绘渐变色
+//        g.addColorStop(0, "#448EF3");//渐变开始色
+//        g.addColorStop(0.5, "white");//渐变开始色
+//        g.addColorStop(1, "#90BFFF");//渐变结束色
+        g.addColorStop(0, "#222");//渐变开始色
+        g.addColorStop(0.6, "white");//渐变开始色
+        g.addColorStop(1, "#080808");//渐变结束色
+        ct.fillStyle = g;
+        ct.fillRect(0, 0, 500, 500);
+        ct.beginPath(); //表框 内圆
+        ct.lineWidth = 1;
+        ct.strokeStyle = "#fff";
+        ct.arc(250, 250, 205, 0, Math.PI*2, true);
+        ct.stroke();
+        ct.closePath();
+        ct.beginPath(); //外圆
+        g = ct.createLinearGradient(0, -215, 0, 215);//绘渐变色
+        g.addColorStop(0, "#fff");//渐变开始色
+        g.addColorStop(0.9, "#222");//渐变开始色
+        g.addColorStop(1, "#fff");//渐变结束色
+        ct.strokeStyle = g;
+        ct.lineWidth = 5;
+        ct.arc(250, 250, 215, 0, Math.PI*2, true);
+        ct.stroke();
+        ct.closePath();
+        for (var i = 1; i < 13; i++) {//表盘刻度
+            ct.save(); //保存状态
+            ct.translate(250, 250);//原点
+            ct.lineWidth = 2; //设置线条粗细
+            ct.font = "25px 微软雅黑";
+            ct.strokeStyle = "#fff";
+            if (i== 3 || i == 9) {
+                ct.strokeStyle="#222";
+            }
+            ct.beginPath();
+            var y = -(Math.cos((i) * Math.PI / 6)) * 190 + 10;
+            var x;
+            if (i < 10) {
+                x = (Math.sin((i) * Math.PI / 6)) * 190 - 6;
+            }
+            if (i >= 10 && i < 12) {
+                x = (Math.sin((i) * Math.PI / 6)) * 190 - 10;
+            }
+            if (i == 12) {
+                x = (Math.sin((i) * Math.PI / 6)) * 190 - 14;
+            }
+            ct.strokeText(i, x, y);
+            ct.restore();
+            ct.closePath();
+        }
+        for (var i = 0; i < 60; i++) {//分钟刻度
+            if (i % 5 != 0) {//不画和时针重复的
+                ct.save();
+                ct.translate(250, 250);//旋转原点
+                ct.rotate(i * 6 * Math.PI / 180);//旋转角度
+                ct.beginPath();
+                ct.lineWidth = 2;
+                ct.strokeStyle = "#fff";
+                ct.moveTo(0, -204);
+                ct.lineTo(0, -192);
+                ct.stroke();
+                ct.closePath();
+                ct.restore();
+            }
+        }
+        ct.save();
+        ct.translate(250, 250);//旋转原点
+        ct.lineWidth = 4; //设置线条粗细
+        ct.font = "60px 微软雅黑";
+        ct.strokeStyle = "#fff";
+        ct.beginPath();
+        ct.strokeText("CODER", -100, 80);
+        ct.closePath();
+        ct.restore();
+        var date = new Date(); //获取当前时间
+        var hour = date.getHours() % 12;
+        var minute = date.getMinutes();
+        var second = date.getSeconds();
+        ct.save();//时针
+        ct.translate(250, 250);//旋转原点
+        ct.rotate(hour * 30 * Math.PI / 180 + minute / 60 * 30 * Math.PI / 180 + second / 60 / 60 * 30 * Math.PI / 180);//旋转角度 hour+minute+second
+        ct.beginPath();
+        ct.lineWidth = 10;
+        g = ct.createLinearGradient(0, 20, 0, -80);
+        g.addColorStop(0, "#222");
+        g.addColorStop(1, "#fff");
+        ct.strokeStyle = g;
+        ct.moveTo(0, 20);
+        ct.lineTo(0, -80);
+        ct.stroke();
+        ct.closePath();
+        ct.restore();
+
+
+        ct.save(); //分针
+        ct.translate(250, 250);//旋转原点
+        ct.rotate(minute * 6 * Math.PI / 180 + second / 60 * 6 * Math.PI / 180);//旋转角度 minute+second
+        ct.beginPath();
+        ct.lineWidth = 5;
+        g = ct.createLinearGradient(0, 20, 0, -140);
+        g.addColorStop(0, "#111");
+        g.addColorStop(1, "#fff");
+        ct.strokeStyle = g;
+        ct.moveTo(0, 20);
+        ct.lineTo(0, -140);
+        ct.stroke();
+        ct.closePath();
+        ct.restore();
+        ct.save();//秒针
+        ct.translate(250, 250);//旋转原点
+        ct.rotate(second * 6 * Math.PI / 180);//旋转角度
+        ct.beginPath();
+        ct.lineWidth = 1;
+        ct.strokeStyle = "#fff";
+        g = ct.createLinearGradient(0, 20, 0, -180);
+        g.addColorStop(0, "#000");
+        g.addColorStop(1, "#fff");
+        ct.strokeStyle = g;
+        ct.moveTo(0, 20);
+        ct.lineTo(0, -180);
+        ct.stroke();
+        ct.closePath();
+        ct.restore();
+        ct.beginPath(); //中心
+        ct.lineWidth = 4;
+        ct.strokeStyle = "#fff";
+        ct.arc(250, 250, 2, 0, Math.PI*2, true);
+        ct.stroke();
+        ct.closePath();
+    }
+
+    window.onload = function(){
+        time(100,100);
+        setInterval(time, 1000);
+    }
+</script>
+</body>

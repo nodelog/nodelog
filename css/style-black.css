@@ -1,0 +1,42 @@
+.nav-bg {
+    background: #222;
+}
+
+.navbar-nav > li > a:hover, .navbar-nav > li > a:focus {
+    text-decoration: none;
+    color: #222 !important;
+    background-color: #fff;
+}
+a {
+    color: #222;
+}
+
+a:hover {
+    color: #222;
+}
+.l-option:hover {
+    background: #222 !important;
+    color: #fff !important;
+}
+
+.l-option-current,.l-option-current a {
+    background: #222 !important;
+    color: #fff !important;
+}
+::-moz-selection {
+    background: #222;
+    color: #FFF;
+}
+
+::selection {
+    background: #222;
+    color: #FFF;
+}
+.search-bar:focus, .search-bar:hover {
+    background-color: #eee !important;
+    border-color: #222 !important;
+}
+.navbar-nav > li > a.current-menu {
+    background: #fff;
+    color: #222 !important;
+}
