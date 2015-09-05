@@ -439,3 +439,6 @@ background: #5cb85c !important;
 .style-red,.style-red a {
     background: #d9534f !important;
 }
+.pointer{
+    cursor: pointer;
+}
