@@ -36,8 +36,7 @@ require.config({
             deps: ['jquery']
         },
         'common': {
-//            deps: ['jquery','bootstrap','layer','pin']
-            deps: ['jquery','cookie','bootstrap','layer','responsive']
+            deps: ['jquery','cookie','bootstrap','layer']
         },
         'editor': {
             deps: ['jquery','bootstrap','hotkeys','prettify','wysiwyg','common','backtop']
