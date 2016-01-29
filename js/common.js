@@ -863,5 +863,9 @@ $(function () {
             }
         }
     });
+
 });
+
+<!--bs自适应导航插件-->
+var navigation = responsiveNav("#nav");
 

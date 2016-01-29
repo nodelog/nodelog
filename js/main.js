@@ -37,10 +37,10 @@ require.config({
         },
         'common': {
 //            deps: ['jquery','bootstrap','layer','pin']
-            deps: ['jquery','cookie','bootstrap','layer']
+            deps: ['jquery','cookie','bootstrap','layer','responsive']
         },
         'editor': {
-            deps: ['jquery','bootstrap','responsive','hotkeys','prettify','wysiwyg','common','backtop']
+            deps: ['jquery','bootstrap','hotkeys','prettify','wysiwyg','common','backtop']
         }
     }
 });
