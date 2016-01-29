@@ -48,7 +48,7 @@ var route = function (app) {
     app.post('/manager/category/modify', filter.authorizeAdmin, category.update);
     app.post('/manager/category/delete', filter.authorizeAdmin, category.delete);
     app.get('/manager/log', filter.authorizeAdmin, log.findByPage);
-    app.get('/manager/log/addPage', filter.authorizeAdmin, function(req,res){res.render("manager/addLog",{title:"发布公告",template:"<br /><br /><br /><br />误码者 ｜ 技术部<br />"+new Date().format("yyyy年MM月dd日")});});
+    app.get('/manager/log/addPage', filter.authorizeAdmin, function(req,res){res.render("manager/addLog",{title:"发布公告",template:"<br /><br /><br /><br />管理员<br />"+new Date().format("yyyy年MM月dd日")});});
     app.post('/manager/log/add', filter.authorizeAdmin, log.add);
     app.post('/manager/log/delete', filter.authorizeAdmin, log.delete);
     app.get('/log/detail',  log.findById);
