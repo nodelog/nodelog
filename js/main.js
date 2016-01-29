@@ -10,7 +10,8 @@ require.config({
         "prettify": "external/google-code-prettify/prettify",
         "switch": "bootstrap-switch.min",
         "wysiwyg": "bootstrap-wysiwyg",
-        "backtop": "backtop"
+        "backtop": "backtop",
+        "responsive": "responsive-nav.min"//bs自适应导航
     },
     shim: {
         'pin': {
@@ -39,7 +40,7 @@ require.config({
             deps: ['jquery','cookie','bootstrap','layer']
         },
         'editor': {
-            deps: ['jquery','bootstrap','hotkeys','prettify','wysiwyg','common','backtop']
+            deps: ['jquery','bootstrap','responsive','hotkeys','prettify','wysiwyg','common','backtop']
         }
     }
 });
