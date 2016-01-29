@@ -1,10 +1,10 @@
-var async = require("async");
-var utils = require("util");
-var Content = require('./../models/Content.js');
+var async = require("async");//异步回调组件
+var utils = require("util");//工具组件
+var Content = require('./../models/Content.js');//Content DAO接口和Model等
 var User = require('./../models/User.js');
 var Category = require('./../models/Category.js');
-var cmsUtils = require('./cmsUtils.js');
-var sessionUser;
+var cmsUtils = require('./cmsUtils.js');//自定义util工具
+var sessionUser;//todo 这个忘记了怎么初始化的，后面再查
 var getCount = function (callback) {
     Content.getCount(sessionUser, function (err, total) {
         callback(err, total);

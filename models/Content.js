@@ -1,26 +1,29 @@
-var mongodb = require('./mongodb');
-var constants = require('./constants');
+var mongodb = require('./mongodb');//引入mongodb配置文件，同目录下mongodb.js文件，默认引入js文件。
+var constants = require('./constants');//同上，引入常量类
 
-var Schema = mongodb.mongoose.Schema;
-var ObjectId = Schema.ObjectId;
+var Schema = mongodb.mongoose.Schema;//获取mongodb schema
+var ObjectId = Schema.ObjectId;//获取ObjectId
 
+//sheme对象
 var ContentSchema = new Schema({
     name: {type: String, required: true},
     content: {type: String, required: true},
-    author: {type: ObjectId},
-    category: {type: ObjectId},
+    author: {type: ObjectId},//外键
+    category: {type: ObjectId},//外键
     createTime: { type: Date, default: Date.now},
     modifyTime: {type: Date, default: Date.now},
     view: {type: Number, default: 1000},
     status: {type: 'Number', default: 0, required: true, min: 0, max: 2}
 }, {
-    collection: "content"
+    collection: "content" //对应mongodb的集合表
 });
-
+//构建model对象，所有对数据库操作都对该对象操作
 var ContentModel = mongodb.mongoose.model("Content", ContentSchema);
-//
+
+//DAO接口
 var ContentDAO = function () {
 };
+//通过prototype属性实现DAO接口
 ContentDAO.prototype.save = function (obj, callback) {
     var ContentEntity = new ContentModel(obj);
     ContentEntity.save(function (err) {
@@ -194,4 +197,6 @@ ContentDAO.prototype.addView = function (obj, callback) {
         callback(err);
     });
 };
+
+//把DAO接口开放出去给controller调用
 module.exports = new ContentDAO();
