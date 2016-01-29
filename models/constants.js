@@ -1,22 +1,29 @@
 /**
+ * 常量类
  * Created by Jack.Wang on 14-7-24.
  */
 
-exports.USER_ENABLE_STATUS=0;
-exports.USER_UNABLE_STATUS=1;
-exports.USER_DELETE_STATUS=2;
+//用户状态
+exports.USER_ENABLE_STATUS=0;//正常
+exports.USER_UNABLE_STATUS=1;//禁用
+exports.USER_DELETE_STATUS=2;//删除
 
-exports.CATEGORY_ENABLE_STATUS=0;
-exports.CATEGORY_UNABLE_STATUS=1;
+//分类状态
+exports.CATEGORY_ENABLE_STATUS=0;//正常
+exports.CATEGORY_UNABLE_STATUS=1;//禁用
 
-exports.COMMENT_ENABLE_STATUS=0;
-exports.COMMENT_UNABLE_STATUS=1;
+//评论状态
+exports.COMMENT_ENABLE_STATUS=0;//正常
+exports.COMMENT_UNABLE_STATUS=1;//禁用
 
-exports.CONTENT_ENABLE_STATUS=0;
-exports.CONTENT_UNABLE_STATUS=1;
-exports.CONTENT_SELF_STATUS=2;
+//文章状态
+exports.CONTENT_ENABLE_STATUS=0;//正常 分享
+exports.CONTENT_UNABLE_STATUS=1;//禁用
+exports.CONTENT_SELF_STATUS=2;//私有
 
-exports.LOG_ENABLE_STATUS=0;
-exports.LOG_UNABLE_STATUS=1;
+//公告状态
+exports.LOG_ENABLE_STATUS=0;//正常
+exports.LOG_UNABLE_STATUS=1;//禁用
 
+//分页大小，每页显示9条数据
 exports.PER_PAGE_COUNT = 9;
