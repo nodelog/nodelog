@@ -12,7 +12,7 @@ var ContentSchema = new Schema({
     category: {type: ObjectId},//外键
     createTime: { type: Date, default: Date.now},
     modifyTime: {type: Date, default: Date.now},
-    view: {type: Number, default: 1000},
+    view: {type: Number,default:1},
     status: {type: 'Number', default: 0, required: true, min: 0, max: 2}
 }, {
     collection: "content" //对应mongodb的集合表
