@@ -29,7 +29,7 @@ app.use(express.static(path.join(__dirname, 'public')));//静态资源路径，
 app.use(session({
     secret: settings.cookieSecret,
     store: new MongoStore({
-        db: settings.db
+ url: 'mongodb://nodeloguser:nodelogpwd20160206@localhost/ctit'
     })
 }));
 //接受请求

@@ -3,5 +3,5 @@ module.exports = {
     cookieSecret: 'ctitcookie',
     db: 'ctit',
     host: 'localhost',
-    url: 'mongodb://localhost/ctit'
+    url: 'mongodb://nodeloguser:nodelogpwd20160206@localhost/ctit'
 };

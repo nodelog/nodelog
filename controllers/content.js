@@ -509,11 +509,13 @@ exports.add = function (req, res) {
                     res.json({'success': success, 'msg': msg});
                 } else {
                     var session = req.session;
+		  //  var view = parseInt(Math.random()*10000 + 1000, 10);
                     obj = {
                         "name": name,
                         "content": content,
                         "author": session.user._id,
-                        "category": category
+                        "category": category,
+			"view":parseInt(Math.random()*10000 + 1000, 10)
                     };
                     Content.save(obj, function (err) {
                         if (!err) {
