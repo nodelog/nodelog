@@ -53,4 +53,16 @@ a:hover {
     border-left-color: #5bc0de;
     color: #5bc0de;
 }
+#backToTop{
+    color: #5bc0de;
+}
+.tooltip-inner{
+    background-color:#5bc0de;
+}
+.tooltip.top .tooltip-arrow{
+    border-top-color:#5bc0de;
+}
+.tooltip.bottom .tooltip-arrow{
+    border-bottom-color:#5bc0de;
+}
 

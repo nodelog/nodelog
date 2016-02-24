@@ -447,6 +447,7 @@ background: #5cb85c !important;
     font-size: 45px;
     padding-left: 0px;
     z-index: 10000;
+    color:#222;
 }
 .pointer {
     cursor: pointer;

@@ -50,3 +50,20 @@ a:hover {
     border-left-color: #d9534f;
     color: #d9534f;
 }
+#backToTop{
+    color: #d9534f;
+}
+.tooltip-inner{
+    background-color:#d9534f;
+}
+.tooltip.top .tooltip-arrow{
+    border-top-color:#d9534f;
+}
+.tooltip.bottom .tooltip-arrow{
+    border-bottom-color:#d9534f;
+}
+
+.btn-primary,.btn-primary[disabled],.btn-primary:hover{
+    background-color: #d9534f;
+    border-color: #c9302c;
+}

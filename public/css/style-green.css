@@ -1,3 +1,4 @@
+
 /*导航背景*/
 .nav-bg {
     background: #449d44;
@@ -51,4 +52,20 @@ a:hover {
 .bs-callout,.bs-callout h4 {
     border-left-color: #5cb85c;
     color: #5cb85c;
+}
+#backToTop{
+    color: #5cb85c;
+}
+.tooltip-inner{
+    background-color:#5cb85c;
+}
+.tooltip.top .tooltip-arrow{
+    border-top-color:#5cb85c !important;
+}
+.tooltip.bottom .tooltip-arrow{
+    border-bottom-color:#5cb85c !important;
+}
+.btn-primary,.btn-primary[disabled],.btn-primary:hover{
+    background-color: #5cb85c;
+    border-color: #449d44;
 }
