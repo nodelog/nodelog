@@ -55,8 +55,7 @@ exports.findByPageAndContent = function (req, res) {
                         var doc = docs[count];
                         User.findById(doc.commenter, function (err, obj) {
                             if (obj != null) {
-                                doc.userName = obj.userName;
-                                doc.realName = obj.realName;
+                                doc.userName = obj.realName;
                             } else {
                                 console.log(doc.name + "'s user not found");
                                 doc.userName = "未知";//
