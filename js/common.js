@@ -794,7 +794,6 @@ $(function () {
     });
     var theme= $.cookie('style-theme');
     var bdImg;//黑色
-    console.log(theme);
     if (theme) {
         $(".js-theme[data-theme='"+theme+"'] a i").addClass("glyphicon glyphicon-ok");
         bdImg = $(".js-theme[data-theme='"+theme+"']").attr("data-bdimg");

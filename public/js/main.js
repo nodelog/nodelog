@@ -9,7 +9,9 @@ require.config({
         "hotkeys": "external/jquery.hotkeys",
         "prettify": "external/google-code-prettify/prettify",
         "switch": "bootstrap-switch.min",
-        "wysiwyg": "bootstrap-wysiwyg"
+        "wysiwyg": "bootstrap-wysiwyg",
+        "backtop": "backtop",
+        "responsive": "responsive-nav.min"//bs自适应导航
     },
     shim: {
         'pin': {
@@ -34,11 +36,10 @@ require.config({
             deps: ['jquery']
         },
         'common': {
-//            deps: ['jquery','bootstrap','layer','pin']
             deps: ['jquery','cookie','bootstrap','layer']
         },
         'editor': {
-            deps: ['jquery','bootstrap','hotkeys','prettify','wysiwyg','common']
+            deps: ['jquery','bootstrap','hotkeys','prettify','wysiwyg','common','backtop']
         }
     }
 });

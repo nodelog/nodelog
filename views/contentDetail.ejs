@@ -67,7 +67,6 @@
             </div>
         </div>
         <!--post comment-->
-        <% if(session.user == null || session.user._id != doc.author){ %>
         <div class="panel panel-default">
             <div class="panel-heading">发表评论</div>
             <div class="panel-body">
@@ -88,7 +87,6 @@
                 </div>
             </div>
         </div>
-        <% } %>
         <% } else { %>
         <div class="alert alert-warning" role="alert">This Content not exists!</div>
         <% } %>

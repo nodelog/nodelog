@@ -1,5 +1,5 @@
 .bg-gray {
-    background: #e5e5e5;
+    background: #f2f2f2;
 }
 
 .bg-white {
@@ -439,22 +439,37 @@ background: #5cb85c !important;
 .style-red,.style-red a {
     background: #d9534f !important;
 }
-.pointer{
+
+#backToTop {
+    position: fixed;
+    right: 50px;
+    bottom: 80px;
+    font-size: 45px;
+    padding-left: 0px;
+    z-index: 10000;
+}
+.pointer {
     cursor: pointer;
 }
-
+#backToTop.Offscreen{
+    right:-100px;
+    -moz-transition-duration:1000ms;
+    -webkit-transition-duration:1000ms;
+}
 
 ::-webkit-scrollbar {
-    width: 12px;
+    width: 10px;
 }
 ::-webkit-scrollbar-track {
     -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
-    -webkit-border-radius: 10px;
-    border-radius: 10px;
+    -webkit-border-radius: 5px;
+    border-radius: 5px;
+    -moz-border-radius:5px;
 }
 ::-webkit-scrollbar-thumb {
-    -webkit-border-radius: 10px;
-    border-radius: 10px;
+    -webkit-border-radius: 5px;
+    border-radius: 5px;
+    -moz-border-radius:5px;
     background: rgba(220,220,220,0.8);
     -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.5);
 }
