@@ -15,7 +15,8 @@ nodelog 解点日志使用说明
 supervisor app.js或者forever start app.js<br>
 
 =======
-github地址：https://github.com/wyc0991/nodelog
+
+源码已经转移到git@osc上
 
 git.osc地址：http://git.oschina.net/nodelog/nodelog
 
