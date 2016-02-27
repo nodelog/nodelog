@@ -66,3 +66,6 @@ a:hover {
     border-bottom-color:#5bc0de;
 }
 
+::-webkit-scrollbar-thumb {
+    background: rgba(48,113,169,0.8);
+}
