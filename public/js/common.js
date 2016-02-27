@@ -915,3 +915,4 @@ $(function () {
 //    close: function(){} // Function: Close callback
 //});
 
+console.log('%cNODELOG\n%chttp://www.nodelog.cn\n%cQQ: 1102377905，TEL:13030840306\n%c源码git@osc（http://git.oschina.net/nodelog/nodelog）\n ', 'color:#222; font-size: 25px;', 'color:#31b0d5; font-size: 18px;', 'color:#5cb85c;font-size: 18px;', 'color:#d9534f; font-size: 18px;');
