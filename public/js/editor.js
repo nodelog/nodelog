@@ -7,7 +7,8 @@ $(function () {
         $.each(fonts, function (idx, fontName) {
             fontTarget.append($('<li><a data-edit="fontName ' + fontName + '" style="font-family:\'' + fontName + '\'">' + fontName + '</a></li>'));
         });
-        $('a[title]').tooltip({container: 'body'});
+        //tooltip初始化
+        $('[data-toggle="tooltip"]').tooltip({container: 'body'})
         $('.dropdown-menu input').click(function () {
             return false;
         })
