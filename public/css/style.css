@@ -10,7 +10,7 @@
     border-color: #fff;
 }
 .navbar-toggle:hover,  .navbar-toggle:focus {
-    background-color: #fff;
+    border-color: #ccc;
 }
 .navbar-toggle .icon-bar {
     background-color: #fff;
