@@ -212,7 +212,7 @@ div[data-role="editor-toolbar"] {
 }
 
 .navbar-collapse {
-    padding: 0px;
+    /*padding: 0px;*/
 }
 
 .dropdown-menu {
