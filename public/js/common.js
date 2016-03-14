@@ -696,7 +696,7 @@ $(function () {
         }
     });
     function searchState() {
-        if ($('.js-search').val().trim() != "") {
+        if ($.trim($('.js-search').val()) != "") {
             $('.js-search').addClass("search-focus");
         } else {
             $('.js-search').removeClass("search-focus");

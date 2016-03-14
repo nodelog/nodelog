@@ -210,7 +210,7 @@ div[data-role="editor-toolbar"] {
 }
 
 .navbar-nav > li {
-    float: left;
+    /*float: left;*/
 }
 
 input[type=search] {
@@ -486,4 +486,21 @@ background: #5cb85c !important;
 }
 ::-webkit-scrollbar-corner, ::-webkit-scrollbar-thumb:window-inactive {
     background: rgba(100,100,100,0.4);
+}
+/*自适应菜单*/
+.navbar-brand{
+    color: #FFFFFF;
+}
+.navbar-brand:hover, .navbar-brand:focus{
+    color: #eee;
+    background-color: transparent;
+}
+.navbar-toggle {
+    border-color: #ddd;
+}
+ .navbar-toggle:hover,  .navbar-toggle:focus {
+    background-color: #ddd;
+}
+ .navbar-toggle .icon-bar {
+    background-color: #888;
 }

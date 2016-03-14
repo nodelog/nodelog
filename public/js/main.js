@@ -6,7 +6,7 @@ require.config({
     paths: {
         "jquery": "jquery-1.10.2.min",
         "cookie": "jquery.cookie",
-        "bootstrap": "bootstrap-2.3.1.min",
+        "bootstrap": "bootstrap",
         "layer": "layer.min",
         "hotkeys": "external/jquery.hotkeys",
         "prettify": "external/google-code-prettify/prettify",
