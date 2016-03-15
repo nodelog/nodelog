@@ -130,7 +130,7 @@ div[data-role="editor-toolbar"] {
 }
 
 .l-search-select {
-    max-height: 680px;
+    max-height: 500px;
     overflow: auto;
 }
 
