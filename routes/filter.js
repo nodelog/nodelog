@@ -33,6 +33,25 @@ exports.createUser = function (req, res, next) {
         }
     });
 };
+exports.createSite = function (req, res, next) {
+    Site.findOne(function (err, obj) {
+        if (obj == null) {
+            obj = {
+                name: "误码者",
+                copyRight: "王亚超",
+                icp: "闽ICP备15004025号",
+                version: "1.0",
+                phone: "13030840306",
+                address: "福建厦门"
+            };
+            Site.save(obj,function (err) {
+                next();
+            });
+        } else {
+            next();
+        }
+    });
+};
 function getDate()
 {
 	var date = new Date();
