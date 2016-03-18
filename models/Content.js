@@ -50,7 +50,7 @@ ContentDAO.prototype.findByPage = function (page, currentUser, callback) {
 	}
 	var query = ContentModel.find(term);
     query.select('name author category createTime modifyTime view status');
-    query.sort({"modifyTime": -1});
+    query.sort({"createTime": -1});
     query.limit(constants.PER_PAGE_COUNT);
     query.skip((page - 1) * constants.PER_PAGE_COUNT);
     query.exec(function (err, docs) {
@@ -67,7 +67,7 @@ ContentDAO.prototype.findByCategory = function (page, category, currentUser, cal
 	}
 	var query = ContentModel.find(term);
     query.select('name author category modifyTime view');
-    query.sort({"modifyTime": -1});
+    query.sort({"createTime": -1});
     query.limit(constants.PER_PAGE_COUNT);
     query.skip((page - 1) * constants.PER_PAGE_COUNT);
     query.exec(function (err, docs) {
@@ -84,7 +84,7 @@ ContentDAO.prototype.findByWord = function (page, word, currentUser, callback) {
 	}
 	var query = ContentModel.find(term);
     query.select('name author category modifyTime view');
-    query.sort({"modifyTime": -1});
+    query.sort({"createTime": -1});
     query.limit(constants.PER_PAGE_COUNT);
     query.skip((page - 1) * constants.PER_PAGE_COUNT);
     query.exec(function (err, docs) {
@@ -101,7 +101,7 @@ ContentDAO.prototype.findAllByWord = function (word, currentUser, callback) {
 	}
 	var query = ContentModel.find(term);
     query.select('name');
-    query.sort({"modifyTime": -1});
+    query.sort({"createTime": -1});
     query.exec(function (err, docs) {
         callback(err, docs);
     });
@@ -109,7 +109,7 @@ ContentDAO.prototype.findAllByWord = function (word, currentUser, callback) {
 ContentDAO.prototype.findByUser = function (page, author, callback) {
     var query = ContentModel.find({"author": author, "status":{$ne: constants.CONTENT_UNABLE_STATUS}});
     query.select('name author category createTime modifyTime view status');
-    query.sort({"modifyTime": -1});
+    query.sort({"createTime": -1});
     query.limit(constants.PER_PAGE_COUNT);
     query.skip((page - 1) * constants.PER_PAGE_COUNT);
     query.exec(function (err, docs) {
