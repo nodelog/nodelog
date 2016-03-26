@@ -64,14 +64,14 @@ app.use(function (err, req, res, next) {
     });*/
 });
 
-var debug = require('debug')('my-application'); // debug模块
-module.exports = app;
+//var debug = require('debug')('my-application'); // debug模块
+//module.exports = app;
 
 app.set('port', process.env.PORT || settings.port); // 设定监听端口
 
- //module.exports = app; //这是 4.x 默认的配置，分离了 app 模块,将它注释即可，上线时可以重新改回来
+module.exports = app; //这是 4.x 默认的配置，分离了 app 模块,将它注释即可，上线时可以重新改回来
 
 //启动监听
-var server = app.listen(app.get('port'), function () {
-    console.log('Express server listening on port ' + server.address().port);
-});
+//var server = app.listen(app.get('port'), function () {
+  //  console.log('Express server listening on port ' + server.address().port);
+//});
