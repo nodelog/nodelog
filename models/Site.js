@@ -55,19 +55,22 @@ SiteDAO.prototype.findOne = function (callback) {
  * @param callback
  */
 SiteDAO.prototype.update = function (obj, callback) {
-    SiteModel.update(
-        {"_id": obj.id},
-        {$set:{
-            "name": obj.name,
-            "copyRight": obj.copyRight,
-            "icp": obj.icp,
-            "version": obj.version,
-            "phone": obj.phone,
-            "address": obj.address }
-        },
-        function (err) {
-        callback(err);
+    SiteModel.findOne(function (err, site) {
+        SiteModel.update(
+            {"_id": site.id},
+            {$set:{
+                "name": obj.name,
+                "copyRight": obj.copyRight,
+                "icp": obj.icp,
+                "version": obj.version,
+                "phone": obj.phone,
+                "address": obj.address }
+            },
+            function (err) {
+                callback(err);
+            });
     });
+
 };
 
 //把DAO接口开放出去给controller调用

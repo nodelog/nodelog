@@ -4,7 +4,7 @@ var Content = require('./../models/Content.js');//Content DAO接口和Model等
 var User = require('./../models/User.js');
 var Category = require('./../models/Category.js');
 var cmsUtils = require('./cmsUtils.js');//自定义util工具
-var sessionUser;//todo 这个忘记了怎么初始化的，后面再查
+var sessionUser;
 var getCount = function (callback) {
     Content.getCount(sessionUser, function (err, total) {
         callback(err, total);
@@ -106,7 +106,7 @@ exports.findByPage = function (req, res) {
         }
         var view = "index";
         var url = "/index?";
-        var title = "误码者";
+        var title = req.session.site.name;
         var currentMenu = "home";
         if (req.query.manager === "true") {
             view = "manager/content";

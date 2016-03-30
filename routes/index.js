@@ -17,8 +17,9 @@ var route = function (app) {
     app.get('/user/logout', user.logout);
 
     app.get('/manager', filter.authorize, function (req, res) {
-        res.render('manager/index', { title: '误码者',currentMenu:"home"});
+        res.render('manager/index', { title: req.session.site.name,currentMenu:"home"});
     });
+    app.post('/manager/site/update',  filter.authorize, filter.authorizeAdmin,  site.update);
     app.get('/manager/user', filter.authorize,  user.findByPage);
     app.get('/manager/category', filter.authorize, filter.authorizeAdmin, category.findByPage);
     app.get('/manager/content', filter.authorize, function (req, res) {

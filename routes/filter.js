@@ -14,7 +14,7 @@ exports.authorizeAdmin = function (req, res, next) {
     if (!req.session.user) {
         res.redirect('/');
     } else if (req.session.user.role != 0) {
-	res.redirect('/manager');
+	    res.redirect('/manager');
     } else {
         next();
     }

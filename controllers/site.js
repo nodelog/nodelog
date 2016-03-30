@@ -3,7 +3,6 @@ var utils = require("util");//工具组件
 var Site = require('./../models/Site.js');//site DAO接口和Model等
 var User = require('./../models/User.js');
 var cmsUtils = require('./cmsUtils.js');//自定义util工具
-var sessionUser;//
 
 /**
  * 更新配置
@@ -11,7 +10,6 @@ var sessionUser;//
  * @param res
  */
 exports.update = function (req, res) {
-    var id = req.body.id;
     var name = req.body.name.trim();
     var copyRight = req.body.copyRight.trim();
     var icp = req.body.icp.trim();
@@ -30,7 +28,6 @@ exports.update = function (req, res) {
     } else {
         flag = true;
         var obj = {
-            id: id,
             name: name,
             copyRight: copyRight,
             icp: icp,
@@ -40,11 +37,13 @@ exports.update = function (req, res) {
         };
         Site.update(obj, function (err) {
             if (!err) {
+                var session = req.session;
+                session.site = obj;
                 success = true;
-                msg = "Modify  is success";
+                msg = "配置更新成功";
             } else {
                 console.log(err.message);
-                msg = "Modify  is failure";
+                msg = "配置更新失败";
             }
             res.json({'success': success, 'msg': msg});
         });

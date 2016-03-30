@@ -1,5 +1,41 @@
 <%- include header %>
+
 <div class="jumbotron">
-    <h1>欢迎使用误码者管理系统!</h1>
+<% if (session.user.role==0) {%>
+    <h3>博客配置</h3>
+    <form name="siteForm" role="form" action="javascript:void(0)">
+        <div class="form-group">
+            <label for="">博客名称</label>
+            <input type="text" class="form-control" name="name" value="<%= session.site.name %>">
+        </div>
+        <div class="form-group">
+            <label for="">版权</label>
+            <input type="text" class="form-control" name="copyRight" value="<%= session.site.copyRight %>">
+        </div>
+
+        <div class="form-group">
+            <label for="">ICP备案</label>
+            <input type="text" class="form-control" name="icp" value="<%= session.site.icp %>">
+        </div>
+        <div class="form-group">
+            <label for="">版本</label>
+            <input type="text" class="form-control" name="version" value="<%= session.site.version %>">
+        </div>
+
+        <div class="form-group">
+            <label for="">联系电话</label>
+            <input type="text" class="form-control" name="phone" value="<%= session.site.phone %>">
+        </div>
+
+        <div class="form-group">
+            <label for="">联系地址</label>
+            <input type="text" class="form-control" name="address" value="<%= session.site.address %>">
+        </div>
+
+        <button type="button" class="btn btn-default js-site-edit-save">更新配置</button>
+    </form>
+<%}else{%>
+    <h1>欢迎使用<%=session.site.name%>管理系统!</h1>
+<%}%>
 </div>
 <%- include footer %>

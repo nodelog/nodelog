@@ -828,6 +828,19 @@ $(function () {
             }
         }, "json");
     });
+    //网站配置
+    $('.js-site-edit-save').click(function () {
+        var data = $('form[name=siteForm]').serializeArray();
+        loading();
+        $.post("/manager/site/update", data, function (data) {
+            if (data.success) {
+                myMsg(data.msg);
+                location.reload();
+            } else {
+                myMsg(data.msg);
+            }
+        }, "json");
+    });
     var theme= $.cookie('style-theme');
     var bdImg;//黑色
     if (theme) {

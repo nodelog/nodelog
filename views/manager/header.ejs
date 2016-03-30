@@ -13,12 +13,12 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
         </button>
-        <a class="navbar-brand" href="#">误码者</a>
+        <a class="navbar-brand" href="#"><%=session.site.name %></a>
     </div>
     <div class="collapse navbar-collapse" id="example-navbar-collapse">
         <ul class="nav navbar-nav">
                 <li class="transition">
-                    <a href="/manager" class="color-white transition <%if(locals.currentMenu&&currentMenu=="home"){%>current-menu<%}%>" title="误码者后台管理">
+                    <a href="/manager" class="color-white transition <%if(locals.currentMenu&&currentMenu=="home"){%>current-menu<%}%>" title="<%=session.site.name%>后台管理">
                         <i class="glyphicon glyphicon-globe"></i>&nbsp;后台管理
                     </a>
                 </li>
