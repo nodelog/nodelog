@@ -6,7 +6,7 @@ var comment = require('./../controllers/comment');
 var log = require('./../controllers/log');
 var cmsUtils = require('./../controllers/cmsUtils');
 var route = function (app) {
-	app.get('/', content.findByPage);
+	app.get('/',filter.createSite, content.findByPage);
 //	app.get('/', res.redirect("/index"));
     app.get('/index', content.findByPage);
     app.get('/about', function (req, res) {

@@ -63,7 +63,7 @@ a:hover {
     border-bottom-color:#d9534f;
 }
 
-.btn-primary,.btn-primary[disabled],.btn-primary:hover{
+.btn-primary,.btn-primary[disabled],.btn-primary:hover,.btn-primary:active,.btn-primary:focus{
     background-color: #d9534f;
     border-color: #c9302c;
 }

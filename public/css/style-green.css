@@ -65,7 +65,7 @@ a:hover {
 .tooltip.bottom .tooltip-arrow{
     border-bottom-color:#5cb85c !important;
 }
-.btn-primary,.btn-primary[disabled],.btn-primary:hover{
+.btn-primary,.btn-primary[disabled],.btn-primary:hover,.btn-primary:active,.btn-primary:focus{
     background-color: #5cb85c;
     border-color: #449d44;
 }

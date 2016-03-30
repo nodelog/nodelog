@@ -1,4 +1,5 @@
 var User = require('./../models/User');
+var Site = require('./../models/Site');
 var os = require('os');
 exports.authorize = function (req, res, next) {
     if (!req.session.user) {
@@ -45,6 +46,7 @@ exports.createSite = function (req, res, next) {
                 address: "福建厦门"
             };
             Site.save(obj,function (err) {
+                console.log("添加site完成");
                 next();
             });
         } else {

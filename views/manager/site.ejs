@@ -1,0 +1,96 @@
+<%- include header %>
+<ol class="breadcrumb">
+    <li><a href="/manager">后台首页</a></li>
+    <li class="active">用户管理</li>
+</ol>
+<h3>用户管理</h3>
+<table class="table table-hover">
+    <thead>
+    <tr>
+        <th>编号</th>
+        <th>用户名</th>
+        <th>姓名</th>
+        <th>注册时间</th>
+        <th>修改时间</th>
+        <th>状态</th>
+        <th>角色</th>
+        <th>操作</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr class="success js-user-edit-panel" style="display: none;">
+        <td colspan="8">
+            <form action="javascript:void(0)" class="form-horizontal" role="form">
+                <div class="input-group" style="width: 100%;">
+                    <span class="input-group-addon"><i class="glyphicon glyphicon-user"></i></span>
+                    <input type="text" class="form-control js-userName" name="userName" placeholder="用户名" value="<%=session.user.userName%>" maxlength="20"/>
+                    <span class="input-group-addon"><i class="glyphicon glyphicon-user"></i></span>
+                    <input type="text" class="form-control js-realName" name="realName" placeholder="姓名" value="<%= session.user.realName?session.user.realName:session.user.userName %>"  maxlength="20"/>
+                    <span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
+                    <input type="password" class="form-control js-password" name="password" placeholder="新密码" maxlength="20"/>
+                    <span class="input-group-addon"><i class="glyphicon glyphicon-hand-right"></i></span>
+                    <button type="submit" class="btn btn-primary col-sm-12 col-xs-12 js-user-edit-save">保存</button>
+                    <span class="input-group-addon"></span>
+                    <button class="btn col-sm-12 col-xs-12 js-user-edit-cancel">取消</button>
+                </div>
+            </form>
+        </td>
+    </tr>
+    <tr class="success js-current-user">
+        <td>1</td>
+        <td><%= session.user.userName %></td>
+        <td><%= session.user.realName?session.user.realName:session.user.userName%></td>
+        <td><%=: session.user.createTime | format %></td>
+        <td><%=: session.user.modifyTime | format %></td>
+        <td>
+            <input type="checkbox" data-id="<%= session.user._id %>" data-type="<%= session.user.status %>"
+                   class="js-user-status" disabled="disabled" /></td>
+        <td>
+            <input type="checkbox" data-id="<%= session.user._id %>" data-type="<%= session.user.role %>"
+                   class="js-user-role"disabled="disabled" /></td>
+        <td>
+            <a href="javascript:void(0)" class="js-user-edit" data-id="<%= session.user._id %>">
+                编辑
+            </a>
+        </td>
+    </tr>
+    <!--管理员-->
+    <%
+        if (session.user.role==0) {
+        var index = 2;//从2开始，1是当前用户
+        for(var i = 0;i < docs.length;i++){
+        if (docs[i]._id != session.user._id) {
+    %>
+    <tr>
+        <td><%= index++ %></td>
+        <td><%= docs[i].userName %></td>
+        <td><%= docs[i].realName?docs[i].realName:docs[i].userName%></td>
+        <td><%=: docs[i].createTime | format %></td>
+        <td><%=: docs[i].modifyTime | format %></td>
+        <td>
+                <input type="checkbox" data-id="<%= docs[i]._id %>" data-type="<%= docs[i].status %>"
+                   class="js-user-status" /></td>
+        <td>
+            <input type="checkbox" data-id="<%= docs[i]._id %>" data-type="<%= docs[i].role %>"
+                   class="js-user-role" /></td>
+        <td>
+                <a href="javascript:void(0)" class="js-user-delete" data-id="<%= docs[i]._id %>">
+                    <%=docs[i].role==1?"删除":"--"%>
+                </a>
+        </td>
+    </tr>
+    <% }}} %>
+    </tbody>
+</table>
+<% if (session.user.role==0) {%>
+    <%- include ../common/pager%>
+    <%if (docs.length < 0) {%>
+        <div class="alert alert-warning" role="alert">暂无数据</div>
+    <%}%>
+<%}%>
+<%- include footer %>
+<script>
+    $(function () {
+        $('.js-user-manager').addClass("bg-black");
+    });
+</script>

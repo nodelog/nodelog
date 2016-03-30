@@ -17,7 +17,10 @@
 }
 /*自适应菜单--end*/
 .bg-gray {
-    background: #f2f2f2;
+    background: #e5e5e5;
+}
+.bg-e5{
+    background: #e5e5e5;
 }
 
 .bg-white {
@@ -33,8 +36,8 @@
 }
 
 .bottom-border {
-    border-bottom: 1px solid #eee;
-    box-shadow: 0 0 5px #888;
+    /*border-bottom: 1px solid #eee;*/
+    /*box-shadow: 0 0 5px #888;*/
 }
 
 .color-gray {
@@ -208,7 +211,6 @@ div[data-role="editor-toolbar"] {
 
 .bg-footer {
     background: #fff;
-    box-shadow: 0 -1px 0 rgba(168, 168, 168, .33);
 }
 
 .navbar-collapse {
@@ -504,4 +506,17 @@ background: #5cb85c !important;
 }
 ::-webkit-scrollbar-corner, ::-webkit-scrollbar-thumb:window-inactive {
     background: rgba(100,100,100,0.4);
+}
+.navbar-fixed-top{
+    border: none;
+}
+.no-border{
+    border: none;
+}
+.panel.panel-default, .panel.panel-default .panel-heading{
+    border: none;
+}
+.nav .open > a, .nav .open > a:hover, .nav .open > a:focus{
+    background: #eee;
+    color: #222!important;
 }
