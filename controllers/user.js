@@ -1,3 +1,4 @@
+var bcrypt = require('bcryptjs');
 var User = require('./../models/User.js');
 var constants = require('./../models/constants.js');
 var cmsUtils = require('./cmsUtils.js');
@@ -115,6 +116,8 @@ exports.addUser = function (req, res) {
                 msg = "用户名已经存在";
                 res.json({'success': success, 'msg': msg});
             } else {
+                var salt = bcrypt.genSaltSync(10);
+                password = bcrypt.hashSync(password, salt);//加密
                 obj = {"userName": userName,"realName": userName, "password": password};
                 User.save(obj, function (err) {
                     if (!err) {
@@ -153,7 +156,7 @@ exports.login = function (req, res) {
 //                obj = null;
 //            }
             if (obj != null) {
-                if (obj.password == password) {//success
+                if(bcrypt.compareSync(password, obj.password)){
                     success = true;
                     msg = "登录成功";
                     var session = req.session;
@@ -183,4 +186,3 @@ exports.session = function (req, res) {
     var user = req.session.user;
     res.json({user: user});
 }
-

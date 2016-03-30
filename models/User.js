@@ -1,3 +1,4 @@
+var bcrypt = require('bcryptjs');
 var mongodb = require('./mongodb');
 var constants = require('./constants');
 
@@ -74,7 +75,7 @@ UserDAO.prototype.update = function (obj, callback) {
         {'_id': obj._id},
         {$set: {
             'userName': obj.userName,
-            'realName': obj.realName?obj.realName:obj.userName,
+            'realName': obj.realName ? obj.realName : obj.userName,
             'password': obj.password,
             'status': obj.status,
             'role': obj.role,
@@ -83,5 +84,25 @@ UserDAO.prototype.update = function (obj, callback) {
         function (err) {
             callback(err);
         });
+};
+UserDAO.prototype.updatePassword = function (callback) {
+    var salt = bcrypt.genSaltSync(10);
+    var password = '';
+    UserModel.find({}, function (err, docs) {
+        docs.forEach(function (doc, i) {
+            if (doc.password.length < 30) {
+                password = bcrypt.hashSync(doc.password, salt);
+                UserModel.update(
+                    {'_id': doc._id},
+                    {$set: {
+                        'password': password}
+                    },
+                    function (err) {
+                        callback(err);
+                    });
+            }
+        });
+        callback(err);
+    });
 };
 module.exports = new UserDAO();
