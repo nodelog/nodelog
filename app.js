@@ -10,7 +10,7 @@ var settings = require('./settings');
 var session = require('express-session');
 var MongoStore = require('connect-mongo')(session);
 var routes = require('./routes/index');
-
+var filter = require('./routes/filter');
 //初始化express框架
 var app = express();
 //设置view层页面路径
@@ -35,7 +35,8 @@ app.use(session({
 //接受请求
 app.use(function (req, res, next) {
     res.locals.session = req.session;
-    next();
+    //初始化网站配置信息
+    filter.initSite(req, res, next);
 });
 //装载路由
 routes.route(app);

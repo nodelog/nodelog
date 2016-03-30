@@ -6,7 +6,7 @@ var cmsUtils = require('./cmsUtils.js');//自定义util工具
 var sessionUser;//
 
 /**
- *
+ * 更新配置
  * @param req
  * @param res
  */

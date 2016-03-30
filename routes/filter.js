@@ -1,6 +1,7 @@
 var User = require('./../models/User');
 var Site = require('./../models/Site');
 var os = require('os');
+//验证用户登录
 exports.authorize = function (req, res, next) {
     if (!req.session.user) {
         res.redirect('/');
@@ -8,6 +9,7 @@ exports.authorize = function (req, res, next) {
         next();
     }
 };
+//验证是否是管理员
 exports.authorizeAdmin = function (req, res, next) {
     if (!req.session.user) {
         res.redirect('/');
@@ -17,6 +19,7 @@ exports.authorizeAdmin = function (req, res, next) {
         next();
     }
 };
+//创建用户
 exports.createUser = function (req, res, next) {
     User.findByName("admin", function (err, obj) {
         if (obj == null) {
@@ -34,26 +37,34 @@ exports.createUser = function (req, res, next) {
         }
     });
 };
-exports.createSite = function (req, res, next) {
-    Site.findOne(function (err, obj) {
-        if (obj == null) {
-            obj = {
-                name: "误码者",
-                copyRight: "王亚超",
-                icp: "闽ICP备15004025号",
-                version: "1.0",
-                phone: "13030840306",
-                address: "福建厦门"
-            };
-            Site.save(obj,function (err) {
-                console.log("添加site完成");
+//初始化网站配置信息
+exports.initSite = function (req, res, next) {
+    if(!req.session.site){//session不存在
+        Site.findOne(function (err, obj) { //查询site
+            if (obj == null) {//不存在创建新的
+                obj = {
+                    name: "误码者",
+                    copyRight: "王亚超",
+                    icp: "闽ICP备15004025号",
+                    version: "1.0",
+                    phone: "13030840306",
+                    address: "福建厦门"
+                };
+                Site.save(obj,function (err) {
+                    console.log("添加site完成");
+                    next();
+                });
+            } else { //把网站配置加入session
+                var session = req.session;
+                session.site = obj;
                 next();
-            });
-        } else {
-            next();
-        }
-    });
+            }
+        });
+    } else {
+        next();
+    }
 };
+//获取日期
 function getDate()
 {
 	var date = new Date();

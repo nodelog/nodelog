@@ -1,13 +1,13 @@
 var filter = require('./filter');
 var user = require('./../controllers/user');
+var site = require('./../controllers/site');
 var category = require('./../controllers/category');
 var content = require('./../controllers/content');
 var comment = require('./../controllers/comment');
 var log = require('./../controllers/log');
 var cmsUtils = require('./../controllers/cmsUtils');
 var route = function (app) {
-	app.get('/',filter.createSite, content.findByPage);
-//	app.get('/', res.redirect("/index"));
+	app.get('/', content.findByPage);
     app.get('/index', content.findByPage);
     app.get('/about', function (req, res) {
         res.render('about', { title: '关于我们'});
@@ -54,7 +54,7 @@ var route = function (app) {
     app.get('/log/detail',  log.findById);
     app.get('/manager/log/detail',filter.authorizeAdmin, log.findById);
     app.get('/log',log.findByPage);
-    app.post('/log/count',log.logCount);
+    app.post('/log/count', log.logCount);
     app.get('/category/all', category.findAll);
     app.get('/content/detail', content.findById);
     app.get('/content/edit', filter.authorize, content.findById);
@@ -73,7 +73,7 @@ var route = function (app) {
     //日志路由
     app.get('/log',filter.log);
     app.get('/test', function(req, res){res.render('test');});
-    app.get('/error',function(req,res){res.render('error', {title: '没有找到',state: '404'});});
+    app.get('/error', function(req,res){res.render('error', {title: '没有找到',state: '404'});});
     // 下面的路由必须放到最后，404页面
     // app.get('*', function(req, res){res.redirect('/error');});
     app.get('/clock', function(req, res){res.render('clock',{title:"html5时钟"})});

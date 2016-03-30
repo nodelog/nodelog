@@ -45,8 +45,8 @@ SiteDAO.prototype.findById = function (id, callback) {
  * @param callback
  */
 SiteDAO.prototype.findOne = function (callback) {
-    SiteModel.findOne(function (err, docs) {
-        callback(err, docs);
+    SiteModel.findOne(function (err, obj) {
+        callback(err, obj);
     });
 };
 /**
