@@ -31,6 +31,10 @@
         </select>
     </div>
     <div class="form-group">
+        <label>原文<span class="text-muted">(置空则为原创)</span></label>
+        <input type="text" class="form-control" name="original" placeholder="原文链接" value="<%= (doc.original)?doc.original:'' %>"/>
+    </div>
+    <div class="form-group">
         <div class="l-padding-vertical">
             <button type="submit" class="btn btn-primary col-sm-1 col-xs-12 pull-right  js-save-content">编辑日志</button>
         </div>

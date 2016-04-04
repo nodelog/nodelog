@@ -2,7 +2,7 @@
 <% for(var i = 0;i < docs.length;i++){ %>
 <div class="bs-callout">
     <h4>
-        <i class="glyphicon glyphicon-bookmark"></i>
+        <span class="label label-default"><%=((docs[i].original)?"转":"原")%></span>
         <a href="/content/detail?id=<%= docs[i]._id %>&view=contentDetail"
            title="<%= docs[i].name %>"><%= docs[i].name.length > 50 ? docs[i].name.substring(0, 50) + "..." : docs[i].name %></a>
     </h4>

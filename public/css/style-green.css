@@ -53,6 +53,10 @@ a:hover {
     border-left-color: #5cb85c;
     color: #5cb85c;
 }
+span.label-default {
+    color: #fff;
+    background:#5cb85c ;
+}
 #backToTop{
     color: #5cb85c;
 }

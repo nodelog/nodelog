@@ -493,6 +493,7 @@ exports.add = function (req, res) {
     var oldName = req.body.oldName;
     var content = req.body.content;
     var category = req.body.category;
+    var original = req.body.original;
     var msg = "";
     var success = false;
     var falg = false;//callback
@@ -515,6 +516,7 @@ exports.add = function (req, res) {
                         "content": content,
                         "author": session.user._id,
                         "category": category,
+                        "original": original,
 			"view":parseInt(Math.random()*10000 + 1000, 10)
                     };
                     Content.save(obj, function (err) {
@@ -537,7 +539,8 @@ exports.add = function (req, res) {
                         "id": id,
                         "name": name,
                         "content": content,
-                        "category": category
+                        "category": category,
+                        "original": original
                     };
                     Content.update(obj, function (err) {
                         if (!err) {

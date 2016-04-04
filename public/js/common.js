@@ -461,6 +461,7 @@ $(function () {
             var id = $('.js-add-content-name').attr("data-id");
             var content = $('.js-editor').html();
             var category = $('.js-category-value').val();
+            var original = $('input[name="original"]').val().trim();
             if (name === "") {
                 myMsg("标题不能为空");
             } else if (content.trim() === "") {
@@ -472,7 +473,8 @@ $(function () {
                     name: name,
                     content: content,
                     category: category,
-                    oldName: oldName
+                    oldName: oldName,
+                    original: original
                 }, function (data) {
                     layer.close(index);
                     myMsg(data.msg);

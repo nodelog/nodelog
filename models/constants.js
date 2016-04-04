@@ -20,6 +20,8 @@ exports.COMMENT_UNABLE_STATUS=1;//禁用
 exports.CONTENT_ENABLE_STATUS=0;//正常 分享
 exports.CONTENT_UNABLE_STATUS=1;//禁用
 exports.CONTENT_SELF_STATUS=2;//私有
+exports.content_type_original = 0;//原创
+exports.CONTENT_TYPE_TRANSFER = 1;//转载
 
 //公告状态
 exports.LOG_ENABLE_STATUS=0;//正常
