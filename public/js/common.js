@@ -221,6 +221,7 @@ $(function () {
         } else if (password == "") {
             myMsg("密码不能为空");
         } else {
+            loading();
             $.post("/user/login", {
                 userName: userName,
                 password: password
