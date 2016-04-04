@@ -11,8 +11,7 @@ require.config({
         "hotkeys": "external/jquery.hotkeys",
         "prettify": "external/google-code-prettify/prettify",
         "switch": "bootstrap-switch.min",
-        "wysiwyg": "bootstrap-wysiwyg",
-        "responsive": "responsive-nav.min"//bs自适应导航
+        "wysiwyg": "bootstrap-wysiwyg"
     },
 //    依赖加载
     shim: {

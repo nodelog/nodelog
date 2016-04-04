@@ -520,3 +520,15 @@ background: #5cb85c !important;
     background: #eee;
     color: #222!important;
 }
+.width-400{
+    width: 400px;
+}
+.width-330{
+    width: 330px;
+}
+.inline-block{
+    display: inline-block;
+}
+.underline{
+    text-decoration: underline;
+}
