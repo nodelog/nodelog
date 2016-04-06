@@ -33,8 +33,8 @@
                                 class="glyphicon glyphicon-user"></i>&nbsp;<%- doc.realName?doc.realName:doc.userName %></span>
                     <span title="分类"><i
                                 class="glyphicon glyphicon-tag col-sm-offset-1"></i>&nbsp;<%- doc.categoryName %></span>
-                    <span title="修改时间"><i
-                                class="glyphicon glyphicon-time  col-sm-offset-1"></i>&nbsp;<%=: doc.modifyTime | format %></span>
+                    <span title="发布时间"><i
+                                class="glyphicon glyphicon-time  col-sm-offset-1"></i>&nbsp;<%=: doc.createTime | format %></span>
                     <span title="浏览量"><i
                                 class="glyphicon glyphicon-eye-open  col-sm-offset-1"></i>&nbsp;<%= doc.view %></span>
                     <span>
