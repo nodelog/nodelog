@@ -537,3 +537,6 @@ background: #5cb85c !important;
 img{
     max-width: 100%;
 }
+.break-all{
+    word-break: break-all;
+}
