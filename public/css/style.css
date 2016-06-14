@@ -534,3 +534,6 @@ background: #5cb85c !important;
 .underline{
     text-decoration: underline;
 }
+img{
+    max-width: 100%;
+}
