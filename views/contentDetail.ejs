@@ -47,7 +47,7 @@
                 </div>
 
             </div>
-            <div class="panel-body break-all">
+            <div class="panel-body break-all js-content">
                 <div><%- doc.content %></div>
                 <%if(doc.original){%>
                 <div class="alert alert-success no-margin l-margin-top-20" role="alert">
@@ -101,5 +101,6 @@
 <% if(session.user != null && session.user._id == doc.author){ %>
 <input type="hidden" class="js-current-menu" value="js-my-content-menu"/>
 <% } %>
+
 <%- include footer %>
 

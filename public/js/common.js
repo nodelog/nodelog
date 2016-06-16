@@ -624,6 +624,10 @@ $(function () {
                 $('.js-comment-panel').html("");
             }
         }, "json");
+
+        //自适应内容宽度，屏幕宽度-60设置为此宽度
+        var maxWidth = window.screen.width - 60;
+        $('.js-content *').width(maxWidth);
     }
     var loginFlag = $('.js-login-flag').val();
     if (loginFlag == "true") {
