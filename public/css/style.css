@@ -541,3 +541,7 @@ img{
 .break-all{
     word-break: break-all;
 }
+.break-all *{
+    word-break: break-all;
+    max-width: 100%;
+}
