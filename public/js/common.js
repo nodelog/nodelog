@@ -115,14 +115,18 @@ $(function () {
 //        $('.js-home-menu').addClass("current-menu");
 //    }
     var sessionUser;//当前用户session
-    $.ajax({
-        url: "/session",
-        dataType: "json",
-        async: false,
-        success: function (data) {
-            sessionUser = data.user;
-        }
-    });
+    function getSessionUser(){
+        $.ajax({
+            url: "/session",
+            dataType: "json",
+            async: false,
+            success: function (data) {
+                layer.closeAll();
+                sessionUser = data.user;
+            }
+        });
+    }
+    getSessionUser();
     //是否后台路径判断
     if (url.indexOf("/manager") == -1) {
         //加载所有分类
@@ -229,11 +233,11 @@ $(function () {
                 var result = data.success;
 
                 if (result) {//success
-                    layer.close(index);
-                    myMsg(data.msg);
-                    loading();
+                    sessionUser = data.obj;
+                    $('.js-user-name').text(sessionUser.userName);
+                    $('.js-login-toggle a').toggle();
+                    layer.closeAll();
                     $(window).unbind('beforeunload');
-                    location.reload();
                 } else {
                     myMsg(data.msg);
                 }
