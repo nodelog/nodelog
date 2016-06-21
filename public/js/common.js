@@ -284,9 +284,13 @@ $(function () {
             layer.close(index);
             loading();
             $.get("/user/logout", {}, function (data) {
-                layer.close(index);
+                sessionUser = null;
+                $('.js-login-toggle a').toggle();
+                layer.closeAll();
                 $(window).unbind('beforeunload');
-                location.reload();
+                if (url.indexOf("/manager") != -1) {
+                    location.href = "/";
+                }
             }, "json");
         })
     });
