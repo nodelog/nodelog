@@ -39,7 +39,12 @@
 				var commandArr = commandWithArgs.split(' '),
 					command = commandArr.shift(),
 					args = commandArr.join(' ') + (valueArg || '');
-				document.execCommand(command, 0, args);
+                if(command != 'createLink'){
+                    document.execCommand(command, true, args);
+                } else{
+                    document.execCommand('insertHTML', false, "<a class='underline' href='" + valueArg + "' target='_blank'>" + valueArg + "</a>");
+                }
+
 				updateToolbar();
 			},
 			bindHotkeys = function (hotKeys) {

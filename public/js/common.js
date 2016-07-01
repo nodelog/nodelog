@@ -115,14 +115,18 @@ $(function () {
 //        $('.js-home-menu').addClass("current-menu");
 //    }
     var sessionUser;//当前用户session
-    $.ajax({
-        url: "/session",
-        dataType: "json",
-        async: false,
-        success: function (data) {
-            sessionUser = data.user;
-        }
-    });
+    function getSessionUser(){
+        $.ajax({
+            url: "/session",
+            dataType: "json",
+            async: false,
+            success: function (data) {
+                layer.closeAll();
+                sessionUser = data.user;
+            }
+        });
+    }
+    getSessionUser();
     //是否后台路径判断
     if (url.indexOf("/manager") == -1) {
         //加载所有分类
@@ -221,6 +225,7 @@ $(function () {
         } else if (password == "") {
             myMsg("密码不能为空");
         } else {
+            loading();
             $.post("/user/login", {
                 userName: userName,
                 password: password
@@ -228,11 +233,11 @@ $(function () {
                 var result = data.success;
 
                 if (result) {//success
-                    layer.close(index);
-                    myMsg(data.msg);
-                    loading();
+                    sessionUser = data.obj;
+                    $('.js-user-name').text(sessionUser.userName);
+                    $('.js-login-toggle a').toggle();
+                    layer.closeAll();
                     $(window).unbind('beforeunload');
-                    location.reload();
                 } else {
                     myMsg(data.msg);
                 }
@@ -279,9 +284,13 @@ $(function () {
             layer.close(index);
             loading();
             $.get("/user/logout", {}, function (data) {
-                layer.close(index);
+                sessionUser = null;
+                $('.js-login-toggle a').toggle();
+                layer.closeAll();
                 $(window).unbind('beforeunload');
-                location.reload();
+                if (url.indexOf("/manager") != -1) {
+                    location.href = "/";
+                }
             }, "json");
         })
     });
@@ -460,6 +469,7 @@ $(function () {
             var id = $('.js-add-content-name').attr("data-id");
             var content = $('.js-editor').html();
             var category = $('.js-category-value').val();
+            var original = $('input[name="original"]').val().trim();
             if (name === "") {
                 myMsg("标题不能为空");
             } else if (content.trim() === "") {
@@ -471,7 +481,8 @@ $(function () {
                     name: name,
                     content: content,
                     category: category,
-                    oldName: oldName
+                    oldName: oldName,
+                    original: original
                 }, function (data) {
                     layer.close(index);
                     myMsg(data.msg);
@@ -621,6 +632,14 @@ $(function () {
                 $('.js-comment-panel').html("");
             }
         }, "json");
+
+        //自适应内容宽度，宽度超过屏幕宽度-60设置为此宽度
+        var maxWidth = window.screen.width - 60;
+        $('.js-content *').each(function (i,val) {
+            if($(val).width() > maxWidth){
+                $(val).width(maxWidth);
+            }
+        });
     }
     var loginFlag = $('.js-login-flag').val();
     if (loginFlag == "true") {
@@ -912,20 +931,6 @@ $(function () {
     });
 
 });
-
-<!--bs自适应导航插件-->
-//var navigation = responsiveNav("#nav", { // Selector: The ID of the wrapper
-//    animate: true, // Boolean: 是否启动CSS过渡效果（transitions）， true 或 false
-//        transition: 400, // Integer: 过渡效果的执行速度，以毫秒（millisecond）为单位
-//        label: "Menu", // String: Label for the navigation toggle
-//        insert: "after", // String: Insert the toggle before or after the navigation
-//        customToggle: "", // Selector: Specify the ID of a custom toggle
-//        openPos: "relative", // String: Position of the opened nav, relative or static
-//        jsClass: "js", // String: 'JS enabled' class which is added to <html> el
-//        debug: false, // Boolean: Log debug messages to console, true 或 false
-//        init: function(){}, // Function: Init callback
-//    open: function(){}, // Function: Open callback
-//    close: function(){} // Function: Close callback
-//});
-
 console.log('%cNODELOG\n%chttp://www.nodelog.cn\n%cQQ: 1102377905，TEL:13030840306\n%c源码git@osc（http://git.oschina.net/nodelog/nodelog）\n ', 'color:#222; font-size: 25px;', 'color:#31b0d5; font-size: 18px;', 'color:#5cb85c;font-size: 18px;', 'color:#d9534f; font-size: 18px;');
+
+

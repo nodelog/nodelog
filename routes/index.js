@@ -5,7 +5,6 @@ var category = require('./../controllers/category');
 var content = require('./../controllers/content');
 var comment = require('./../controllers/comment');
 var log = require('./../controllers/log');
-var cmsUtils = require('./../controllers/cmsUtils');
 var route = function (app) {
 	app.get('/', content.findByPage);
     app.get('/index', content.findByPage);

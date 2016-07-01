@@ -13,6 +13,7 @@ var ContentSchema = new Schema({
     createTime: { type: Date, default: Date.now},
     modifyTime: {type: Date, default: Date.now},
     view: {type: Number,default:1},
+    original: {type: String},//原文链接 输入即为转载
     status: {type: 'Number', default: 0, required: true, min: 0, max: 2}
 }, {
     collection: "content" //对应mongodb的集合表
@@ -49,7 +50,7 @@ ContentDAO.prototype.findByPage = function (page, currentUser, callback) {
 
 	}
 	var query = ContentModel.find(term);
-    query.select('name author category createTime modifyTime view status');
+    query.select('name author category createTime modifyTime view status original');
     query.sort({"createTime": -1});
     query.limit(constants.PER_PAGE_COUNT);
     query.skip((page - 1) * constants.PER_PAGE_COUNT);
@@ -66,7 +67,7 @@ ContentDAO.prototype.findByCategory = function (page, category, currentUser, cal
 
 	}
 	var query = ContentModel.find(term);
-    query.select('name author category modifyTime view');
+    query.select('name author category modifyTime view original');
     query.sort({"createTime": -1});
     query.limit(constants.PER_PAGE_COUNT);
     query.skip((page - 1) * constants.PER_PAGE_COUNT);
@@ -83,7 +84,7 @@ ContentDAO.prototype.findByWord = function (page, word, currentUser, callback) {
 
 	}
 	var query = ContentModel.find(term);
-    query.select('name author category modifyTime view');
+    query.select('name author category modifyTime view original');
     query.sort({"createTime": -1});
     query.limit(constants.PER_PAGE_COUNT);
     query.skip((page - 1) * constants.PER_PAGE_COUNT);
@@ -108,7 +109,7 @@ ContentDAO.prototype.findAllByWord = function (word, currentUser, callback) {
 };
 ContentDAO.prototype.findByUser = function (page, author, callback) {
     var query = ContentModel.find({"author": author, "status":{$ne: constants.CONTENT_UNABLE_STATUS}});
-    query.select('name author category createTime modifyTime view status');
+    query.select('name author category createTime modifyTime view status original');
     query.sort({"createTime": -1});
     query.limit(constants.PER_PAGE_COUNT);
     query.skip((page - 1) * constants.PER_PAGE_COUNT);
@@ -188,7 +189,7 @@ ContentDAO.prototype.share = function (id, status, callback) {
 	
 };
 ContentDAO.prototype.update = function (obj, callback) {
-    ContentModel.update({"_id": obj.id}, {$set: {"name": obj.name, "content": obj.content, "category": obj.category, "modifyTime": new Date()}}, function (err) {
+    ContentModel.update({"_id": obj.id}, {$set: {"name": obj.name, "content": obj.content, "category": obj.category,"original": obj.original, "modifyTime": new Date()}}, function (err) {
         callback(err);
     });
 };

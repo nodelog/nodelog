@@ -32,6 +32,11 @@
             </div>
             <div class="panel-body">
                 <div><%- doc.content %></div>
+                <%if(doc.original){%>
+                <div class="alert alert-success  no-margin l-margin-top-20" role="alert">
+                    原文链接：<a href="<%= doc.original %>" class="alert-link" target="_blank"><%= doc.original %></a>
+                </div>
+                <%}%>
             </div>
         </div>
         <% } else { %>

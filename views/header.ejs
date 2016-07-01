@@ -62,14 +62,21 @@
             </li>
 
             <% }else{ %>
-            <li>
+            <li class="js-login-toggle">
                 <a title="老用户登录" data-toggle="tooltip" data-placement="bottom" href="javascript:void(0)" class="js-login-btn color-white">
                     <i class="glyphicon glyphicon-log-in"></i>&nbsp;登录
                 </a>
+                <a title="后台管理" data-toggle="tooltip" data-placement="bottom" href="/manager" class="color-white" style="display: none;">
+                    <i class="glyphicon glyphicon-user"></i>&nbsp;
+                    <span class="js-user-name"></span>
+                </a>
             </li>
-            <li>
+            <li class="js-login-toggle">
                 <a title="新用户注册" data-toggle="tooltip" data-placement="bottom" href="javascript:void(0)" class="js-register-btn color-white">
                     <i class="glyphicon glyphicon-registration-mark"></i>&nbsp;注册
+                </a>
+                <a title="退出系统" data-toggle="tooltip" data-placement="bottom" href="javascript:void(0)" class="color-white js-logout-btn"  style="display: none;">
+                    <i class="glyphicon glyphicon-log-out"></i>&nbsp;退出
                 </a>
             </li>
             <% } %>
