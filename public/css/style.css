@@ -545,3 +545,9 @@ img{
     word-break: break-all;
     max-width: 100% !important;
 }
+span.label-default {
+    padding: 0.2em 0.3em !important;
+}
+.bs-callout h4{
+    line-height: 1.5em !important;
+}
