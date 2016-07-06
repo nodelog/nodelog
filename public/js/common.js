@@ -1,6 +1,9 @@
-var index = 0;//layer弹出层index全局变量
+var layerIndex = null;//layer弹出层index全局变量
 //自定义消息弹出框
 function myMsg(_msg) {
+    if(layerIndex != null){
+        layer.close(layerIndex);
+    }
     layer.open({
         content: _msg,
         time: 2 //2秒后自动关闭
@@ -20,7 +23,7 @@ function myAlert(_msg, callback) {
 }
 //自定义弹出页面
 function myPage(title, area, html, callback) {
-    var pageii = layer.open({
+    layer.open({
         type: 1,
         content: html,
         style: 'position:fixed; left:0; top:0; width:100%; height:100%; border:none;'
@@ -41,7 +44,7 @@ function myPage(title, area, html, callback) {
 }
 //自定义加载
 function loading() {
-    layer.open({type: 2});
+    layerIndex = layer.open({type: 2});
 }
 //输入框字数限制
 function limitLength(select, length) {
