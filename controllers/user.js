@@ -56,7 +56,7 @@ exports.update = function (req, res) {
                 obj.realName = realName;
             }
             if (cmsUtils.isNotBlank(password)) {
-                obj.password = password;
+                obj.password = encryption(password);
             }
             User.update(obj, function (err) {
                 if (err) {
@@ -116,8 +116,7 @@ exports.addUser = function (req, res) {
                 msg = "用户名已经存在";
                 res.json({'success': success, 'msg': msg});
             } else {
-                var salt = bcrypt.genSaltSync(10);
-                password = bcrypt.hashSync(password, salt);//加密
+                password = encryption(password);//加密
                 obj = {"userName": userName,"realName": userName, "password": password};
                 User.save(obj, function (err) {
                     if (!err) {
@@ -140,6 +139,7 @@ exports.addUser = function (req, res) {
 
 //login
 exports.login = function (req, res) {
+    console.log( encryption("jackWANG802"));
     var userName = (req.body.userName).trim();
     var password = (req.body.password).trim();
     var msg = "";
@@ -185,4 +185,11 @@ exports.logout = function (req, res) {
 exports.session = function (req, res) {
     var user = req.session.user;
     res.json({user: user});
+}
+
+//加密
+function encryption(password){
+    var salt = bcrypt.genSaltSync(10);
+    password = bcrypt.hashSync(password, salt);//加密
+    return password;
 }
