@@ -14,3 +14,5 @@ nodelog 解点日志使用说明
 
 supervisor app.js或者forever start app.js<br>
 
+参数配置文件：settings.bak.js，正式使用重命名为settings.js，并修改其中参数值，特别是mongodb用户名、密码和数据库名
+
