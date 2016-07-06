@@ -1,73 +1,47 @@
 var index = 0;//layer弹出层index全局变量
 //自定义消息弹出框
-function myMsg(_msg, _height, index) {
-    if (typeof(_height) == "undefined") {
-        _height = '100px';
-    }
-    $.layer({
-        shade: [0],
-        title: false,
-        closeBtn: [1, true],
-        time: 2,
-        offset: [_height, '50%'],
-        dialog: {
-            btns: 0,
-            type: -1,
-            msg: _msg
-        },
-        end: function () {
-            parent.layer.close(index);
-        }
+function myMsg(_msg) {
+    layer.open({
+        content: _msg,
+        time: 2 //2秒后自动关闭
     });
 }
 //自定义确认弹出框
 function myAlert(_msg, callback) {
-    index = $.layer({
-        time: 0,
-        title: "系统提示",
-        closeBtn: [0, true],
-        border: [5, 0.3, '#e5e5e5'],
-        shade: [0.3, '#000'],
-        shift: 'top',
-        offset: ['300px', '50%'],
-        btn: ['确定', '取消'],
-        dialog: {
-            btns: 2,
-            type: -1,
-            msg: _msg,
-            yes: function (index) {
-                layer.close(index);
-                callback();
-            },
-            no: function (index) {
-                layer.close(index);
-                return false;
-            }
+    layer.open({
+        title: 'NODELOG 温馨提示',
+        content: _msg,
+        btn: ['嗯', '不要'],
+        yes: function(index){
+            layer.close(index);
+            callback();
         }
     });
 }
 //自定义弹出页面
 function myPage(title, area, html, callback) {
-    index = $.layer({
+    var pageii = layer.open({
         type: 1,
-        title: title,
-        area: area,
-        border: [5, 0.3, '#e5e5e5'],
-        shade: [0.3, '#000'],
-        shift: 'top',
-        page: {
-            html: html
-        }, success: function (obj) {
-            callback(obj);
-        }
+        content: html,
+        style: 'position:fixed; left:0; top:0; width:100%; height:100%; border:none;'
     });
+//    index = $.layer({
+//        type: 1,
+//        title: title,
+//        area: area,
+//        border: [5, 0.3, '#e5e5e5'],
+//        shade: [0.3, '#000'],
+//        shift: 'top',
+//        page: {
+//            html: html
+//        }, success: function (obj) {
+//            callback(obj);
+//        }
+//    });
 }
 //自定义加载
-function loading(text) {
-    if (typeof(text) == "undefined") {
-        text = "加载中...";
-    }
-    index = layer.load(text);
+function loading() {
+    layer.open({type: 2});
 }
 //输入框字数限制
 function limitLength(select, length) {
@@ -280,7 +254,7 @@ $(function () {
     });
     //退出
     $('.js-body').delegate('.js-logout-btn', 'click', function () {
-        myAlert("您确定退出系统吗？", function () {
+        myAlert("您确定从服务器退出当前登录的用户吗？", function () {
             layer.close(index);
             loading();
             $.get("/user/logout", {}, function (data) {
@@ -517,19 +491,6 @@ $(function () {
             }, "json");
         });
     });
-    //返回顶部触发（已过时，改为在backtop.js中控制）
-    /*$(window).bind('scroll resize', function () {
-        if ($(window).scrollTop() > 50) {
-            $(".js-goto-top").show();
-        } else {
-            $(".js-goto-top").hide();
-        }
-    });
-    $(window).scroll();
-    $(".js-goto-top").on("click", function () {
-        $('body,html').animate({scrollTop: 0}, 500);
-        return false;
-    });*/
     //跳转到评论输入框
     $('.js-open-comment-btn').click(function () {
         $('.js-comment-input').focus();
@@ -929,8 +890,33 @@ $(function () {
             }
         }
     });
+    $('body').delegate('.layer-close-all','click',function () {
+        layer.closeAll();
+    })
+});//end jquery
 
+//返回顶部
+var ScrollToTop = ScrollToTop || {
+    setup: function () {
+
+        //var a = $(window).height() / 4;
+        var a = 50;
+        $(window).scroll(function () {
+            (window.innerWidth ? window.pageYOffset : document.documentElement.scrollTop) >= a ? $("#backToTop").removeClass("Offscreen") : $("#backToTop").addClass("Offscreen")
+        });
+        //tooltip提示
+        $("#backToTop").click(function () {
+            $("html, body").animate({scrollTop: "0px"}, 400);
+            return false
+        })
+    }
+};
+$(document).ready(function(){
+    ScrollToTop.setup();
 });
+
+
+//控制台输出
 console.log('%cNODELOG\n%chttp://www.nodelog.cn\n%cQQ: 1102377905，TEL:13030840306\n%c源码git@osc（http://git.oschina.net/nodelog/nodelog）\n ', 'color:#222; font-size: 25px;', 'color:#31b0d5; font-size: 18px;', 'color:#5cb85c;font-size: 18px;', 'color:#d9534f; font-size: 18px;');
 
 

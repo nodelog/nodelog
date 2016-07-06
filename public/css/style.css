@@ -551,3 +551,30 @@ span.label-default {
 .bs-callout h4{
     line-height: 1.5em !important;
 }
+.size-40{
+    font-size: 40px;
+}
+.padding-15{
+    padding: 15px;
+}
+
+.fixed-right-top{
+    position: fixed;
+    right: 0;
+    top: 0;
+}
+.opacity-03{
+    opacity: 0.3;
+}
+.opacity-1{
+    opacity: 1;
+}
+.hover-opacity-1:hover{
+    opacity: 1;
+}
+
+.layermbtn {
+    -webkit-box-sizing: content-box;
+    -moz-box-sizing: content-box;
+    box-sizing: content-box;
+}

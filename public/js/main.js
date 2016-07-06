@@ -7,7 +7,7 @@ require.config({
         "jquery": "jquery-1.10.2.min",
         "cookie": "jquery.cookie",
         "bootstrap": "bootstrap",
-        "layer": "layer.min",
+        "layer": "layer/layer",
         "hotkeys": "external/jquery.hotkeys",
         "prettify": "external/google-code-prettify/prettify",
         "switch": "bootstrap-switch.min",
@@ -30,11 +30,8 @@ require.config({
         'cookie': {
             deps: ['jquery']
         },
-        'backtop': {
-            deps: ['jquery']
-        },
         'common': {
-            deps: ['jquery','cookie','bootstrap','layer','backtop']
+            deps: ['jquery','cookie','bootstrap','layer']
         },
         'editor': {
             deps: ['jquery','bootstrap','hotkeys','prettify','wysiwyg','common']
