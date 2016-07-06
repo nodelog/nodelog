@@ -1,13 +1,16 @@
 var layerIndex = null;//layer弹出层index全局变量
 //自定义消息弹出框
 function myMsg(_msg) {
-    if(layerIndex != null){
-        layer.close(layerIndex);
-    }
+    closeLayer();
     layer.open({
         content: _msg,
         time: 2 //2秒后自动关闭
     });
+}
+function closeLayer(){
+    if(layerIndex != null){
+        layer.close(layerIndex);
+    }
 }
 //自定义确认弹出框
 function myAlert(_msg, callback) {
@@ -28,19 +31,6 @@ function myPage(title, area, html, callback) {
         content: html,
         style: 'position:fixed; left:0; top:0; width:100%; height:100%; border:none;'
     });
-//    index = $.layer({
-//        type: 1,
-//        title: title,
-//        area: area,
-//        border: [5, 0.3, '#e5e5e5'],
-//        shade: [0.3, '#000'],
-//        shift: 'top',
-//        page: {
-//            html: html
-//        }, success: function (obj) {
-//            callback(obj);
-//        }
-//    });
 }
 //自定义加载
 function loading() {
@@ -242,7 +232,7 @@ $(function () {
         } else if (password != password2) {
             myMsg("两次密码不一致");
         } else {
-            layer.close(index);
+            closeLayer();
             loading();
             $.post("/user/reg", {
                 userName: userName,
@@ -250,7 +240,7 @@ $(function () {
                 password2: password2
             }, function (data) {
                 var msg = data.msg;
-                layer.close(index);
+                closeLayer();
                 myMsg(data.msg);
             }, "json");
         }
@@ -258,7 +248,7 @@ $(function () {
     //退出
     $('.js-body').delegate('.js-logout-btn', 'click', function () {
         myAlert("您确定从服务器退出当前登录的用户吗？", function () {
-            layer.close(index);
+            closeLayer();
             loading();
             $.get("/user/logout", {}, function (data) {
                 sessionUser = null;
@@ -276,7 +266,7 @@ $(function () {
         var $this = $(this);
         var id = $this.attr("data-id");
         myAlert("删除后无法恢复，您确定要删除吗？", function () {
-            layer.close(index);
+            closeLayer();
             loading();
             $.post("/manager/user/delete", {
                 id: id
@@ -374,7 +364,7 @@ $(function () {
                 var result = data.success;
                 var msg = data.msg;
                 if (result) {//success
-                    layer.close(index);
+                    closeLayer();
                     window.location = "/manager/category?page=1";
                 }
                 myMsg(data.msg);
@@ -387,7 +377,7 @@ $(function () {
                 var result = data.success;
                 var msg = data.msg;
                 if (result) {//success
-                    layer.close(index);
+                    closeLayer();
                     $('.js-modify-category-current').text(name);
                 }
                 myMsg(data.msg);
@@ -399,12 +389,12 @@ $(function () {
         var $this = $(this);
         var id = $this.attr("data-id");
         myAlert("删除后无法恢复，您确定要删除此分类吗？", function () {
-            layer.close(index);
+            closeLayer();;
             loading();
             $.post("/manager/category/delete", {
                 id: id
             }, function (data) {
-                layer.close(index);
+                closeLayer();;
                 if (data.success) {
                     $this.parent().parent().fadeOut();
                 }
@@ -461,7 +451,7 @@ $(function () {
                     oldName: oldName,
                     original: original
                 }, function (data) {
-                    layer.close(index);
+                    closeLayer();;
                     myMsg(data.msg);
                     if (data.success) {//success
                         $(window).unbind('beforeunload');
@@ -481,12 +471,12 @@ $(function () {
         var $this = $(this);
         var id = $this.attr("data-id");
         myAlert("删除后无法恢复，您确定要删除吗？", function () {
-            layer.close(index);
+            closeLayer();;
             loading();
             $.post("/manager/content/delete", {
                 id: id
             }, function (data) {
-                layer.close(index);
+                closeLayer();;
                 if (data.success) {
                     $this.parent().parent().fadeOut()
                 }
@@ -507,12 +497,12 @@ $(function () {
             myMsg("评论内容为空");
         } else {
             loading();
-            layer.close(index);
+            closeLayer();;
             $.post("/comment/add", {
                 contentId: id,
                 comment: comment
             }, function (data) {
-                layer.close(index);
+                closeLayer();;
                 myMsg(data.msg);
                 if (data.success) {
                     location.reload();
@@ -738,7 +728,7 @@ $(function () {
                     name: name,
                     content: content
                 }, function (data) {
-                    layer.close(index);
+                    closeLayer();;
                     myMsg(data.msg);
                     if (data.success) {//success
                         window.location = "/manager/log?view=manager/log&page=1";
@@ -751,7 +741,7 @@ $(function () {
         var $this = $(this);
         var id = $this.attr("data-id");
         myAlert("删除后无法恢复，您确定要删除吗？", function () {
-            layer.close(index);
+            closeLayer();;
             loading();
             $.post("/manager/log/delete", {
                 id: id
@@ -888,8 +878,8 @@ $(function () {
     //按ESC键 关闭弹出层
     $(document).keydown(function(event){
         if(event.keyCode == 27){ //ESC
-            if(index) {
-                layer.close(index);
+            if(layerIndex) {
+                closeLayer();;
             }
         }
     });
