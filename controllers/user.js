@@ -139,7 +139,6 @@ exports.addUser = function (req, res) {
 
 //login
 exports.login = function (req, res) {
-    console.log( encryption("jackWANG802"));
     var userName = (req.body.userName).trim();
     var password = (req.body.password).trim();
     var msg = "";
