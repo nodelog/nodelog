@@ -551,6 +551,9 @@ span.label-default {
 .bs-callout h4{
     line-height: 1.5em !important;
 }
+.panel-heading h4{
+    line-height: 1.5em !important;
+}
 .size-40{
     font-size: 40px;
 }
