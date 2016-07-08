@@ -16,6 +16,7 @@ exports.update = function (req, res) {
     var version = req.body.version.trim();
     var phone = req.body.phone.trim();
     var address = req.body.address.trim();
+    var statistical = req.body.statistical;
     var msg = "";
     var success = false;
     var falg = false;//callback
@@ -33,7 +34,8 @@ exports.update = function (req, res) {
             icp: icp,
             version: version,
             phone: phone,
-            address: address
+            address: address,
+            statistical: statistical
         };
         Site.update(obj, function (err) {
             if (!err) {

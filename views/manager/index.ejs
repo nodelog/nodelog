@@ -31,6 +31,12 @@
             <label for="">联系地址</label>
             <input type="text" class="form-control" name="address" value="<%= session.site.address %>">
         </div>
+        <div class="form-group">
+            <label for="">统计代码</label>
+            <textarea type="text" class="form-control" name="statistical" rows="5">
+                <%= session.site.statistical %>
+            </textarea>
+        </div>
 
         <button type="button" class="btn btn-default js-site-edit-save">更新配置</button>
     </form>
