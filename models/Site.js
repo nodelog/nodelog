@@ -11,7 +11,8 @@ var SiteSchema = new Schema({
     icp: {type: String},
     version: {type: String, required: true},
     phone: { type: String},
-    address: {type: String}
+    address: {type: String},
+    statistical: {type: String}                 //流量统计代码
 }, {
     collection: "site" //对应mongodb的集合表
 });
@@ -64,6 +65,7 @@ SiteDAO.prototype.update = function (obj, callback) {
                 "icp": obj.icp,
                 "version": obj.version,
                 "phone": obj.phone,
+                "statistical": obj.statistical,
                 "address": obj.address }
             },
             function (err) {
