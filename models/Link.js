@@ -8,7 +8,7 @@ var ObjectId = Schema.ObjectId;//获取ObjectId
 var LinkSchema = new Schema({
     name: {type: String, required: true},
     url: {type: String, required: true},
-    blank: {type: String}
+    blank: {type: 'Number', default: 0, required: true, min: 0, max: 1}
 }, {
     collection: "link" //对应mongodb的集合表
 });
@@ -33,18 +33,16 @@ LinkDAO.prototype.save = function (obj, callback) {
  * @param callback
  */
 LinkDAO.prototype.update = function (obj, callback) {
-    LinkModel.findOne(function (err, link) {
-        LinkModel.update(
-            {"_id": link.id},
-            {$set:{
-                "name": obj.name,
-                "url": obj.url,
-                "blank": obj.blank }
-            },
-            function (err) {
-                callback(err);
-            });
-    });
+    LinkModel.update(
+        {"_id": obj.id},
+        {$set:{
+            "name": obj.name,
+            "url": obj.url,
+            "blank": obj.blank }
+        },
+        function (err) {
+            callback(err);
+        });
 
 };
 LinkDAO.prototype.findAll = function (callback) {
@@ -53,9 +51,7 @@ LinkDAO.prototype.findAll = function (callback) {
         });
 };
 LinkDAO.prototype.delete = function (id, callback) {
-    LinkModel.remove(
-        {"_id": id},
-        function (err) {
+    LinkModel.remove({_id: id},function (err) {
             callback(err);
         });
 };

@@ -346,7 +346,7 @@ $(function () {
 //    })
     //添加分类
     var addCategoryHtml = $('.js-add-category-panel').html();
-    $('.js-add-category-panel').html("");
+    $('.js-category-name').val("");
     $('.js-add-category').click(function () {
         myPage('添加分类', ['310px', '160px'], addCategoryHtml, function (obj) {
             $('.js-category-name').focus();
@@ -409,12 +409,14 @@ $(function () {
         var $this = $(this);
         var value = $this.text();
         var id = $this.attr("data-id");
+
+        $('.js-category-name').attr("value",value);
+        $('.js-category-name').attr("data-id", id);
+        $('.js-category-name').focus();
+        $this.addClass("js-modify-category-current");
+        var addCategoryHtml = $('.js-add-category-panel').html();
         myPage('修改分类', ['310px', '160px'], addCategoryHtml, function (obj) {
-            $('.js-category-name').val(value);
-            $('.js-category-name').attr("data-id", id);
-            $('.js-category-name').focus();
-            $('.js-save-category').text("修改");
-            $this.addClass("js-modify-category-current");
+
         });
     });
     //日志名称输入框字数限制和剩余字数提示
@@ -814,6 +816,9 @@ $(function () {
             }
         }, "json");
     });
+   
+
+
     var theme= $.cookie('style-theme');
     var bdImg;//黑色
     if (theme) {
@@ -886,6 +891,22 @@ $(function () {
     $('body').delegate('.layer-close-all','click',function () {
         layer.closeAll();
     })
+
+    $.post("/link/list", {}, function (data) {
+        if (data.success) {
+            var _html = '';
+            $.each(data.data, function (i, val) {
+                if(val.blank == 0){
+                    _html +='<a href="'+val.url+'" target="_blank">';
+                } else{
+                    _html +='<a href="'+val.url+'">';
+                }
+                _html +='<i class="glyphicon glyphicon-link"></i>&nbsp;'+val.name;
+                _html +='</a>';
+            });
+            $(".js-links-panel").append(_html);
+        }
+    }, "json");
 });//end jquery
 
 //返回顶部

@@ -44,6 +44,13 @@
                         <i class="glyphicon glyphicon-volume-up"></i>&nbsp;公告管理
                     </a>
                 </li>
+            <% if (session.user.role==0) {%>
+                <li>
+                    <a href="/manager/link" class="color-white js-settings-btn transition <%if(locals.currentMenu&&currentMenu=="link"){%>current-menu<%}%>">
+                        <i class="glyphicon glyphicon-volume-up"></i>&nbsp;链接管理
+                    </a>
+                </li>
+            <%}%>
                 <%}%>
                 <li>
                     <a href="/" class="color-white js-settings-btn transition">

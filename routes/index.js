@@ -5,6 +5,7 @@ var category = require('./../controllers/category');
 var content = require('./../controllers/content');
 var comment = require('./../controllers/comment');
 var log = require('./../controllers/log');
+var link = require('./../controllers/link');
 var route = function (app) {
 	app.get('/', content.findByPage);
     app.get('/index', content.findByPage);
@@ -72,6 +73,10 @@ var route = function (app) {
     app.post('/content/search',content.findByWordJson);
     //日志路由
     app.get('/log',filter.log);
+    app.get('/manager/link', function(req, res){res.render('manager/link',{currentMenu:"link",title:"链接管理"});});
+    app.post('/manager/link/save', filter.authorizeAdmin, link.save);
+    app.post('/link/list', link.findAll);
+    app.post('/manager/link/delete', filter.authorizeAdmin, link.delete);
     app.get('/test', function(req, res){res.render('test');});
     app.get('/error', function(req,res){res.render('error', {title: '没有找到',state: '404'});});
     // 下面的路由必须放到最后，404页面
