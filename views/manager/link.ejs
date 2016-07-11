@@ -1,0 +1,111 @@
+<%- include header %>
+<ol class="breadcrumb">
+    <li><a href="/manager">后台首页</a></li>
+    <li class="active">链接管理</li>
+</ol>
+<h3> 链接管理
+    <button type="button" class="btn btn-default pull-right js-add-link">
+        <i class="glyphicon glyphicon-plus"></i>&nbsp; 添加链接
+    </button>
+</h3>
+
+<div class="clearfix"></div>
+<div style="display: none" class=" js-add-link-panel">
+    <form name="linkForm" role="form" action="javascript:void(0)">
+        <input type="hidden" name="id">
+        <div class="form-group">
+            <label for="">链接名称</label>
+            <input type="text" class="form-control" name="name">
+        </div>
+        <div class="form-group">
+            <label for="">链接地址</label>
+            <input type="text" class="form-control" name="url" value="http://">
+        </div>
+
+        <div class="form-group">
+            <label for="">是否新窗口打开</label>
+            <input type="checkbox" class="" name="blank" value="0" checked>
+        </div>
+
+        <button type="button" class="btn btn-default js-link-save pull-right">保存</button>
+    </form>
+</div>
+
+
+<table class="table table-hover">
+    <thead>
+    <tr>
+        <th>编号</th>
+        <th>名称</th>
+        <th>地址</th>
+        <th>操作</th>
+    </tr>
+    </thead>
+    <tbody class="js-link-panel">
+
+    </tbody>
+</table>
+
+<%- include footer %>
+<script>
+    $(function () {
+        //保存链接
+        $('.js-link-save').click(function () {
+            var data = $('form[name=linkForm]').serializeArray();
+            loading();
+            $.post("/manager/link/save", data, function (data) {
+                if (data.success) {
+                    myMsg(data.msg);
+                    location.reload();
+                } else {
+                    myMsg(data.msg);
+                }
+            }, "json");
+        });
+
+        $.post("/link/list", {}, function (data) {
+            if (data.success) {
+                var _html = '';
+                $.each(data.data, function (i, val) {
+                    _html +='<tr>';
+                    _html += '<td>' + (i + 1) + '</td>';
+                    _html += '<td>' + val.name + '</td>';
+                    _html += '<td><a href="' + val.url + '" target="_blank">' + val.url + '</a></td>';
+                    _html += '<td data-id="'+val._id+'" data-blank="'+val.blank+'"><a class="js-link-update" href="javascript:;">修改</a>&nbsp;<a href="javascript:;" class="js-link-delete">删除</a></td>';
+                    _html +='</tr>';
+                });
+                $(".js-link-panel").html(_html);
+            }
+        }, "json");
+
+        $("body").delegate('.js-link-delete','click',function () {
+            var $this = $(this);
+            myAlert("删除后无法恢复，您确定要删除吗？", function () {
+                $.post("/manager/link/delete", {id: $this.parent().attr("data-id")}, function (data) {
+                    if (data.success) {
+                        $this.parents('tr').fadeOut();
+                    } else {
+                        myMsg(data.msg);
+                    }
+                }, "json");
+            });
+        });
+        $("body").delegate('.js-link-update','click',function () {
+            var $this = $(this);
+            $('input[name="id"]').val($this.parent().attr('data-id'));
+            $('input[name="name"]').val($this.parents('tr').find('td:eq(1)').text());
+            $('input[name="url"]').val($this.parents('tr').find('td:eq(2)').text());
+            if($this.parent().attr('data-blank') == 0){
+                $('input[name="blank"]').prop('checked', true);
+            } else {
+                $('input[name="blank"]').prop('checked', false);
+            }
+            $('.js-add-link-panel').slideDown();
+
+        });
+
+        $('.js-add-link').click(function () {
+            $('.js-add-link-panel').slideToggle();
+        });
+    });
+</script>
