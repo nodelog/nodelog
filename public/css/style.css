@@ -204,7 +204,9 @@ div[data-role="editor-toolbar"] {
 .navbar, .panel, .breadcrumb, .container .jumbotron {
     border-radius: 0px !important;
 }
-
+.container{
+    /*padding: 0 !important;*/
+}
 .full-width {
     width: 100%;
 }
@@ -272,6 +274,9 @@ input::-webkit-search-cancel-button {
 }
 .no-margin{
     margin: 0;
+}
+.no-padding{
+    padding: 0;
 }
 
 .l-margin-bottom-20 {
@@ -443,11 +448,7 @@ input::-webkit-search-cancel-button {
 .style-theme {
     min-height: 40px !important;
     line-height: 40px !important;
-    border-top: 1px solid #e5e5e5;
     color: #fff !important;
-}
-.style-theme:hover {
-    font-size: 18px!important;
 }
 .style-black,.style-black a{
     background: #222 !important;
@@ -557,6 +558,9 @@ span.label-default {
 .size-40{
     font-size: 40px;
 }
+.size-14{
+    font-size: 14px !important;
+}
 .padding-15{
     padding: 15px;
 }
@@ -581,3 +585,4 @@ span.label-default {
     -moz-box-sizing: content-box;
     box-sizing: content-box;
 }
+
