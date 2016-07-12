@@ -282,6 +282,9 @@ input::-webkit-search-cancel-button {
 .l-margin-bottom-20 {
     margin-bottom: 20px;
 }
+.l-margin-bottom-10 {
+    margin-bottom: 10px;
+}
 
 .l-margin-top-20 {
     margin-top: 20px;
@@ -446,9 +449,11 @@ input::-webkit-search-cancel-button {
     color: #fff;
 }
 .style-theme {
-    min-height: 40px !important;
-    line-height: 40px !important;
+    line-height: 25px !important;
     color: #fff !important;
+    display: inline-block;
+    padding: 0 0.6em;
+    border-radius: .25em;
 }
 .style-black,.style-black a{
     background: #222 !important;
@@ -585,4 +590,3 @@ span.label-default {
     -moz-box-sizing: content-box;
     box-sizing: content-box;
 }
-
