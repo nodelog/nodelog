@@ -896,12 +896,15 @@ $(function () {
         if (data.success) {
             var _html = '';
             $.each(data.data, function (i, val) {
+                if(i != 0){
+                    _html += '&nbsp;&nbsp;|&nbsp;&nbsp;';
+                }
                 if(val.blank == 0){
                     _html +='<a href="'+val.url+'" target="_blank">';
                 } else{
                     _html +='<a href="'+val.url+'">';
                 }
-                _html +='<i class="glyphicon glyphicon-link"></i>&nbsp;'+val.name;
+                _html +=val.name;
                 _html +='</a>';
             });
             $(".js-links-panel").append(_html);

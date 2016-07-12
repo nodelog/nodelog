@@ -1,20 +1,15 @@
 <div class="jumbotron clear-margin bg-footer">
-    <div class="container color-gray font-normal">
-        <div class="dropdown dropup l-margin-bottom-20">
-            <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown">
-                选择主题
-                <span class="caret"></span>
-            </button>
-            <ul class="dropdown-menu l-select" role="menu" aria-labelledby="dropdownMenu1">
-                <li role="presentation" class="js-theme style-black" data-theme="style-black" data-bdimg="5"><a role="menuitem" class="style-theme" tabindex="-1" href="javascript:void(0);">神秘黑&nbsp;<i></i></a></li>
-                <li role="presentation" class="js-theme style-blue" data-theme="style-blue" data-bdimg="2"><a role="menuitem" class="style-theme" tabindex="-1" href="javascript:void(0);">经典蓝&nbsp;<i></i></a></li>
-                <li role="presentation" class="js-theme style-green" data-theme="style-green" data-bdimg="1"><a role="menuitem" class="style-theme" tabindex="-1" href="javascript:void(0);">清新绿&nbsp;<i></i></a></li>
-                <li role="presentation" class="js-theme style-red" data-theme="style-red" data-bdimg="4"><a role="menuitem" class="style-theme" tabindex="-1" href="javascript:void(0);">喜庆红&nbsp;<i></i></a></li>
-            </ul>
-        </div>
-		<p class="font-normal js-links-panel">
+    <div class="container no-padding color-gray size-14 text-center">
+       <div>
+
+           <span class="label  js-theme style-black" data-theme="style-black" data-bdimg="5"><a role="menuitem" class="style-theme" tabindex="-1" href="javascript:void(0);">神秘黑&nbsp;<i></i></a></span>
+           <span class="label  js-theme style-red" data-theme="style-red" data-bdimg="4"><a role="menuitem" class="style-theme" tabindex="-1" href="javascript:void(0);">喜庆红&nbsp;<i></i></a></span>
+           <span class="label  js-theme style-green" data-theme="style-green" data-bdimg="1"><a role="menuitem" class="style-theme" tabindex="-1" href="javascript:void(0);">清新绿&nbsp;<i></i></a></span>
+           <span class="label  js-theme style-blue" data-theme="style-blue" data-bdimg="2"><a role="menuitem" class="style-theme" tabindex="-1" href="javascript:void(0);">经典蓝&nbsp;<i></i></a></span>
+       </div>
+		<p class="size-14 js-links-panel">
         </p>
-        <p class="font-normal copyinfo">
+        <p class="size-14 copyinfo">
             &copy; <%= new Date().getFullYear() %>
             &nbsp;<a href="tel://<%=session.site.phone%>"  title="Call me" data-toggle="tooltip" data-placement="top"><%=session.site.copyRight%></a>
             &nbsp;<%=session.site.icp%>
