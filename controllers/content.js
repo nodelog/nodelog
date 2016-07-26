@@ -516,8 +516,8 @@ exports.add = function (req, res) {
                         "content": content,
                         "author": session.user._id,
                         "category": category,
-                        "original": original,
-			"view":parseInt(Math.random()*10000 + 1000, 10)
+                        "original": original
+//			"view":parseInt(Math.random()*10000 + 1000, 10)
                     };
                     Content.save(obj, function (err) {
                         if (!err) {
