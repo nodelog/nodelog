@@ -83,5 +83,8 @@ var route = function (app) {
     // app.get('*', function(req, res){res.redirect('/error');});
     app.get('/clock', function(req, res){res.render('clock',{title:"html5时钟"})});
     app.get('/nodelog', function(req, res){res.render('nodelog',{title:"域名出售"})});
+    app.get('/sitemap.xml', function(req, res){res.sendfile('sitemap.xml')});
+    app.get('/sitemap.html', function(req, res){res.sendfile('sitemap.html')});
+    app.get('/google46e8392abe1a37f5.html', function(req, res){res.sendfile('google46e8392abe1a37f5.html')});
 };
 exports.route = route;
