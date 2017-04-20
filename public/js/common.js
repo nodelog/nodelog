@@ -837,24 +837,24 @@ $(function () {
             $('.js-log-count').text(data.count);
         },"json");
 
-        window._bd_share_config = {//百度分享
-            "common": {
-                "bdSnsKey": {"tsina": "NODELOG", "tqq": "NODELOG", "t163": "NODELOG", "tsohu": "NODELOG"},
-                "bdText": document.title + "-NODELOG-" + location.href,
-                "bdMini": "2",
-                "bdMiniList": false,
-                "bdPic": "",
-                "bdStyle": "0",
-                "bdSize": "16",
-                "bdUrl": location.href
-            },
-            "slide": {
-                "type": "slide",
-                "bdImg": bdImg,
-                "bdPos": "right",
-                "bdTop": "100"
-            }};
-        with (document)0[(getElementsByTagName('head')[0] || body).appendChild(createElement('script')).src = 'http://bdimg.share.baidu.com/static/api/js/share.js?v=89860593.js?cdnversion='+~(-new Date()/36e5)];
+        //window._bd_share_config = {//百度分享
+        //    "common": {
+        //        "bdSnsKey": {"tsina": "NODELOG", "tqq": "NODELOG", "t163": "NODELOG", "tsohu": "NODELOG"},
+        //        "bdText": document.title + "-NODELOG-" + location.href,
+        //        "bdMini": "2",
+        //        "bdMiniList": false,
+        //        "bdPic": "",
+        //        "bdStyle": "0",
+        //        "bdSize": "16",
+        //        "bdUrl": location.href
+        //    },
+        //    "slide": {
+        //        "type": "slide",
+        //        "bdImg": bdImg,
+        //        "bdPos": "right",
+        //        "bdTop": "100"
+        //    }};
+        //with (document)0[(getElementsByTagName('head')[0] || body).appendChild(createElement('script')).src = 'http://bdimg.share.baidu.com/static/api/js/share.js?v=89860593.js?cdnversion='+~(-new Date()/36e5)];
     }
     $('.js-attention-weixin').popover({trigger:'hover',container:'body',template:popverWeixinTempl()});
     $('.js-attention-weibo').popover({trigger:'hover',container:'body',template:popverWeiboTempl()});
