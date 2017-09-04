@@ -28,7 +28,7 @@
         <td><a href="/manager/log/detail?id=<%= docs[i]._id %>&view=manager/logDetail" data-id="<%= docs[i]._id %>"><%= docs[i].name %></a></td>
         <td><%=: docs[i].createTime | format %></td>
         <td><%=: docs[i].modifyTime | format %></td>
-        <td><a href="javascript:void(0)" class="js-log-delete" data-id="<%= docs[i]._id %>">删除</a></td>
+        <td><a href="javascript:;" class="js-log-delete" data-id="<%= docs[i]._id %>">删除</a></td>
     </tr>
     <% } %>
     </tbody>

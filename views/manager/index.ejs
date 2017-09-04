@@ -3,7 +3,7 @@
 <div class="jumbotron">
 <% if (session.user.role==0) {%>
     <h3>博客配置</h3>
-    <form name="siteForm" role="form" action="javascript:void(0)">
+    <form name="siteForm" role="form" action="javascript:;">
         <div class="form-group">
             <label for="">博客名称</label>
             <input type="text" class="form-control" name="name" value="<%= session.site.name %>">
