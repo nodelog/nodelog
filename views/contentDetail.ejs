@@ -39,7 +39,7 @@
                                 class="glyphicon glyphicon-eye-open  col-sm-offset-1"></i>&nbsp;<%= doc.view %></span>
                     <span>
                     <% if(session.user == null || session.user._id != doc.author){ %>
-                        <a href="javascript:void(0)" class="js-open-comment-btn" role="button">
+                        <a href="javascript:;" class="js-open-comment-btn" role="button">
                             <i class="glyphicon glyphicon-comment  col-sm-offset-1"></i>&nbsp;发表评论
                         </a>
                     <% }%>
@@ -77,7 +77,7 @@
             <div class="panel-heading">发表评论</div>
             <div class="panel-body">
                 <div>
-                    <form role="form" action="javascript:void(0)">
+                    <form role="form" action="javascript:;">
                         <div class="form-group">
                             <textarea class="js-comment-input form-control l-heigh-100" placeholder="登录后方可评论
 "></textarea>
