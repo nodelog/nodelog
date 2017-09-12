@@ -23,17 +23,17 @@
                 </a>
             </li>
             <li role="presentation" class="dropdown js-category">
-                <a title="分类查看"  data-placement="bottom" class="dropdown-toggle color-white js-category-content <%if(locals.currentMenu&&currentMenu=="category"){%>current-menu<%}%>" data-toggle="dropdown" href="javascript:void(0);">
+                <a title="分类查看"  data-placement="bottom" class="dropdown-toggle color-white js-category-content <%if(locals.currentMenu&&currentMenu=="category"){%>current-menu<%}%>" data-toggle="dropdown" href="javascript:;;">
                     <i class="glyphicon glyphicon-list"></i> &nbsp;分类查看&nbsp;&nbsp;<i class="glyphicon glyphicon-chevron-down"></i>
                 </a>
                 <ul class="dropdown-menu l-select js-category-menu" role="menu"> </ul>
             </li>
             <li>
-                <a title="我发表的日志" data-toggle="tooltip" data-placement="bottom" href="javascript:void(0);" class="color-white js-my-content-menu <%if(locals.currentMenu&&currentMenu=="mycontent"){%>current-menu<%}%>" >
+                <a title="我发表的日志" data-toggle="tooltip" data-placement="bottom" href="javascript:;;" class="color-white js-my-content-menu <%if(locals.currentMenu&&currentMenu=="mycontent"){%>current-menu<%}%>" >
                     <i class="glyphicon glyphicon-book"></i>&nbsp;我的日志
                 </a>
             </li>
-           <!-- <li  title="我的评说"><a href="javascript:void(0);" class="color-white js-my-comment-menu" >
+           <!-- <li  title="我的评说"><a href="javascript:;;" class="color-white js-my-comment-menu" >
                     <i class="glyphicon glyphicon-comment"></i>&nbsp;我的评说
                 </a>
             </li>-->
@@ -49,21 +49,26 @@
                 </a>
             </li>
             <% if(session.user != null){ %>
-            <li>
-                <a title="后台管理" data-toggle="tooltip" data-placement="bottom" href="/manager" class="color-white" >
+            <li class="js-login-toggle">
+                <a title="用户登录" data-toggle="tooltip" data-placement="bottom" href="javascript:;" class="js-login-btn color-white"  style="display: none;">
+                    <i class="glyphicon glyphicon-log-in"></i>&nbsp;登录
+                </a>
+                <a title="后台管理" data-toggle="tooltip" data-placement="bottom" href="/manager" class="color-white">
                     <i class="glyphicon glyphicon-user"></i>&nbsp;
                     <%= session.user.realName?session.user.realName:session.user.userName %>
                 </a>
             </li>
-            <li>
-                <a title="退出系统" data-toggle="tooltip" data-placement="bottom" href="javascript:void(0)" class="color-white js-logout-btn" >
+            <li class="js-login-toggle">
+                <a title="用户注册" data-toggle="tooltip" data-placement="bottom" href="javascript:;" class="js-register-btn color-white"  style="display: none;">
+                    <i class="glyphicon glyphicon-registration-mark"></i>&nbsp;注册
+                </a>
+                <a title="退出系统" data-toggle="tooltip" data-placement="bottom" href="javascript:;" class="color-white js-logout-btn">
                     <i class="glyphicon glyphicon-log-out"></i>&nbsp;退出
                 </a>
             </li>
-
             <% }else{ %>
             <li class="js-login-toggle">
-                <a title="老用户登录" data-toggle="tooltip" data-placement="bottom" href="javascript:void(0)" class="js-login-btn color-white">
+                <a title="用户登录" data-toggle="tooltip" data-placement="bottom" href="javascript:;" class="js-login-btn color-white">
                     <i class="glyphicon glyphicon-log-in"></i>&nbsp;登录
                 </a>
                 <a title="后台管理" data-toggle="tooltip" data-placement="bottom" href="/manager" class="color-white" style="display: none;">
@@ -72,10 +77,10 @@
                 </a>
             </li>
             <li class="js-login-toggle">
-                <a title="新用户注册" data-toggle="tooltip" data-placement="bottom" href="javascript:void(0)" class="js-register-btn color-white">
+                <a title="用户注册" data-toggle="tooltip" data-placement="bottom" href="javascript:;" class="js-register-btn color-white">
                     <i class="glyphicon glyphicon-registration-mark"></i>&nbsp;注册
                 </a>
-                <a title="退出系统" data-toggle="tooltip" data-placement="bottom" href="javascript:void(0)" class="color-white js-logout-btn"  style="display: none;">
+                <a title="退出系统" data-toggle="tooltip" data-placement="bottom" href="javascript:;" class="color-white js-logout-btn"  style="display: none;">
                     <i class="glyphicon glyphicon-log-out"></i>&nbsp;退出
                 </a>
             </li>

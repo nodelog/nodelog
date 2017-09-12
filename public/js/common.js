@@ -72,6 +72,14 @@ Date.prototype.format = function (fmt) {
 }
 //jquery函数
 $(function () {
+    $('a').on('click touchend', function(e) {
+        var el = $(this);
+        var link = el.attr('href');
+        if(link.indexOf('javascript:;') == -1){
+            window.location = link;
+        }
+    });
+
     //当前url
     var url = location.href;
 //    var current_menu = $('.js-current-menu').val();
