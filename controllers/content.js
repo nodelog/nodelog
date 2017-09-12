@@ -383,7 +383,7 @@ exports.findByUser = function (req, res) {
             currentMenu = "content";
         }
 		console.log(new Date());
-        res.render(view, {docs: docs, title: title, page: page, totalPage: totalPage, total: total, url:"/content/user?",currentMenu:"mycontent"});
+        res.render(view, {docs: docs, title: title, page: page, totalPage: totalPage, total: total, url:"/content/user?",currentMenu:currentMenu});
     });
 };
 exports.findByWord = function (req, res) {

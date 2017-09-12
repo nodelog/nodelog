@@ -10,7 +10,7 @@ var mailer        = require('nodemailer');
 var transport = mailer.createTransport({
     host: settings.email.host,
     port: settings.email.port,
-    secureConnection: true,
+    secureConnection: settings.email.secure,
     auth: {
         user: settings.email.user,
         pass: settings.email.pass

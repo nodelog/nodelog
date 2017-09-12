@@ -209,7 +209,7 @@ $(function () {
 
                 if (result) {//success
                     sessionUser = data.obj;
-                    $('.js-user-name').text(sessionUser.userName);
+                    $('.js-user-name').text(sessionUser.realName);
                     $('.js-login-toggle a').toggle();
                     layer.closeAll();
                     $(window).unbind('beforeunload');
