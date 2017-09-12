@@ -494,6 +494,8 @@ $(function () {
     $('.js-post-comment-btn').click(function () {
         var $this = $(this);
         var id = $this.attr("data-id");
+        var name = $this.attr("data-name");
+        var email = $this.attr("data-email");
         var comment = $('.js-comment-input').val().trim();
         if (comment == "") {
             myMsg("评论内容为空");
@@ -502,6 +504,8 @@ $(function () {
             closeLayer();;
             $.post("/comment/add", {
                 contentId: id,
+                name: name,
+                email: email,
                 comment: comment
             }, function (data) {
                 closeLayer();;
@@ -789,11 +793,13 @@ $(function () {
         var userName = $('input[name=userName]').val().trim();
         var realName = $('input[name=realName]').val().trim();
         var password = $('input[name=password]').val().trim();
+        var email = $('input[name=email]').val().trim();
         $.post("/manager/user/update", {
             id: id,
             userName: userName,
             realName: realName,
-            password: password
+            password: password,
+            email: email,
         }, function (data) {
             if (data.result == true) {
 //                switchUserEditPanel();

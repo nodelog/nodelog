@@ -36,6 +36,7 @@ exports.update = function (req, res) {
     console.log(role+" role number");
     var userName = req.body.userName;
     var realName = req.body.realName;
+    var email = req.body.email;
     var password = req.body.password;
     User.findById(id, function (err, obj) {
         if (!err) {
@@ -54,6 +55,9 @@ exports.update = function (req, res) {
             }
             if (cmsUtils.isNotBlank(realName)) {
                 obj.realName = realName;
+            }
+            if (cmsUtils.isNotBlank(email)) {
+                obj.email = email;
             }
             if (cmsUtils.isNotBlank(password)) {
                 obj.password = encryption(password);

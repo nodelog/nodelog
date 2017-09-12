@@ -4,6 +4,19 @@ var Comment = require('./../models/Comment.js');
 var Content = require('./../models/Content.js');
 var User = require('./../models/User.js');
 var cmsUtils = require('./cmsUtils.js');
+var settings = require('./../settings');
+
+var mailer        = require('nodemailer');
+var transport = mailer.createTransport({
+    host: settings.email.host,
+    port: settings.email.port,
+    secureConnection: true,
+    auth: {
+        user: settings.email.user,
+        pass: settings.email.pass
+    }
+});
+
 var getCount = function (callback) {
     Comment.getCount(function (err, total) {
         callback(err, total);
@@ -151,6 +164,8 @@ var findByName = function (name, callback) {
 exports.add = function (req, res) {
     var id = req.body.id;
     var contentId = req.body.contentId;
+    var name = req.body.name;
+    var email = req.body.email;
     var comment = req.body.comment.trim();
     var msg = "";
     var success = false;
@@ -173,6 +188,27 @@ exports.add = function (req, res) {
                 } else {
                     console.log(err.message);
                     msg = "评论失败";
+                }
+                //发送邮件
+                if(email){
+                    var detailLink = 'http://nodelog.cn/content/detail?id='+contentId+'&view=contentDetail';
+                    var _html = '<b style="color: #222222;">'+session.user.realName + '</b>:';
+                    _html += '评论了您的文章<b style="color: #2a6496;"><a href=\"'+detailLink+'\">《'+name+'》</a></b><br/>';
+                    _html += '评论内容：<b style="color: #222222;">'+comment+'</b><br/>';
+                    _html += '<b style="color: #2a6496;"><a href=\"'+detailLink+'\">点击查看详情</a></b>';
+                    var mailOptions = {
+                        from: session.site.name + ' <'+settings.email.user+'>', // 如果不加<xxx@xxx.com> 会报语法错误
+                        to: email, // list of receivers
+                        subject: session.user.realName + '评论了您的文章《'+name+'》', // Subject line
+                        html: _html
+                    };
+                    transport.sendMail(mailOptions, function(err, info){
+                        if(err){
+                            console.log(err);
+                        }else{
+                            console.log('Message sent: ' + info.response);
+                        }
+                    });
                 }
                 res.json({'success': success, 'msg': msg});
             });
@@ -231,5 +267,3 @@ exports.update = function (req, res) {
         res.json({'success': success, 'msg': msg});
     }
 };
-
-
