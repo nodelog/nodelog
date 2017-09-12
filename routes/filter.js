@@ -43,7 +43,7 @@ exports.initSite = function (req, res, next) {
         Site.findOne(function (err, obj) { //查询site
             if (obj == null) {//不存在创建新的
                 obj = {
-                    name: "误码者",
+                    name: "NODELOG",
                     copyRight: "王亚超",
                     icp: "闽ICP备15004025号",
                     version: "1.0",

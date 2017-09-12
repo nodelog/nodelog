@@ -164,10 +164,12 @@ exports.findById = function (req, res) {
                     if (obj != null) {
                         doc.userName = obj.userName;
                         doc.realName = obj.realName;
+                        doc.email = obj.email;
                     } else {
                         console.log(doc.name + "'s user not found");
                         doc.userName = "佚名";//
                         doc.realName = "佚名";
+                        doc.email = '';
                     }
                     callback(null);
                 });

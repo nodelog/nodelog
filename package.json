@@ -6,20 +6,21 @@
     "start": "node ./bin/www"
   },
   "dependencies": {
-    "express": "~4.2.0",
-    "static-favicon": "~1.0.0",
-    "morgan": "~1.0.0",
-    "cookie-parser": "~1.0.1",
+    "async": "*",
+    "bcryptjs": "*",
     "body-parser": "~1.0.0",
+    "compression": "*",
+    "connect-mongo": "*",
+    "cookie-parser": "~1.0.1",
     "debug": "~0.7.4",
     "ejs": "~0.8.5",
+    "express": "~4.2.0",
+    "express-session": "*",
+    "moment": "*",
     "mongodb": "*",
     "mongoose": "*",
-    "connect-mongo": "*",
-    "express-session": "*",
-    "async": "*",
-    "moment": "*",
-    "compression": "*",
-    "bcryptjs": "*"
+    "morgan": "~1.0.0",
+    "nodemailer": "^4.1.0",
+    "static-favicon": "~1.0.0"
   }
 }
