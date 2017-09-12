@@ -21,7 +21,7 @@
     <tbody>
     <tr class="success js-user-edit-panel" style="display: none;">
         <td colspan="8">
-            <form action="javascript:void(0)" class="form-horizontal" role="form">
+            <form action="javascript:;" class="form-horizontal" role="form">
                 <div class="input-group" style="width: 100%;">
                     <span class="input-group-addon"><i class="glyphicon glyphicon-user"></i></span>
                     <input type="text" class="form-control js-userName" name="userName" placeholder="用户名" value="<%=session.user.userName%>" maxlength="20"/>
@@ -53,7 +53,7 @@
             <input type="checkbox" data-id="<%= session.user._id %>" data-type="<%= session.user.role %>"
                    class="js-user-role"disabled="disabled" /></td>
         <td>
-            <a href="javascript:void(0)" class="js-user-edit" data-id="<%= session.user._id %>">
+            <a href="javascript:;" class="js-user-edit" data-id="<%= session.user._id %>">
                 编辑
             </a>
         </td>
@@ -79,7 +79,7 @@
             <input type="checkbox" data-id="<%= docs[i]._id %>" data-type="<%= docs[i].role %>"
                    class="js-user-role" /></td>
         <td>
-                <a href="javascript:void(0)" class="js-user-delete" data-id="<%= docs[i]._id %>">
+                <a href="javascript:;" class="js-user-delete" data-id="<%= docs[i]._id %>">
                     <%=docs[i].role==1?"删除":"--"%>
                 </a>
         </td>

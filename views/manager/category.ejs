@@ -25,11 +25,11 @@
     <% for(var i = 0;i < docs.length;i++){ %>
     <tr>
         <td><%= i + 1 %></td>
-        <td><a href="javascript:void(0)" data-id="<%= docs[i]._id %>" class="js-modify-category"
+        <td><a href="javascript:;" data-id="<%= docs[i]._id %>" class="js-modify-category"
                title="点击修改分类"><%= docs[i].name %></a></td>
         <td><%=: docs[i].createTime | format %></td>
         <td><%=: docs[i].modifyTime | format %></td>
-        <td><a href="javascript:void(0)" class="js-category-delete" data-id="<%= docs[i]._id %>">删除</a></td>
+        <td><a href="javascript:;" class="js-category-delete" data-id="<%= docs[i]._id %>">删除</a></td>
     </tr>
     <% } %>
     </tbody>
@@ -44,7 +44,7 @@
         <div class="page-header">
             <h1 class="text-center">添加/修改分类</h1>
         </div>
-        <form action="javascript:void(0)" class="form-horizontal l-login-panel" role="form">
+        <form action="javascript:;" class="form-horizontal l-login-panel" role="form">
             <div class="input-group">
                 <span class="input-group-addon">分类名称</span>
                 <input type="text" class="form-control js-category-name" placeholder="输入分类名称" maxlength="20"/>
