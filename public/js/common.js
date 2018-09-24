@@ -948,6 +948,6 @@ $(document).ready(function(){
 
 
 //控制台输出
-console.log('%cNODELOG\n%chttps://nodelog.cn\n%c联系方式: 18205939315(微信qq同)\n%c源码git@osc（http://git.oschina.net/nodelog/nodelog）\n ', 'color:#222; font-size: 25px;', 'color:#31b0d5; font-size: 18px;', 'color:#5cb85c;font-size: 18px;', 'color:#d9534f; font-size: 18px;');
+console.log('%cNODELOG\n%chttps://nodelog.cn\n%c联系方式: 18205939315(微信qq同)\n%c源码git@osc( http://git.oschina.net/nodelog/nodelog )\n ', 'color:#222; font-size: 25px;', 'color:#31b0d5; font-size: 18px;', 'color:#5cb85c;font-size: 18px;', 'color:#d9534f; font-size: 18px;');
 
 

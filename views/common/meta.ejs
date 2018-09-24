@@ -5,8 +5,8 @@
 <meta name="Author" contect="王亚超">
 <meta name="Robots" contect="all">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<meta content="nodelog,<%=session.site.name%>,王亚超的技术博客,errorcoder,nodejs,express,monogodb,全端博客,error,coder,code,博客,日志,技术,个人" name="keywords" />
-<meta content="nodelog,<%=session.site.name%>,王亚超的技术博客,errorcoder,nodejs,express,monogodb,全端博客,error,coder,code,博客,日志,技术,个人" name="description" />
+<meta content="nodelog,<%=session.site.name%>,<%if(locals.title){%><%=title%><%}%>,王亚超的技术博客,打造最快的搜索体验,nodejs,express,monogodb,全端博客,error,coder,code,博客,日志,技术,个人" name="keywords" />
+<meta content="nodelog,<%=session.site.name%>,<%if(locals.title){%><%=title%><%}%>,王亚超的技术博客,打造最快的搜索体验,nodejs,express,monogodb,全端博客,error,coder,code,博客,日志,技术,个人" name="description" />
 <!--baidu站长验证-->
 <meta name="baidu-site-verification" content="hBcEJxnpRy" />
 <!--sogou-->
@@ -17,7 +17,7 @@
 <%if(locals.state){%>
 <meta http-equiv="refresh" content="5;url=/">
 <%}%>
-<title><%if(locals.title){%><%=title%><%}%>--全端博客</title>
+<title><%if(locals.title){%><%=title%><%}%>-全端博客-打造最快的搜索体验</title>
 <!--<link href="/js/external/google-code-prettify/prettify.css" rel="stylesheet">-->
 <link href="/css/font-awesome.css" rel="stylesheet">
 <link rel='stylesheet' href='/css/bootstrap.css'/>
