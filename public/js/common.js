@@ -14,7 +14,7 @@ function closeLayer(){
 }
 //自定义确认弹出框
 function myAlert(_msg, callback) {
-    layer.open({
+    layerIndex = layer.open({
         title: 'NODELOG 温馨提示',
         content: _msg,
         btn: ['嗯', '不要'],
@@ -26,7 +26,7 @@ function myAlert(_msg, callback) {
 }
 //自定义弹出页面
 function myPage(title, area, html, callback) {
-    layer.open({
+    layerIndex = layer.open({
         type: 1,
         content: html,
         style: 'position:fixed; left:0; top:0; width:100%; height:100%; border:none;'
@@ -75,7 +75,7 @@ $(function () {
     $('a').on('click touchend', function(e) {
         var el = $(this);
         var link = el.attr('href');
-        if(link.indexOf('javascript:;') == -1){
+        if(link && link.indexOf('javascript:;') == -1){
             window.location = link;
         }
     });
