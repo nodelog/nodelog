@@ -5,3 +5,4 @@
 *.svn
 settings.js
 sitemap.*
+/node_modules/

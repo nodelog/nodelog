@@ -7,7 +7,7 @@ var UserSchema = new Schema({
     userName: {type: 'String', required: true},
     realName: {type: 'String', required: true},
     password: {type: 'String', required: true},
-    email: {type: 'String', required: true},
+    email: {type: 'String', required: false},
     createTime: { type: Date, default: Date.now},
     modifyTime: {type: Date, default: Date.now},
     role: {type: 'Number', default: 1, required: true, min: 0, max: 1 },//0 super admin,1 normal user
