@@ -418,7 +418,7 @@ $(function () {
         var value = $this.text();
         var id = $this.attr("data-id");
 
-        $('.js-category-name').attr("value",value);
+        $('.js-category-name').val(value);
         $('.js-category-name').attr("data-id", id);
         $('.js-category-name').focus();
         $this.addClass("js-modify-category-current");
