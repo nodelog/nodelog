@@ -354,6 +354,7 @@ $(function () {
 //    })
     //添加分类
     var addCategoryHtml = $('.js-add-category-panel').html();
+    $('.js-add-category-panel').html("");
     $('.js-category-name').val("");
     $('.js-add-category').click(function () {
         myPage('添加分类', ['310px', '160px'], addCategoryHtml, function (obj) {
@@ -418,12 +419,14 @@ $(function () {
         var value = $this.text();
         var id = $this.attr("data-id");
 
+        $('.js-add-category-panel').html(addCategoryHtml);
         $('.js-category-name').val(value);
         $('.js-category-name').attr("data-id", id);
         $('.js-category-name').focus();
         $this.addClass("js-modify-category-current");
-        var addCategoryHtml = $('.js-add-category-panel').html();
-        myPage('修改分类', ['310px', '160px'], addCategoryHtml, function (obj) {
+        var modifyCategoryHtml = $('.js-add-category-panel').html();
+        $('.js-add-category-panel').html("");
+        myPage('修改分类', ['310px', '160px'], modifyCategoryHtml, function (obj) {
 
         });
     });
