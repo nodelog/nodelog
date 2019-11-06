@@ -1,19 +1,19 @@
 .nav-bg {
-    background: #3071a9;
+    background: #4d71c7;
 }
 
 .navbar-nav > li > a:hover, .navbar-nav > li > a:focus {
     text-decoration: none;
-    color: #3071a9 !important;
+    color: #4d71c7 !important;
     background-color: #fff;
 }
 
 a {
-    color: #31b0d5;
+    color: #50acc4;
 }
 
 a:hover {
-    color: #31b0d5;
+    color: #50acc4;
 }
 
 .l-option:hover {
@@ -37,7 +37,7 @@ a:hover {
 
 .search-bar:focus, .search-bar:hover {
     background-color: #eee !important;
-    border-color: #428bca !important;
+    border-color: #4d71c7 !important;
 }
 
 .navbar-nav > li > a {
@@ -46,7 +46,7 @@ a:hover {
 
 .navbar-nav > li > a.current-menu {
     background: #fff;
-    color: #3071a9 !important;
+    color: #4d71c7 !important;
 }
 
 .bs-callout,.bs-callout h4 {
@@ -71,5 +71,10 @@ span.label-default {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgba(48,113,169,0.8);
+    background: rgba(77,113,199,0.8);
+}
+
+.btn-primary,.btn-primary[disabled],.btn-primary:hover,.btn-primary:active,.btn-primary:focus{
+    background-color: #5bc0de !important;
+    border-color: #4d71c7 !important;
 }

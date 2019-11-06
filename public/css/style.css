@@ -456,16 +456,16 @@ input::-webkit-search-cancel-button {
     border-radius: .25em;
 }
 .style-black,.style-black a{
-    background: #222 !important;
+    background: #1c2438 !important;
 }
 .style-blue,.style-blue a {
-    background: #5bc0de !important;
+    background: #4d71c7 !important;
 }
 .style-green,.style-green a {
-background: #5cb85c !important;
+    background: #59c9c4 !important;
 }
 .style-red,.style-red a {
-    background: #d9534f !important;
+    background: #ef6074 !important;
 }
 
 #backToTop {

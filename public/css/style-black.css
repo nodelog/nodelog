@@ -1,58 +1,68 @@
 .nav-bg {
-    background: #222;
+    background: #1c2438;
 }
 
 .navbar-nav > li > a:hover, .navbar-nav > li > a:focus {
     text-decoration: none;
-    color: #222 !important;
+    color: #1c2438 !important;
     background-color: #fff;
 }
 a {
-    color: #222;
+    color: #181441;
 }
 
 a:hover {
-    color: #222;
+    color: #181441;
 }
 .l-option:hover {
-    background: #222 !important;
+    background: #181441 !important;
     color: #fff !important;
 }
 
 .l-option-current,.l-option-current a {
-    background: #222 !important;
+    background: #181441 !important;
     color: #fff !important;
 }
 ::-moz-selection {
-    background: #222;
+    background: #181441;
     color: #FFF;
 }
 
 ::selection {
-    background: #222;
+    background: #181441;
     color: #FFF;
 }
 .search-bar:focus, .search-bar:hover {
     background-color: #eee !important;
-    border-color: #222 !important;
+    border-color: #1c2438 !important;
 }
 .navbar-nav > li > a.current-menu {
     background: #fff;
-    color: #222 !important;
+    color: #181441 !important;
 }
 
 .btn-primary,.btn-primary[disabled],.btn-primary:hover,.btn-primary:active,.btn-primary:focus{
-    background-color: #222;
-    border-color: #111;
+    background-color: #181441;
+    border-color: #1c2438;
 }
 ::-webkit-scrollbar-thumb {
-    background: rgba(34,34,34,0.8);
+    background: rgba(28,36,56,0.8);
 }
 .bs-callout,.bs-callout h4 {
-    border-left-color: #222;
-    color: #222;
+    border-left-color: #181441;
+    color: #181441;
 }
 span.label-default {
     color: #fff;
-    background:#222 ;
+    background:#181441 ;
+}
+.tooltip-inner{
+    background-color: #181441;
+}
+.tooltip.top .tooltip-arrow {
+    border-top-color: #181441;
+}
+
+#backToTop {
+    color: #181441;
 }
