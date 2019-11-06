@@ -23,8 +23,8 @@
                 </a>
             </li>
             <li role="presentation" class="dropdown js-category">
-                <a title="分类查看"  data-placement="bottom" class="dropdown-toggle color-white js-category-content <%if(locals.currentMenu&&currentMenu=="category"){%>current-menu<%}%>" data-toggle="dropdown" href="javascript:;;">
-                    <i class="glyphicon glyphicon-list"></i> &nbsp;分类查看&nbsp;&nbsp;<i class="glyphicon glyphicon-chevron-down"></i>
+                <a title="分类搜索"  data-placement="bottom" class="dropdown-toggle color-white js-category-content <%if(locals.currentMenu&&currentMenu=="category"){%>current-menu<%}%>" data-toggle="dropdown" href="javascript:;;">
+                    <i class="glyphicon glyphicon-list"></i> &nbsp;分类搜索&nbsp;&nbsp;<i class="glyphicon glyphicon-chevron-down"></i>
                 </a>
                 <ul class="dropdown-menu l-select js-category-menu" role="menu"> </ul>
             </li>
@@ -86,7 +86,7 @@
             </li>
             <% } %>
             <li role="presentation" class="dropdown js-search-bar search-bar" style="padding: 0px 10px 0px 10px;">
-                <input data-toggle="tooltip" data-placement="bottom"  type="search" data-toggle="dropdown" maxlength="50" class="dropdown-toggle form-control search-input js-search" value="<%if(locals.key){%><%=key%><%}%>" placeholder="回车搜索" />
+                <input data-toggle="tooltip" data-placement="bottom"  type="search" data-toggle="dropdown" maxlength="50" class="dropdown-toggle form-control search-input js-search" value="<%if(locals.key){%><%=key%><%}%>" placeholder="任意输入、无限搜索" />
                 <ul class="dropdown-menu l-search-select hide js-search-panel" role="menu"> </ul>
             </li>
         </ul>

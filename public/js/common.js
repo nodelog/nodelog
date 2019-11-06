@@ -29,7 +29,8 @@ function myPage(title, area, html, callback) {
     layerIndex = layer.open({
         type: 1,
         content: html,
-        style: 'position:fixed; left:0; top:0; width:100%; height:100%; border:none;'
+        style: 'position:fixed; left:0; top:0; width:100%; height:100%; border:none;',
+        success: callback
     });
 }
 //自定义加载
@@ -108,7 +109,7 @@ $(function () {
         $.get("/category/all",
             function (data) {
                 var docs = data.docs;
-                var html = '<li style="padding: 5px;"><input type="text" class="form-control js-category-auto" placeholder="筛选" autofocus x-webkit-speech></li>';
+                var html = '<li style="padding: 5px;"><input type="text" class="form-control js-category-auto" placeholder="输入" autofocus x-webkit-speech></li>';
                 var _url = "";
                 var _addHtml = "";
                 var _editHtml = "";
@@ -353,17 +354,17 @@ $(function () {
 //        containerSelector: ".js-panel-row"
 //    })
     //添加分类
-    var addCategoryHtml = $('.js-add-category-panel').html();
-    $('.js-add-category-panel').html("");
-    $('.js-category-name').val("");
     $('.js-add-category').click(function () {
-        myPage('添加分类', ['310px', '160px'], addCategoryHtml, function (obj) {
-            $('.js-category-name').focus();
+        myPage('添加分类', ['310px', '160px'], $('.js-add-category-panel').html(), function (obj) {
+            $('.js-category-name').val(value);
+            $('.js-category-name').attr("data-id", id);
+            $('.layermcont .js-category-name').focus();
         });
     });
     $('.js-body').delegate('.js-save-category', 'click', function () {
-        var name = $('.js-category-name').val().trim();
-        var id = $('.js-category-name').attr("data-id");
+
+        var name = $('.layermcont .js-category-name').val().trim();
+        var id = $('.layermcont .js-category-name').attr("data-id");
         if (name == "") {
             myMsg("分类名称不能为空");
         } else if (!id) {//add
@@ -418,16 +419,11 @@ $(function () {
         var $this = $(this);
         var value = $this.text();
         var id = $this.attr("data-id");
-
-        $('.js-add-category-panel').html(addCategoryHtml);
-        $('.js-category-name').val(value);
-        $('.js-category-name').attr("data-id", id);
-        $('.js-category-name').focus();
         $this.addClass("js-modify-category-current");
-        var modifyCategoryHtml = $('.js-add-category-panel').html();
-        $('.js-add-category-panel').html("");
-        myPage('修改分类', ['310px', '160px'], modifyCategoryHtml, function (obj) {
-
+        myPage('修改分类', ['310px', '160px'],  $('.js-add-category-panel').html(), function (obj) {
+            $('.js-category-name').val(value);
+            $('.js-category-name').attr("data-id", id);
+            $('.layermcont .js-category-name').focus();
         });
     });
     //日志名称输入框字数限制和剩余字数提示
@@ -663,7 +659,7 @@ $(function () {
             loading("开始搜索 \"" + _word + "\" 相关日志...");
             location.href = _searchUrl + "?word=" + _word + "&page=1";
         } else {
-            var _html = '<li style="padding: 5px;"><input type="text" class="form-control js-search-auto" placeholder="筛选" x-webkit-speech /></li>';
+            var _html = '<li style="padding: 5px;"><input type="text" class="form-control js-search-auto" placeholder="精确定位" x-webkit-speech /></li>';
             if (_word != "") {
                 $.post(_searchUrl, {"word": _word}, function (data) {
                     var docs = data.docs;
