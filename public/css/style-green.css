@@ -1,79 +1,79 @@
 
 /*导航背景*/
 .nav-bg {
-    background: #449d44;
+    background: #59c9c4;
 }
 
 .navbar-nav > li > a.current-menu {
     background: #fff;
-    color: #449d44 !important;
+    color: #59c9c4 !important;
 }
 
 /*导航菜单鼠标划过效果*/
 .navbar-nav > li > a:hover, .navbar-nav > li > a:focus {
     text-decoration: none;
-    color: #449d44 !important;
+    color: #59c9c4 !important;
     background-color: #fff;
 }
 
 .search-bar:focus, .search-bar:hover {
     background-color: #eee !important;
-    border-color: #449d44 !important;
+    border-color: #59c9c4 !important;
 }
 
 a {
-    color: #5cb85c;
+    color: #56cdae;
 }
 
 a:hover {
-    color: #5cb85c;
+    color: #56cdae;
 }
 
 /*下拉菜单背景*/
 .l-option:hover {
-    background: #5cb85c !important;
+    background: #56cdae !important;
     color: #fff !important;
 }
 
 .l-option-current, .l-option-current a {
-    background: #5cb85c !important;
+    background: #56cdae !important;
     color: #fff !important;
 }
 
 ::-moz-selection {
-    background: #5cb85c;
+    background: #56cdae;
     color: #FFF;
 }
 
 ::selection {
-    background: #5cb85c;
+    background: #56cdae;
     color: #FFF;
 }
 .bs-callout,.bs-callout h4 {
-    border-left-color: #5cb85c;
-    color: #5cb85c;
+    border-left-color: #56cdae;
+    color: #56cdae;
 }
 span.label-default {
     color: #fff;
-    background:#5cb85c ;
+    background:#56cdae ;
 }
 #backToTop{
-    color: #5cb85c;
+    color: #56cdae;
 }
 .tooltip-inner{
-    background-color:#5cb85c;
+    background-color:#56cdae;
 }
 .tooltip.top .tooltip-arrow{
-    border-top-color:#5cb85c !important;
+    border-top-color:#56cdae !important;
 }
 .tooltip.bottom .tooltip-arrow{
-    border-bottom-color:#5cb85c !important;
+    border-bottom-color:#56cdae !important;
 }
 .btn-primary,.btn-primary[disabled],.btn-primary:hover,.btn-primary:active,.btn-primary:focus{
-    background-color: #5cb85c;
-    border-color: #449d44;
+    background-color: #56cdae;
+    border-color: #59c9c4;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgba(68,157,68,0.8);
+    background: rgba(89,201,196,0.8);
 }
