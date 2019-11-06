@@ -38,11 +38,14 @@
         document.write("<link rel='stylesheet' href='/css/" + name + ".css'/>")
     }
     var theme= getCookie('style-theme');
-    if (theme) {
-        loadCss(theme);
-    } else {
-        loadCss("style-black");
+    if (!theme) {
+        //随机主题
+        let themeIndex = Math.floor(Math.random()*4);
+        let themes = ["style-green", "style-red", "style-black", "style-blue"];
+        theme = themes[themeIndex];
     }
+    sessionStorage.theme = theme;
+    loadCss(theme);
     /*switch(theme) {
      case "style-blue":
      case "style-black":

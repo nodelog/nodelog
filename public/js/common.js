@@ -830,17 +830,10 @@ $(function () {
         }, "json");
     });
    
-
-
-    var theme= $.cookie('style-theme');
     var bdImg;//黑色
-    if (theme) {
-        $(".js-theme[data-theme='"+theme+"'] a i").addClass("glyphicon glyphicon-ok");
-        bdImg = $(".js-theme[data-theme='"+theme+"']").attr("data-bdimg");
-    } else {
-        $(".js-theme[data-theme='style-black'] a i").addClass("glyphicon glyphicon-ok");
-        bdImg = $(".js-theme[data-theme='style-black']").attr("data-bdimg");
-    }
+    var theme = sessionStorage.theme;
+    $(".js-theme[data-theme='"+theme+"'] a i").addClass("glyphicon glyphicon-ok");
+    bdImg = $(".js-theme[data-theme='"+theme+"']").attr("data-bdimg");
     $('.js-theme').click(function(){
         $.cookie('style-theme', $(this).attr("data-theme"), {expires: 30, path:"/"});
         location.reload();
