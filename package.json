@@ -16,7 +16,7 @@
     "ejs": "~0.8.5",
     "express": "~4.2.0",
     "express-session": "~1.6.5",
-    "moment": "~2.7.0",
+    "moment": "~2.24.0",
     "mongodb": "~1.4.7",
     "mongoose": "~3.8.12",
     "morgan": "~1.0.0",
