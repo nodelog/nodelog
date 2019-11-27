@@ -19,7 +19,7 @@
     "moment": "~2.7.0",
     "mongodb": "~1.4.7",
     "mongoose": "~3.8.12",
-    "morgan": "~1.0.0",
+    "morgan": "~1.9.1",
     "nodemailer": "^4.1.0",
     "static-favicon": "~1.0.0"
   }
