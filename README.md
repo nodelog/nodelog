@@ -68,3 +68,11 @@ module.exports = {
 
 
 
+=======
+
+源码已经转移到git@osc上
+
+git.osc地址：http://git.oschina.net/nodelog/nodelog
+
+演示地址：http://www.nodelog.cn
+
