@@ -82,8 +82,6 @@
 
 ### 启动应用
 
-启动文件为：bin/www，-i max参数为：根据有效CPU数目启动最大进程数目来做负载
-
   - ```shell
     # bin/www 启动文件，-i node负载进程数，max = cpu核数
     pm2  start bin/www -i max
