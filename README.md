@@ -132,7 +132,7 @@
                 expires 1h;
         }
         #反向代理到本地node项目3000端口 *****五颗星重要
-    location / {
+        location / {
                 proxy_pass http://127.0.0.1:3000;
     
         }
