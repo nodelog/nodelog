@@ -62,7 +62,7 @@ module.exports = {
 
 
 
- **7. 这里是列表文本官方文档** 
+ **7. 文本官方文档** 
 
 [ NODELOG安装说明](https://nodelog.cn/content/detail?id=5ba8c627d40a18055852fb47&view=contentDetail)
 
