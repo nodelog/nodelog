@@ -149,5 +149,5 @@
 
 - 本地：http://127.0.0.1:3000
 - http：http://nodelog.cn
-- htts：https://nodelog.cn
+- https：https://nodelog.cn
 
