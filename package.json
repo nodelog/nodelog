@@ -17,7 +17,7 @@
     "express": "~4.2.0",
     "express-session": "~1.6.5",
     "moment": "~2.7.0",
-    "mongodb": "~1.4.7",
+    "mongodb": "~3.6.1",
     "mongoose": "~3.8.12",
     "morgan": "~1.0.0",
     "nodemailer": "^4.1.0",
