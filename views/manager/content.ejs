@@ -30,7 +30,7 @@
         <td><%=: docs[i].createTime | format %></td>
         <td><%=: docs[i].modifyTime | format %></td>
         <td>
-        <%if(session.user._id==docs[i].author){%>
+        <%if(session.user._id==docs[i].author || session.user.role == 0){%>
             
             <input type="checkbox" data-id="<%= docs[i]._id %>" data-type="<%= docs[i].status %>"
                    class="js-content-status"/>

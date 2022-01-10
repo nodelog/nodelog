@@ -73,11 +73,12 @@ Date.prototype.format = function (fmt) {
 }
 //jquery函数
 $(function () {
-    $('a').on('click touchend', function(e) {
+    $('.js-content a').on('click touchend', function(e) {
         var el = $(this);
         var link = el.attr('href');
         if(link && link.indexOf('javascript:;') == -1){
-            window.location = link;
+            window.open(link, '_blank');
+            e.preventDefault();
         }
     });
 

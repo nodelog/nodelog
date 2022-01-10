@@ -28,7 +28,7 @@ var getCountByWord = function (word, callback) {
 
 exports.findByPage = function (req, res) {
     var total = 0, page = 0, totalPage = 0, docs = {};
-	sessionUser = req.session.user;
+    sessionUser = req.session.user;
     async.auto({
         totalCount: function (callback, results) {
             getCount(function (err, count) {
@@ -53,12 +53,13 @@ exports.findByPage = function (req, res) {
             var count = 0;
             async.whilst(//sync floor
                 function () {
-                    return count < docs.length
+                    console.log(JSON.stringify(docs));
+                    return count < docs.length || 0
                 },
                 function (callbackThis) {
                     var doc = docs[count];
                     User.findById(doc.author, function (err, obj) {
-					
+
                         if (obj != null) {
                             doc.userName = obj.userName;
                             doc.realName = obj.realName;
@@ -66,7 +67,7 @@ exports.findByPage = function (req, res) {
                             console.log(doc.name + "'s user not found");
                             doc.userName = "未知";//
                         }
-						count++;
+                        count++;
                         callbackThis();
                     });
                 },
@@ -114,7 +115,16 @@ exports.findByPage = function (req, res) {
             title = "日志管理";
             currentMenu = "content";
         }
-        res.render(view, {docs: docs, title: title, login: login, page: page, totalPage: totalPage, total: total,url: url,currentMenu:currentMenu});
+        res.render(view, {
+            docs: docs,
+            title: title,
+            login: login,
+            page: page,
+            totalPage: totalPage,
+            total: total,
+            url: url,
+            currentMenu: currentMenu
+        });
     });
 
 };
@@ -123,7 +133,7 @@ exports.findByPage = function (req, res) {
 exports.delete = function (req, res) {
     var id = req.body.id;
     sessionUser = req.session.user;
-    Content.delete(id,sessionUser, function (err) {
+    Content.delete(id, sessionUser, function (err) {
         if (!err) {
             res.json({'success': true, 'msg': "删除成功"});
         } else {
@@ -132,8 +142,8 @@ exports.delete = function (req, res) {
     });
 };
 exports.share = function (req, res) {
-	var id = req.body.id;
-	var status = req.body.status;
+    var id = req.body.id;
+    var status = req.body.status;
     console.log(status);
     Content.share(id, status, function (err) {
         if (!err) {
@@ -193,10 +203,10 @@ exports.findById = function (req, res) {
             }
         }]
     }, function (err, results) {
-		if(doc == null){
-			res.redirect("/error");
-			return;
-		}
+        if (doc == null) {
+            res.redirect("/error");
+            return;
+        }
         if (view == "editContent") {
             if (req.session.user._id != doc.author) {
                 res.redirect("/");
@@ -206,8 +216,8 @@ exports.findById = function (req, res) {
             Content.addView(doc, function (err) {
                 if (err) {
                     console.log("add view failure");
-                }else{
-                    doc.view = (doc.view+1);
+                } else {
+                    doc.view = (doc.view + 1);
                 }
                 res.render(view, {"doc": doc, "title": doc != null ? doc.name : "日志没有找到"});
             });
@@ -218,24 +228,24 @@ exports.findById = function (req, res) {
     });
 };
 exports.findByCategory = function (req, res) {
-    var category = {},categoryId, total = 0, page = 0, totalPage = 0, docs = {};
-	sessionUser = req.session.user;
+    var category = {}, categoryId, total = 0, page = 0, totalPage = 0, docs = {};
+    sessionUser = req.session.user;
     async.auto({
         getCategoryById: function (callback, results) {
             categoryId = req.query.categoryId;
             Category.findById(categoryId, function (err, obj) {
                 category = obj;
-				if(category==null||category=={}){
-					res.redirect('error');
-					return;
-				}
+                if (category == null || category == {}) {
+                    res.redirect('error');
+                    return;
+                }
                 callback(null);
             });
         },
         totalCount: ["getCategoryById", function (callback, results) {
             getCountByCategory(category._id, function (err, count) {
                 total = count;
-				console.log(total+" in category");
+                console.log(total + " in category");
                 callback(null);
             });
         }],
@@ -254,7 +264,7 @@ exports.findByCategory = function (req, res) {
             }
         }],
         initUser: ["getContentByPage", function (callback, results) {
-			
+
             var count = 0;
             async.whilst(//sync floor
                 function () {
@@ -287,19 +297,21 @@ exports.findByCategory = function (req, res) {
             callback(null);
         }]
     }, function (err, results) {
-		if(docs.length==0){
-			res.redirect('error');
-			return;
-		}
-        res.render("categoryContent", {docs: docs, category: category, title: category.name + " 相关日志",
-            page: page, totalPage: totalPage, total: total, url:"/content/category?categoryId="+categoryId+"&",
-            currentMenu:"category"});
-		
+        if (docs.length == 0) {
+            res.redirect('error');
+            return;
+        }
+        res.render("categoryContent", {
+            docs: docs, category: category, title: category.name + " 相关日志",
+            page: page, totalPage: totalPage, total: total, url: "/content/category?categoryId=" + categoryId + "&",
+            currentMenu: "category"
+        });
+
     });
 };
 exports.findByUser = function (req, res) {
     var user = null, total = 0, page = 0, totalPage = 0, docs = {};
-	console.log(new Date());
+    console.log(new Date());
     async.auto({
         getUserById: function (callback, results) {
             var userId = req.query.userId;
@@ -350,13 +362,13 @@ exports.findByUser = function (req, res) {
         initCategory: ["initUser", function (callback, results) {
             var count = 0;
             async.whilst(//sync floor
-			
+
                 function () {
                     return count < docs.length;
                 },
                 function (callbackThis) {
                     var doc = docs[count];
-					
+
                     Category.findById(doc.category, function (err, obj) {
                         if (obj != null) {
                             doc.categoryName = obj.name;
@@ -382,12 +394,20 @@ exports.findByUser = function (req, res) {
             title = "日志管理";
             currentMenu = "content";
         }
-		console.log(new Date());
-        res.render(view, {docs: docs, title: title, page: page, totalPage: totalPage, total: total, url:"/content/user?",currentMenu:currentMenu});
+        console.log(new Date());
+        res.render(view, {
+            docs: docs,
+            title: title,
+            page: page,
+            totalPage: totalPage,
+            total: total,
+            url: "/content/user?",
+            currentMenu: currentMenu
+        });
     });
 };
 exports.findByWord = function (req, res) {
-    var word =null, total = 0, page = 0, totalPage = 0, docs = {};
+    var word = null, total = 0, page = 0, totalPage = 0, docs = {};
     sessionUser = req.session.user;
     async.auto({
         totalCount: function (callback, results) {
@@ -469,16 +489,23 @@ exports.findByWord = function (req, res) {
         }]
     }, function (err, results) {
         if (req.query.type != "json") {
-            res.render("search", {docs: docs, title: "标题包含 \""+word+"\" 的日志的搜索结果", key: word, page: page, totalPage: totalPage, total: total});
+            res.render("search", {
+                docs: docs,
+                title: "标题包含 \"" + word + "\" 的日志的搜索结果",
+                key: word,
+                page: page,
+                totalPage: totalPage,
+                total: total
+            });
         } else {
-            res.json({docs:docs});
+            res.json({docs: docs});
         }
     });
 };
 exports.findByWordJson = function (req, res) {
     sessionUser = req.session.user;
     Content.findAllByWord(req.body.word, sessionUser, function (err, docs) {
-        res.json({docs:docs});
+        res.json({docs: docs});
     });
 };
 
@@ -489,7 +516,7 @@ var findByName = function (name, callback) {
 };
 //add
 exports.add = function (req, res) {
-	console.log("add content");
+    console.log("add content");
     var id = req.body.id;
     var name = req.body.name.trim();
     var oldName = req.body.oldName;
@@ -512,7 +539,7 @@ exports.add = function (req, res) {
                     res.json({'success': success, 'msg': msg});
                 } else {
                     var session = req.session;
-		  //  var view = parseInt(Math.random()*10000 + 1000, 10);
+                    //  var view = parseInt(Math.random()*10000 + 1000, 10);
                     obj = {
                         "name": name,
                         "content": content,

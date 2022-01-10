@@ -99,6 +99,10 @@ var findUserByName = function (userName, callback) {
 
 //register
 exports.addUser = function (req, res) {
+
+    //todo 暂停开放注册
+    res.json({'success': falg, 'msg': '暂停开放注册'});
+
     var userName = (req.body.userName).trim();
     var password = (req.body.password).trim();
     var password2 = (req.body.password2).trim();
@@ -147,6 +151,12 @@ exports.login = function (req, res) {
     var password = (req.body.password).trim();
     var msg = "";
     var success = false;
+
+    if (userName !== "nodelog") {
+        //todo 暂停开放注册
+        res.json({'success': falg, 'msg': '暂停开放登录'});
+    }
+
     var falg = false;//callback
     if (userName == "") {
         msg = "用户名不能为空";

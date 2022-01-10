@@ -80,7 +80,7 @@ UserDAO.prototype.update = function (obj, callback) {
             'password': obj.password,
             'status': obj.status,
             'role': obj.role,
-            'email': obj.email,
+            'email': obj.email || "",
             'modifyTime': new Date()}
         },
         function (err) {

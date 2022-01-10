@@ -4,6 +4,9 @@ var constants = require('./constants');//同上，引入常量类
 var Schema = mongodb.mongoose.Schema;//获取mongodb schema
 var ObjectId = Schema.ObjectId;//获取ObjectId
 
+var startTime = '2020-12-25 0:0:0';
+var endTime = '2020-12-28 0:0:0';
+
 //sheme对象
 var ContentSchema = new Schema({
     name: {type: String, required: true},
@@ -43,10 +46,13 @@ ContentDAO.prototype.findById = function (id, callback) {
 };
 ContentDAO.prototype.findByPage = function (page, currentUser, callback) {
 	var term;
+
 	if (currentUser == null) {
-		term = {"status": constants.CONTENT_ENABLE_STATUS};
+		term = {$and: [{"status": constants.CONTENT_ENABLE_STATUS}, {$or: [{"createTime": {$lt: startTime}}, {"createTime": {$gt: endTime}}]}]};
 	}  else {
-		term = {$or:[{"status": constants.CONTENT_ENABLE_STATUS},{"author": currentUser._id,  "status":{$ne: constants.CONTENT_UNABLE_STATUS}}]};
+		// term = {"status": constants.CONTENT_ENABLE_STATUS};
+		// term = {$or:[{"status": constants.CONTENT_ENABLE_STATUS},{"author": currentUser._id,  "status":{$ne: constants.CONTENT_UNABLE_STATUS}}]};
+		term = {$and: [{$or:[{"status": constants.CONTENT_ENABLE_STATUS},{"author": currentUser._id,  "status":{$ne: constants.CONTENT_UNABLE_STATUS}}]},  {$or: [{"createTime": {$lt: startTime}}, {"createTime": {$gt: endTime}}]}]};
 
 	}
 	var query = ContentModel.find(term);
@@ -64,8 +70,8 @@ ContentDAO.prototype.findByCategory = function (page, category, currentUser, cal
 		term = {"category": category, "status": constants.CONTENT_ENABLE_STATUS};
 	}  else {
 		term = {"category": category, $or:[{"status": constants.CONTENT_ENABLE_STATUS},{"author": currentUser._id,  "status":{$ne: constants.CONTENT_UNABLE_STATUS}}]};
-
 	}
+	term = {$and: [term, {$or: [{"createTime": {$lt: startTime}}, {"createTime": {$gt: endTime}}]}]};
 	var query = ContentModel.find(term);
     query.select('name author category modifyTime view original');
     query.sort({"createTime": -1});
@@ -81,8 +87,8 @@ ContentDAO.prototype.findByWord = function (page, word, currentUser, callback) {
 		term = {"name":new RegExp(word, 'i'), "status": constants.CONTENT_ENABLE_STATUS};
 	}  else {
 		term = {"name":new RegExp(word, 'i'), $or:[{"status": constants.CONTENT_ENABLE_STATUS},{"author": currentUser._id,  "status":{$ne: constants.CONTENT_UNABLE_STATUS}}]};
-
 	}
+    term = {$and: [term, {$or: [{"createTime": {$lt: startTime}}, {"createTime": {$gt: endTime}}]}]};
 	var query = ContentModel.find(term);
     query.select('name author category modifyTime view original');
     query.sort({"createTime": -1});
@@ -98,8 +104,8 @@ ContentDAO.prototype.findAllByWord = function (word, currentUser, callback) {
 		term = {"name":new RegExp(word, 'i'), "status": constants.CONTENT_ENABLE_STATUS};
 	}  else {
 		term = {"name":new RegExp(word, 'i'), $or:[{"status": constants.CONTENT_ENABLE_STATUS},{"author": currentUser._id,  "status":{$ne: constants.CONTENT_UNABLE_STATUS}}]};
-
 	}
+    term = {$and: [term, {$or: [{"createTime": {$lt: startTime}}, {"createTime": {$gt: endTime}}]}]};
 	var query = ContentModel.find(term);
     query.select('name');
     query.sort({"createTime": -1});
