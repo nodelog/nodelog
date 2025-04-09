@@ -53,7 +53,6 @@ exports.findByPage = function (req, res) {
             var count = 0;
             async.whilst(//sync floor
                 function () {
-                    console.log(JSON.stringify(docs));
                     return count < docs.length || 0
                 },
                 function (callbackThis) {

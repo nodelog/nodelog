@@ -6,3 +6,4 @@
 settings.js
 sitemap.*
 /node_modules/
+/.well-known/
