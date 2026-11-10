@@ -49,7 +49,8 @@ app.use(session({
     saveUninitialized: false, // 不为匿名访客创建空 session，减少 MongoDB 写入
     secret: process.env.SESSION_SECRET || settings.cookieSecret,
     store: MongoStore.create({
-        mongoUrl: settings.url,
+        // 兼容两种配置键名：新版 settings 用 url，旧版（settings.bak.js）用 dbUrl
+        mongoUrl: settings.url || settings.dbUrl || process.env.MONGO_URL || process.env.MONGODB_URI,
     }),
     cookie: {
         httpOnly: true, // 禁止客户端脚本读取 cookie

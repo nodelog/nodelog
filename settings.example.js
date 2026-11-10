@@ -2,6 +2,7 @@
 // 用法：复制本文件为 settings.js 并填入真实值。
 // settings.js 已被 .gitignore 忽略，不会进入版本库，避免泄露密钥。
 // 注意：app.js 读取的字段为 port / cookieSecret / url / email。
+// MongoDB 连接串兼容旧键名 dbUrl（来自早期 settings.bak.js），也可通过环境变量 MONGO_URL / MONGODB_URI 注入。
 module.exports = {
     // HTTP 监听端口
     port: 3000,
