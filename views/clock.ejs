@@ -1,13 +1,10 @@
 <%- include('header') %>
-<ol class="breadcrumb">
-    <li><a href="/" title="首页">首页</a></li>
-    <li class="active">HTML5时钟</li>
-</ol>
-<div class="panel panel-default">
-    <div class="panel-heading">HTML5时钟</div>
-    <div class="panel-body text-center">
-        <canvas id="c" width="500px" height="500px"></canvas>
-    </div>
+<div class="page-head">
+    <h1>HTML5 时钟</h1>
+    <p class="muted">用 Canvas 绘制的时钟</p>
+</div>
+<div class="card text-center">
+    <canvas id="c" width="500" height="500" style="max-width:100%;height:auto"></canvas>
 </div>
 <script>
     function time(width, height){

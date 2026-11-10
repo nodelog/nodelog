@@ -7,3 +7,9 @@ settings.js
 sitemap.*
 /node_modules/
 /.well-known/
+# 本地工作数据与 QA 产物（测试脚本含登录凭据，禁止入库）
+/.workbuddy/
+/.playwright-cli/
+/playwright-cli.json
+/.npmrc
+/nul

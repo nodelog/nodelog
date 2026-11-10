@@ -1,19 +1,11 @@
 <%- include('header') %>
-<div class="container">
-    <div class="layout">
-        <main>
-            <ol class="breadcrumb">
-                <li><a href="/" title="首页">首页</a></li>
-                <li class="active">搜索</li>
-            </ol>
-            <div class="page-head">
-                <h2>搜索：<%= key %></h2>
-                <span class="muted"><%= total %> 条结果</span>
-            </div>
-            <%- include('contentPanel') %>
-        </main>
-        <%- include('common/sidebar') %>
-    </div>
+<div class="page-head">
+    <h1>搜索「<%= key %>」</h1>
+    <p class="muted">共找到 <%= total %> 篇</p>
+</div>
+<div class="layout">
+    <main><%- include('contentPanel') %></main>
+    <%- include('common/sidebar') %>
 </div>
 <input type="hidden" class="js-current-menu" value="js-search-bar"/>
 <%- include('footer') %>

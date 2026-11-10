@@ -1,19 +1,11 @@
 <%- include('header') %>
-<div class="container">
-    <div class="layout">
-        <main>
-            <ol class="breadcrumb">
-                <li><a href="/" title="首页">首页</a></li>
-                <li class="active"><%= category.name %></li>
-            </ol>
-            <div class="page-head">
-                <h2><%= category.name %></h2>
-                <span class="muted"><%= total %> 篇</span>
-            </div>
-            <%- include('contentPanel') %>
-        </main>
-        <%- include('common/sidebar') %>
-    </div>
+<div class="page-head">
+    <h1><%= category.name %></h1>
+    <p class="muted">分类 · 共 <%= total %> 篇</p>
+</div>
+<div class="layout">
+    <main><%- include('contentPanel') %></main>
+    <%- include('common/sidebar') %>
 </div>
 <input type="hidden" class="js-current-menu" value="js-category-content"/>
 <%- include('footer') %>

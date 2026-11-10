@@ -1,71 +1,10 @@
 <%- include('header') %>
-<ol class="breadcrumb">
-    <li><a href="/" title="首页">首页</a></li>
-    <li class="active">关于我们</li>
-</ol>
-<div class="panel panel-default">
-    <div class="panel-heading">关于我们</div>
-    <div class="panel-body">
-        <fieldset>
-            <legend>吐槽一下</legend>
-            <div class="article-content">
-            <p class="l-margin-bottom-20"><%=session.site.name%> 为国内专业的开源技术社区，致力于计算机技术的研究。</p>
-
-            <p><%=session.site.name%>由一批热爱 Node.js 技术的工程师发起。</p>
-
-            <p>我们专注于IT技术研究。</p>
-            <p>Call我请按F12 并查看console栏找到我的联系方式！。</p>
-
-            <!--<p>以上纯属虚构，如有雷同不是你抄我就是我抄你。</p>-->
-            </div>
-        </fieldset>
-        <!--<fieldset>
-            <legend>打扰方式</legend>
-            <p class="l-margin-top-20">
-                新浪邮箱:
-                <a href="Mailto:wangyachao0991@sina.cn?CC=wangyachao0991@sina.cn&BCC=wangyachao0991@sina.cn&Subject=问题反馈&Body=我的问题："
-                   title="打开我的邮件客户端">
-                    <i class="glyphicon glyphicon-envelope"></i>&nbsp;wangyachao0991@sina.cn
-                </a>
-            </p>
-
-            <p class="l-margin-top-20">
-                腾讯企鹅:
-                <a href="tencent://message/?uin=1102377905 %>&Site=网站在线QQ联系&Menu=yes" target="_blank" title="打开我的QQ"
-                   class="js-qq-feedback">
-                    <img src="/images/qq-disable.png" height="20px" width="20px" border="0px"/>1102377905（竹叶青）
-                </a>
-            </p>
-            <p class="l-margin-top-20">
-                新浪围脖:
-                <a href="http://weibo.com/wyc0991" target="_blank" class="js-attention-weibo" role="button" data-toggle="popover"
-                   data-placement="right" title="关注微博">
-                    <i class="icon-weibo">&nbsp;</i>ZERO_AND_NULL
-                </a>
-            </p>
-            <p class="l-margin-top-20">
-                腾讯微信:
-                <a href="javascript:;;" class="js-attention-weixin" role="button" data-toggle="popover"
-                   data-placement="right" title="误码者微信"><i class="icon-weixin">&nbsp;</i>
-                    jiedianlog
-                </a>
-            </p>
-
-            &lt;!&ndash;<p class="l-margin-top-20">
-                误码者为开源系统，请喜欢本网站的童鞋自行下载代码,后期会写使用手册，如需帮助请联系我
-
-            <p>
-                GITHUB地址：
-                <a href="https://github.com/wyc0991/nodelog" target="_blank">
-                    https://github.com/wyc0991/nodelog
-                </a>
-            </p>
-            <p>
-                git clone代码地址：
-                git@github.com:wyc0991/nodelog.git
-            </p>&ndash;&gt;
-        </fieldset>-->
-
-    </div>
+<div class="page-head">
+    <h1>关于本站</h1>
+    <p class="muted"><%=session.site.name%></p>
+</div>
+<div class="card article-content">
+    <p><%=session.site.name%> 是一个基于 Node.js + Express + MongoDB 构建的技术博客，用来记录开发实践与思考。</p>
+    <p>支持 Markdown 写作、全文检索、分类与标签体系。</p>
 </div>
 <%- include('footer') %>

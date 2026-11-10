@@ -833,14 +833,7 @@ $(function () {
         }, "json");
     });
    
-    var bdImg;//黑色
-    var theme = sessionStorage.theme;
-    $(".js-theme[data-theme='"+theme+"'] a i").addClass("glyphicon glyphicon-ok");
-    bdImg = $(".js-theme[data-theme='"+theme+"']").attr("data-bdimg");
-    $('.js-theme').click(function(){
-        $.cookie('style-theme', $(this).attr("data-theme"), {expires: 30, path:"/"});
-        location.reload();
-    });
+    // 旧四色皮肤块已移除：唯一的主题控制是 header.ejs 的 .theme-toggle（localStorage nl-theme + data-theme）
     if (url.indexOf("/manager") == -1) {//非管理端页面
         $.post("/log/count",{},function(data) {
             $('.js-log-count').text(data.count);

@@ -1,14 +1,12 @@
 <aside class="aside">
     <div class="card">
-        <h4>热门标签</h4>
+        <h4>标签</h4>
         <div class="tag-chips" id="tagCloud"><span class="chip">加载中…</span></div>
     </div>
     <div class="card">
-        <h4>关于</h4>
-        <p style="color:var(--text-soft);font-size:14px;margin:0;">
-            本站基于 Node.js + Express + MongoDB 构建，支持 Markdown 写作、全文检索与标签体系。
-        </p>
-        <p style="margin-top:12px;"><a class="btn btn-primary" href="/content/addPage">✍️ 写文章</a></p>
+        <h4>关于本站</h4>
+        <p>基于 Node.js + Express + MongoDB，支持 Markdown 写作、全文检索与标签。</p>
+        <a class="btn btn-primary" href="/content/addPage">写文章</a>
     </div>
 </aside>
 <script>
@@ -19,5 +17,5 @@
         box.innerHTML = d.docs.slice(0, 20).map(function (t) {
             return '<a class="chip" href="/tag/' + encodeURIComponent(t.name) + '">' + t.name + '</a>';
         }).join('');
-    }).catch(function () { var b = document.getElementById('tagCloud'); if (b) b.innerHTML = ''; });
+    }).catch(function () { var b = document.getElementById('tagCloud'); if (b) b.innerHTML = '<span class="chip">暂无标签</span>'; });
 </script>

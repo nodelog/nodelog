@@ -448,25 +448,9 @@ input::-webkit-search-cancel-button {
     background: #d9534f;
     color: #fff;
 }
-.style-theme {
-    line-height: 25px !important;
-    color: #fff !important;
-    display: inline-block;
-    padding: 0 0.6em;
-    border-radius: .25em;
-}
-.style-black,.style-black a{
-    background: #1c2438 !important;
-}
-.style-blue,.style-blue a {
-    background: #4d71c7 !important;
-}
-.style-green,.style-green a {
-    background: #59c9c4 !important;
-}
-.style-red,.style-red a {
-    background: #ef6074 !important;
-}
+/* 旧四色皮肤（底部 style-red/black/green/blue 色块）已移除：
+   只有写 cookie + reload 的死逻辑，没有任何服务端/CSS 消费方。
+   相关孤儿样式表 public/css/style-{red,black,blue,green}.css 一并删除。 */
 
 #backToTop {
     position: fixed;

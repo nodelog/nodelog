@@ -1,115 +1,36 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
     <%- include('../common/meta') %>
 </head>
 <body class="bg-gray js-body manager">
-<nav class="navbar  nav-bg  navbar-fixed-top bottom-border" role="navigation">
+<nav class="navbar nav-bg navbar-fixed-top bottom-border" role="navigation">
     <div class="navbar-header">
-        <button type="button" class="navbar-toggle" data-toggle="collapse"
-                data-target="#example-navbar-collapse">
-            <span class="sr-only">切换导航</span>
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#example-navbar-collapse">
+            <span class="sr-only">展开导航</span>
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
         </button>
-        <a class="navbar-brand" href="/"><%=session.site.name %></a>
+        <a class="navbar-brand" href="/manager"><%=session.site.name %> · 管理</a>
     </div>
     <div class="collapse navbar-collapse" id="example-navbar-collapse">
         <ul class="nav navbar-nav">
-                <li class="transition">
-                    <a href="/manager" class="color-white transition <%if(locals.currentMenu&&currentMenu=="home"){%>current-menu<%}%>" title="<%=session.site.name%>后台管理">
-                        <i class="glyphicon glyphicon-globe"></i>&nbsp;后台管理
-                    </a>
-                </li>
-                <% if(session.user != null){ %>
-            <li>
-                <a href="/manager/user?page=1" class="color-white js-settings-btn transition <%if(locals.currentMenu&&currentMenu=="user"){%>current-menu<%}%>">
-                    <i class="glyphicon glyphicon-user"></i>&nbsp;<%= session.user.realName ? session.user.realName : session.user.userName %>
-                </a>
-            </li>
-                <li>
-                    <a href="/manager/content?manager=true&page=1" class="color-white js-settings-btn transition <%if(locals.currentMenu&&currentMenu=="content"){%>current-menu<%}%>">
-                        <i class="glyphicon glyphicon-book"></i>&nbsp;日志管理
-                    </a>
-                </li>
-
-                <% if(session.user.role == 0){ %>
-                <li>
-                    <a href="/manager/category?page=1" class="color-white js-settings-btn transition <%if(locals.currentMenu&&currentMenu=="category"){%>current-menu<%}%>">
-                        <i class="glyphicon glyphicon-list"></i>&nbsp;分类管理
-                    </a>
-                </li>
-                <li>
-                    <a href="/manager/log?view=manager/log&page=1" class="color-white js-settings-btn transition <%if(locals.currentMenu&&currentMenu=="log"){%>current-menu<%}%>">
-                        <i class="glyphicon glyphicon-volume-up"></i>&nbsp;公告管理
-                    </a>
-                </li>
-            <% if (session.user.role==0) {%>
-                <li>
-                    <a href="/manager/link" class="color-white js-settings-btn transition <%if(locals.currentMenu&&currentMenu=="link"){%>current-menu<%}%>">
-                        <i class="glyphicon glyphicon-volume-up"></i>&nbsp;链接管理
-                    </a>
-                </li>
-            <%}%>
-                <%}%>
-                <li>
-
-                </li>
-                <li><a href="javascript:;" class="color-white js-logout-btn transition" title="退出系统">
-                        <i class="glyphicon glyphicon-log-out"></i>&nbsp;退出
-                    </a>
-                </li>
-                <% }else{ %>
-                <% } %>
-            </ul>
+            <li><a href="/manager" class="color-white <%if(locals.currentMenu&&currentMenu=="home"){%>current-menu<%}%>">概览</a></li>
+            <% if(session.user != null){ %>
+            <li><a href="/manager/content?manager=true&page=1" class="color-white <%if(locals.currentMenu&&currentMenu=="content"){%>current-menu<%}%>">文章</a></li>
+            <li><a href="/manager/user?page=1" class="color-white <%if(locals.currentMenu&&currentMenu=="user"){%>current-menu<%}%>">用户</a></li>
+            <% if(session.user.role == 0){ %>
+            <li><a href="/manager/category?page=1" class="color-white <%if(locals.currentMenu&&currentMenu=="category"){%>current-menu<%}%>">分类</a></li>
+            <li><a href="/manager/log?view=manager/log&page=1" class="color-white <%if(locals.currentMenu&&currentMenu=="log"){%>current-menu<%}%>">公告</a></li>
+            <li><a href="/manager/link" class="color-white <%if(locals.currentMenu&&currentMenu=="link"){%>current-menu<%}%>">链接</a></li>
+            <% } %>
+            <li><a href="javascript:;" class="color-white js-logout-btn" title="退出登录">退出</a></li>
+            <% } %>
+        </ul>
     </div>
 </nav>
 
-<div class="l-top-bottom l-margin-top-60">
+<div class="l-top-bottom">
     <article class="l-padding-horizontal">
-        <!-- <div class="row js-panel-row">
-             不要修改下面一行的class
-             <div class="col-sm-3 js-menu-panel" style="">
-                 <div class="panel-group l-top-bottom js-menu-bar" id="accordion">
-                     <div class="panel js-content-manager">
-                         <div class="panel-heading">
-                             <h4 class="panel-title">
-                                 <a href="/manager/content?manager=true&page=1" class="transition">日志管理</a>
-                             </h4>
-                         </div>
-                     </div>
-                     <div class="panel js-user-manager">
-                         <a href="/manager/user?page=1" class="transition"><h4 class="panel-title" style="line-height: 37px;">用户管理</h4></a>
-                     </div>
-
-                     &lt;!&ndash;<div class="panel panel-default panel-primary">
-                        <div class="panel-heading">
-                            <h4 class="panel-title"><a href="#">评论管理</a></h4>
-                        </div>
-                    </div>
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h4 class="panel-title"><a href="#">系统设置</a></h4>
-                        </div>
-                    </div>&ndash;&gt;
-                    <% if(session.user.role == 0){ %>
-                    <div class="panel js-category-manager">
-                        <div class="panel-heading">
-                            <h4 class="panel-title">
-                                <a href="/manager/category?page=1" class="transition">分类管理</a>
-                            </h4>
-                        </div>
-                    </div>
-                    <div class="panel js-log-manager">
-                        <div class="panel-heading">
-                            <h4 class="panel-title">
-                                <a href="/manager/log?view=manager/log&page=1" class="transition">公告管理</a>
-                            </h4>
-                        </div>
-                    </div>
-                    <% } %>
-                </div>
-            </div>
-            <div >-->
-                <div class="bg-white jumbotron clear-margin">
+        <div class="bg-white jumbotron clear-margin">

@@ -1,43 +1,20 @@
 <%- include('header') %>
-
-<div class="row js-panel-row">
-
-    <div class="col-sm-12 col-xs-12 no-padding">
-        <ol class="breadcrumb">
-            <li><a href="/" title="首页">首页</a></li>
-            <li class="active">系统公告</li>
-        </ol>
-        <div class="panel panel-default">
-            <div class="panel-heading">所有公告 (<%=total%>)</div>
-            <div class="panel-body">
-                <% if(docs.length > 0){ %>
-                <% for(var i = 0;i < docs.length;i++){ %>
-                <div class="bs-callout">
-                    <h4>
-                        <i class="glyphicon glyphicon-bookmark"></i>
-                        <a href="/log/detail?id=<%= docs[i]._id %>&view=logDetail"
-                           title="<%= docs[i].name %>"><%= docs[i].name.length > 50 ? docs[i].name.substring(0, 50) + "..." : docs[i].name %></a>
-                    </h4>
-                    <div class="clearfix"></div>
-                    <div class="media color-gray">
-                        <span title="发布时间"><i class="glyphicon glyphicon-time"></i>&nbsp;
-                            <%= format(docs[i].createTime, "YYYY-MM-DD") %>
-                        </span>
-                    </div>
-                </div>
-                <% } %>
-                <%- include('common/pager') %>
-                <% }else{ %>
-                <div class="alert alert-warning" role="alert">暂无日志!</div>
-                <% } %>
-            </div>
+<div class="page-head">
+    <h1>系统公告</h1>
+    <p class="muted">共 <%=total%> 条</p>
+</div>
+<div class="card">
+    <% if(docs.length > 0){ %>
+        <% for(var i = 0; i < docs.length; i++){ %>
+        <div class="bs-callout">
+            <h4><a href="/log/detail?id=<%= docs[i]._id %>&view=logDetail" title="<%= docs[i].name %>"><%= docs[i].name.length > 50 ? docs[i].name.substring(0, 50) + "…" : docs[i].name %></a></h4>
+            <div class="article-meta"><span><%= format(docs[i].createTime, "YYYY-MM-DD") %></span></div>
         </div>
-    </div>
-
+        <% } %>
+        <%- include('common/pager') %>
+    <% } else { %>
+        <div class="empty"><span class="empty-title">暂无公告</span>有新公告时会显示在这里。</div>
+    <% } %>
 </div>
 <input type="hidden" class="js-current-menu" value="js-log"/>
 <%- include('footer') %>
-
-
-
-

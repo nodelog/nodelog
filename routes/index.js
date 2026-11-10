@@ -68,7 +68,7 @@ var route = function (app) {
     app.get('/content/category', content.findByCategory);
     app.post('/content/add', filter.authorize, content.add);
     app.get('/content/addPage', function (req, res) {
-        res.render("addContent", {"title": "发表日志",currentMenu:"content"});
+        res.render("addContent", {"title": "写文章",currentMenu:"content"});
     });
     app.post('/comment/add', filter.authorize, rateLimit.limit({max: 10, windowMs: 60 * 1000}), comment.add);
     app.get('/comment/all', comment.findByPageAndContent);

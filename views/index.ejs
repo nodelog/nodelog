@@ -1,33 +1,31 @@
 <%- include('header') %>
-<div class="container">
-    <section class="hero">
-        <h1><%= session.site.name %></h1>
-        <p><%= session.site.copyRight || '记录技术，分享思考' %></p>
-    </section>
+<div class="page-head">
+    <h1>最新文章</h1>
+    <p class="muted"><%= total %> 篇 · 记录技术，分享思考</p>
+</div>
 
-    <div class="layout">
-        <main>
-            <div class="post-grid">
-                <% if (typeof docs !== 'undefined' && docs && docs.length) { %>
-                    <% docs.forEach(function(doc){ %>
-                        <%- include('common/postCard', { doc: doc }) %>
-                    <% }); %>
-                <% } else { %>
-                    <div class="card">暂无内容</div>
-                <% } %>
-            </div>
+<div class="layout">
+    <main>
+        <% if (typeof docs !== 'undefined' && docs && docs.length) { %>
+        <div class="post-grid">
+            <% docs.forEach(function(doc, i){ %>
+                <%- include('common/postCard', { doc: doc, lead: i === 0 }) %>
+            <% }); %>
+        </div>
+        <% } else { %>
+        <div class="empty"><span class="empty-title">还没有文章</span>发布第一篇文章后，这里会显示文章列表。</div>
+        <% } %>
 
-            <% if (totalPage > 1) { %>
-            <div class="pager">
-                <% for (var p = 1; p <= totalPage; p++) { %>
-                    <% if (p === page) { %><span class="current"><%= p %></span><% } else { %><a href="<%= url %>page=<%= p %>"><%= p %></a><% } %>
-                <% } %>
-            </div>
+        <% if (totalPage > 1) { %>
+        <div class="pager">
+            <% for (var p = 1; p <= totalPage; p++) { %>
+                <% if (p === page) { %><span class="current"><%= p %></span><% } else { %><a href="<%= url %>page=<%= p %>"><%= p %></a><% } %>
             <% } %>
-        </main>
+        </div>
+        <% } %>
+    </main>
 
-        <%- include('common/sidebar') %>
-    </div>
+    <%- include('common/sidebar') %>
 </div>
 <input type="hidden" class="js-login-flag" value="<%=login%>"/>
 <%- include('footer') %>

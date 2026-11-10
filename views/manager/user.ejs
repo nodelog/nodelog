@@ -90,12 +90,7 @@
 <% if (session.user.role==0) {%>
     <%- include('../common/pager') %>
     <%if (docs.length < 0) {%>
-        <div class="alert alert-warning" role="alert">暂无数据</div>
+        <div class="empty">暂无数据</div>
     <%}%>
 <%}%>
 <%- include('footer') %>
-<script>
-    $(function () {
-        $('.js-user-manager').addClass("bg-black");
-    });
-</script>

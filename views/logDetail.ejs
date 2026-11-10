@@ -1,39 +1,15 @@
 <%- include('header') %>
-
-<div class="row js-panel-row">
-
-    <div class="col-sm-12 col-xs-12 no-padding">
-        <% if (doc != null) { %>
-        <ol class="breadcrumb">
-            <li><a href="/" title="首页">首页</a></li>
-            <li><a href="/log?page=1&view=log">系统公告</a></li>
-            <li class="active"><%=title%></li>
-        </ol>
-        <div class="panel panel-default">
-            <div class="panel-heading">
-                <h4>
-                    <a href="/log/detail?id=<%= doc._id %>&view=logDetail"><i
-                                class="glyphicon glyphicon-bookmark"></i>&nbsp;<%= doc.name %></a>
-
-                    <div class="clearfix"></div>
-                </h4>
-
-                <div class="media color-gray">
-                    <span title="发布时间"><i
-                                class="glyphicon glyphicon-time"></i>&nbsp;<%= format(doc.createTime, "YYYY-MM-DD") %></span>
-                </div>
-
-            </div>
-            <div class="panel-body">
-                <div><%- doc.content %></div>
-            </div>
-        </div>
-        <% } else { %>
-        <div class="alert alert-warning" role="alert">公告已经失效!</div>
-        <% } %>
-    </div>
-    
-</div>
+<% if (doc != null) { %>
+<ol class="breadcrumb">
+    <li><a href="/" title="首页">首页</a></li>
+    <li><a href="/log?page=1&view=log">系统公告</a></li>
+    <li class="active">正文</li>
+</ol>
+<h1><%= doc.name %></h1>
+<div class="article-meta"><span><%= format(doc.createTime, "YYYY-MM-DD") %></span></div>
+<div class="card article-body article-content"><%- doc.content %></div>
+<% } else { %>
+<div class="empty"><span class="empty-title">公告不存在</span>它可能已被删除。</div>
+<% } %>
 <input type="hidden" class="js-current-menu" value="js-log"/>
 <%- include('footer') %>
-

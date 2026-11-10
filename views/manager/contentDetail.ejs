@@ -6,7 +6,7 @@
         <% if (doc != null) { %>
         <ol class="breadcrumb">
             <li><a href="/manager">后台首页</a></li>
-            <li><a href="/manager/content?page=1&manager=true">日志管理</a></li>
+            <li><a href="/manager/content?page=1&manager=true">文章管理</a></li>
             <li class="active"><%= doc.name %></li>
         </ol>
         <div class="panel panel-default">
@@ -40,14 +40,9 @@
             </div>
         </div>
         <% } else { %>
-        <div class="alert alert-warning" role="alert">This Content not exists!</div>
+        <div class="empty"><span class="empty-title">文章不存在</span>它可能已被删除或下架。</div>
         <% } %>
     </div>
     
 </div>
 <%- include('footer') %>
-<script>
-    $(function () {
-        $('.js-content-manager').addClass("bg-black");
-    });
-</script>

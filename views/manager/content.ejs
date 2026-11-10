@@ -1,9 +1,9 @@
 <%- include('header') %>
 <ol class="breadcrumb">
     <li><a href="/manager">后台首页</a></li>
-    <li class="active">日志管理</li>
+    <li class="active">文章管理</li>
 </ol>
-<h3>日志管理</h3>
+<h3>文章管理</h3>
 <% if(docs.length > 0){ %>
 <table class="table table-hover">
     <thead>
@@ -48,11 +48,6 @@
 </table>
 <%- include('../common/pager') %>
 <% }else{ %>
-<div class="alert alert-warning" role="alert">暂无数据</div>
+<div class="empty">暂无数据</div>
 <% } %>
 <%- include('footer') %>
-<script>
-    $(function () {
-        $('.js-content-manager').addClass("bg-black");
-    });
-</script>

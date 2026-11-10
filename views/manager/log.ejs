@@ -3,10 +3,8 @@
     <li><a href="/manager">后台首页</a></li>
     <li class="active">公告管理</li>
 </ol>
-<h3> 公告管理
-    <a href="/manager/log/addPage" class="btn btn-default pull-right js-add-log-btn">
-        <i class="glyphicon glyphicon-plus"></i>&nbsp;发布公告
-    </a>
+<h3>公告管理
+    <a href="/manager/log/addPage" class="btn btn-primary pull-right">发布公告</a>
 </h3>
 
 <div class="clearfix"></div>
@@ -35,11 +33,6 @@
 </table>
 <%- include('../common/pager') %>
 <% }else{ %>
-<div class="alert alert-warning" role="alert">暂无数据</div>
+<div class="empty">暂无数据</div>
 <% } %>
 <%- include('footer') %>
-<script>
-    $(function () {
-        $('.js-log-manager').addClass("bg-black");
-    });
-</script>
