@@ -28,7 +28,8 @@ var ContentSchema = new Schema({
     },
     draft: {type: Boolean, default: false},                 // 是否草稿
     readingTime: {type: Number, default: 0},                // 预计阅读分钟
-    contentType: {type: String, default: 'html', enum: ['html', 'markdown']} // 内容格式
+    contentType: {type: String, default: 'html', enum: ['html', 'markdown']}, // 内容格式
+    htmlBackup: {type: String}   // 富文本原文备份（首次转 Markdown 时留存，供回滚）
 }, {
     collection: "content" //对应mongodb的集合表
 });
@@ -342,8 +343,15 @@ ContentDAO.prototype.update = function (obj, callback) {
     if (obj.draft !== undefined) set.draft = obj.draft;
     if (obj.readingTime !== undefined) set.readingTime = obj.readingTime;
     if (obj.contentType !== undefined) set.contentType = obj.contentType;
-    ContentModel.update({"_id": obj.id}, {$set: set}, function (err) {
-        callback(err);
+    // 首次把历史富文本文章保存为 Markdown 时，自动留档原始 HTML（可回滚）。
+    // 以数据库当前值判定，不信任前端传参；已迁移过的文章不会覆盖既有备份。
+    ContentModel.findById(obj.id, function (findErr, oldDoc) {
+        if (!findErr && oldDoc && oldDoc.contentType !== 'markdown' && obj.contentType === 'markdown') {
+            set.htmlBackup = oldDoc.content;
+        }
+        ContentModel.update({"_id": obj.id}, {$set: set}, function (err) {
+            callback(err);
+        });
     });
 };
 ContentDAO.prototype.addView = function (obj, callback) {

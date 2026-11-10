@@ -3,6 +3,9 @@
   if (typeof(doc) !== 'undefined' && doc && doc.content) edContent = doc.content;
   else if (typeof(template) !== 'undefined' && template) edContent = template;
 %>
+<% if (typeof(doc) !== 'undefined' && doc && doc.htmlBackup) { %>
+<div class="alert">这篇是旧版富文本文章，已自动转换为 Markdown 显示。检查排版后点「保存修改」即完成转换；原始 HTML 会一并留档，可随时回滚。未保存前文章页仍按原格式展示。</div>
+<% } %>
 <div class="md-editor panel panel-default">
   <div class="md-toolbar btn-toolbar panel-heading" role="toolbar" aria-label="Markdown 编辑器工具栏">
     <div class="btn-group btn-group-sm">

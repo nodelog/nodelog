@@ -5,6 +5,7 @@ var User = require('./../models/User.js');
 var Category = require('./../models/Category.js');
 var cmsUtils = require('./cmsUtils.js');//自定义util工具
 var markdown = require('./markdown.js');
+var html2md = require('./html2md.js');
 var Tag = require('./../models/Tag.js');
 
 function buildFields(req) {
@@ -97,6 +98,15 @@ exports.findById = function (req, res) {
             } else {
                 doc.renderedContent = doc.content;
                 if (!doc.excerpt) doc.excerpt = markdown.excerpt(doc.content ? doc.content.replace(/<[^>]*>/g, '') : '', 120);
+            }
+            // 编辑页：历史富文本文章即时转成 Markdown 显示，解决「打开全是 HTML 标签」。
+            // 只改内存中的 doc，不写库；用户点保存后才真正落为 markdown，
+            // 原始 HTML 由 ContentDAO.update 自动存入 htmlBackup，可回滚。
+            if (String(view).indexOf('editContent') !== -1 &&
+                doc.contentType !== 'markdown' && html2md.isHtml(doc.content)) {
+                doc.htmlBackup = doc.content;
+                doc.content = html2md.convert(doc.content);
+                doc.contentType = 'markdown';
             }
             callback(null);
         }]
