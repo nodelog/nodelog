@@ -201,7 +201,19 @@
       }, REQ_MS);
       try {
         fetch(url, init).then(function (r) {
-          if (!r.ok) { finish({ __error: '服务暂不可用（' + r.status + '）' }); return; }
+          if (!r.ok) {
+            // 4xx 的 body 仍带业务语义（后端 400 返回 {success:false,msg:'参数错误'}），
+            // 必须交给调用方按业务失败处理，绝不能当成可重试的网络错误继续轮询旧 token。
+            if (r.status >= 400 && r.status < 500) {
+              r.json().then(function (data) {
+                finish(data && typeof data === 'object' ? data
+                  : { __error: '服务暂不可用（' + r.status + '）' });
+              }, function () { finish({ __error: '服务暂不可用（' + r.status + '）' }); });
+            } else {
+              finish({ __error: '服务暂不可用（' + r.status + '）' });
+            }
+            return;
+          }
           r.json().then(function (data) { finish(data); },
                         function () { finish({ __error: '返回数据格式有误' }); });
         }).catch(function () { finish({ __error: '网络异常，请重试' }); });
