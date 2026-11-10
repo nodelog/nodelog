@@ -71,8 +71,7 @@ var route = function (app) {
     app.get('/content/user', filter.authorize, content.findByUser);
     app.get('/content/search',content.findByWord);
     app.post('/content/search',content.findByWordJson);
-    //日志路由
-    app.get('/log',filter.log);
+    // 日志相关路由见上方 log.* （已清理重复的 /log 调试路由 filter.log）
     app.get('/manager/link', function(req, res){res.render('manager/link',{currentMenu:"link",title:"链接管理"});});
     app.post('/manager/link/save', filter.authorizeAdmin, link.save);
     app.post('/link/list', link.findAll);

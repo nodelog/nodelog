@@ -30,54 +30,63 @@ exports.findByPage = function (req, res) {
 
 
 exports.update = function (req, res) {
-    var id = req.body.id;
-    var status = req.body.status;
-    var role = req.body.role;
-    console.log(role+" role number");
-    var userName = req.body.userName;
-    var realName = req.body.realName;
-    var email = req.body.email;
-    var password = req.body.password;
-    User.findById(id, function (err, obj) {
-        if (!err) {
+    var current = req.session.user;
+    if (!current) {
+        return res.json({"result": false, "msg": "未登录"});
+    }
+    var isAdmin = current.role === 0;
+    var targetId = req.body.id;
+    // 非管理员只能修改自己的资料，禁止越权改他人
+    if (!isAdmin && String(targetId) !== String(current._id)) {
+        return res.json({"result": false, "msg": "只能修改自己的资料"});
+    }
+    User.findById(targetId, function (err, obj) {
+        if (err || !obj) {
+            console.log((err && err.message) || "user is not exists");
+            return res.json({"result": false, "msg": "用户不存在"});
+        }
+        var status = req.body.status;
+        var role = req.body.role;
+        var userName = req.body.userName;
+        var realName = req.body.realName;
+        var email = req.body.email;
+        var password = req.body.password;
+        // 仅管理员可变更角色 / 状态，杜绝普通用户自我提权为管理员
+        if (isAdmin) {
             if (status) {
                 if (status != constants.USER_ENABLE_STATUS && status != constants.USER_UNABLE_STATUS) {
                     status = constants.USER_ENABLE_STATUS;// 设置默认为可用。
                 }
                 obj.status = status;
             }
-            if (role) {
+            if (role !== undefined && role !== null && role !== '') {
                 obj.role = role;
-                console.log(role+"new role number");
             }
-            if (cmsUtils.isNotBlank(userName)) {
-                obj.userName = userName;
-            }
-            if (cmsUtils.isNotBlank(realName)) {
-                obj.realName = realName;
-            }
-            if (cmsUtils.isNotBlank(email)) {
-                obj.email = email;
-            }
-            if (cmsUtils.isNotBlank(password)) {
-                obj.password = encryption(password);
-            }
-            User.update(obj, function (err) {
-                if (err) {
-                    console.log(err.message + "\n update user failure");
-                    res.json({"result":false});
-                }else{
-                    console.log("update success");
-                    if(obj._id==req.session.user._id) {
-                            req.session.user = obj;
-                    }
-                    res.json({"result":true});
-                }
-            });
-        } else {
-            console.log(err.message + "\n user is not exists");
-            res.json({"result":false});
         }
+        if (cmsUtils.isNotBlank(userName)) {
+            obj.userName = userName;
+        }
+        if (cmsUtils.isNotBlank(realName)) {
+            obj.realName = realName;
+        }
+        if (cmsUtils.isNotBlank(email)) {
+            obj.email = email;
+        }
+        if (cmsUtils.isNotBlank(password)) {
+            obj.password = encryption(password);
+        }
+        User.update(obj, function (err) {
+            if (err) {
+                console.log(err.message + "\n update user failure");
+                res.json({"result": false});
+            } else {
+                console.log("update success");
+                if (String(obj._id) === String(current._id)) {
+                    req.session.user = obj;
+                }
+                res.json({"result": true});
+            }
+        });
     });
 }
 exports.delete = function (req, res) {
@@ -147,13 +156,14 @@ exports.addUser = function (req, res) {
 
 //login
 exports.login = function (req, res) {
-    var userName = (req.body.userName).trim();
-    var password = (req.body.password).trim();
+    var body = req.body || {};
+    var userName = body.userName ? String(body.userName).trim() : '';
+    var password = body.password ? String(body.password).trim() : '';
     var msg = "";
     var success = false;
 
     if (userName !== "nodelog") {
-        //todo 暂停开放注册
+        // 注：当前站点对登录做了限制（除 nodelog 外一律拒绝）。若需开放普通账号登录，请移除/调整此判断。
         return res.json({'success': false, 'msg': '暂停开放登录'});
     }
 

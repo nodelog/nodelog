@@ -3,6 +3,7 @@ var utils = require("util");//工具组件
 var Site = require('./../models/Site.js');//site DAO接口和Model等
 var User = require('./../models/User.js');
 var cmsUtils = require('./cmsUtils.js');//自定义util工具
+var filter = require('./../routes/filter');//用于更新后失效站点缓存
 
 /**
  * 更新配置
@@ -41,6 +42,7 @@ exports.update = function (req, res) {
             if (!err) {
                 var session = req.session;
                 session.site = obj;
+                filter.reloadSiteCache();// 立刻让全局缓存失效，下次请求读取新配置
                 success = true;
                 msg = "配置更新成功";
             } else {

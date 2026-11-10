@@ -26,11 +26,19 @@ app.locals.format = cmsUtils.format;
 // app.use(favicon());//网站图标
 app.use(logger('dev'));//日志级别
 app.use(compress());//压缩
+// 基础安全响应头（无需额外依赖）
+app.use(function (req, res, next) {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('Referrer-Policy', 'same-origin');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    next();
+});
 // app.use(bodyParser.json());//json
 // app.use(bodyParser.urlencoded());//url编码
-// 增加请求体大小限制，这里设置为 50mb
-app.use(bodyParser.json({ limit: '50mb' }));
-app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+// 收紧请求体上限：富文本文章通常远小于 15MB，原 50MB 易被滥用造成内存压力
+app.use(bodyParser.json({ limit: '5mb' }));
+app.use(bodyParser.urlencoded({ limit: '15mb', extended: true }));
 
 app.use(cookieParser());//cookie组件
 app.use(express.static(path.join(__dirname, 'public')));//静态资源路径，
@@ -58,6 +66,8 @@ app.use(function (req, res, next) {
     //初始化网站配置信息
     filter.initSite(req, res, next);
 });
+// 状态变更请求的同源校验（防 CSRF），对正常同源提交无影响
+app.use(filter.csrfGuard);
 //装载路由
 routes.route(app);
 

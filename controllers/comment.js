@@ -29,27 +29,24 @@ var getCountByContent = function (content, callback) {
 };
 
 exports.findByPageAndContent = function (req, res) {
-    var contentId, total = 0, page = 0, totalPage = 0, docs = null;
+    // 同时兼容前端历史拼写 cententId 与规范 contentId
+    var contentId = req.query.contentId || req.query.cententId, total = 0, page = 0, totalPage = 0, docs = null;
+    if (!contentId) {
+        return res.json({docs: [], page: 1, totalPage: 0, total: 0, result: true});
+    }
     async.auto({
-        getContentById: function (callback, results) {
-            var id = req.query.cententId;
-            Content.findById(id, function (err, obj) {
-                cententId = obj._id;
-                callback(null);
-            });
-        },
-        totalCount: ["getContentById", function (callback, results) {
-            getCountByContent(cententId, function (err, count) {
+        totalCount: function (callback, results) {
+            getCountByContent(contentId, function (err, count) {
                 total = count;
                 callback(null);
             });
-        }],
+        },
         pageDocs: ["totalCount", function (callback, results) {
             var pageObj = cmsUtils.page(req.query.page,total);
             page = pageObj.page;
             totalPage = pageObj.totalPage;
             if (totalPage > 0) {
-                Comment.findByContent(page, cententId, function (err, objects) {
+                Comment.findByContent(page, contentId, function (err, objects) {
                     docs = objects;
                     callback(null);
                 });
@@ -68,13 +65,11 @@ exports.findByPageAndContent = function (req, res) {
                         var doc = docs[count];
                         User.findById(doc.commenter, function (err, obj) {
                             if (obj != null) {
-                                doc.userName = obj.realName;
+                                doc.userName = obj.realName || obj.userName;
                             } else {
-                                console.log(doc.name + "'s user not found");
                                 doc.userName = "未知";//
                             }
-                            doc.createTime = doc.createTime.toLocaleString();
-                            console.log(doc.createTime);
+                            doc.createTime = doc.createTime ? doc.createTime.toLocaleString() : '';
                             count++;
                             callbackThis();
                         });
@@ -164,17 +159,29 @@ var findByName = function (name, callback) {
     });
 };
 //add
+// 去除 HTML 标签与控制字符并裁掉两端空白；评论按纯文本处理，避免存储型 XSS
+function cleanComment(s) {
+    return String(s == null ? '' : s)
+        .replace(/<[^>]*>/g, '')            // 去掉 <script>/<img onerror> 等标签
+        .replace(/[\u0000-\u001F\u007F]/g, '') // 去掉控制字符
+        .trim();
+}
+
 exports.add = function (req, res) {
     var id = req.body.id;
     var contentId = req.body.contentId;
     var name = req.body.name;
     var email = req.body.email;
-    var comment = (req.body.comment || '').trim();
+    var comment = cleanComment(req.body.comment);
     var msg = "";
     var success = false;
     var flag = false;//是否已发起回调
     if (comment === "") {
         msg = "评论内容不能为空";
+    } else if (comment.length > 2000) {
+        msg = "评论内容过长，最多 2000 字";
+    } else if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        msg = "邮箱格式不正确";
     } else {
         flag = true;
         if (id == null) {//add
