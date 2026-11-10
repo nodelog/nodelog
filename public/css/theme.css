@@ -300,3 +300,45 @@ a:hover { text-decoration: underline; }
 
 /* 后台内嵌表单面板（新增/修改分类、链接、用户编辑行）与卡片协调 */
 .manager .hide { display: none !important; }
+
+/* ===========================================================
+   前台顶栏兼容旧样式（仅前台，不影响 .manager 深色顶栏）
+   style.css:325 有 `.navbar-nav > li > a { color:#fff !important }`，
+   且 header.ejs 每个菜单都带 .color-white；浅色模式顶栏是白底 →
+   白字白底，整排菜单消失。这里用更高优先级覆盖回设计令牌。
+   =========================================================== */
+body:not(.manager) .navbar .navbar-nav > li > a,
+body:not(.manager) .navbar .navbar-nav > li > a.color-white {
+    color: var(--text-soft) !important;
+}
+body:not(.manager) .navbar .navbar-nav > li > a:hover,
+body:not(.manager) .navbar .navbar-nav > li > a:focus,
+body:not(.manager) .navbar .navbar-nav > li > a.current-menu {
+    color: var(--text) !important;
+    background: var(--surface-2) !important;
+    text-decoration: none;
+}
+body:not(.manager) .navbar .navbar-brand,
+body:not(.manager) .navbar .navbar-brand:hover,
+body:not(.manager) .navbar .navbar-brand:focus { color: var(--text) !important; }
+body:not(.manager) .navbar .dropdown-menu {
+    background: var(--surface) !important;
+    border-color: var(--border);
+}
+body:not(.manager) .navbar .dropdown-menu > li > a { color: var(--text) !important; }
+body:not(.manager) .navbar .dropdown-menu > li > a:hover,
+body:not(.manager) .navbar .dropdown-menu > li > a:focus {
+    color: var(--text) !important; background: var(--surface-2) !important;
+}
+body:not(.manager) .navbar .navbar-toggle { border-color: var(--border); }
+body:not(.manager) .navbar .navbar-toggle .icon-bar { background-color: var(--text) !important; }
+/* 搜索框在两种主题下都可读（style.css 的 input[type=search] 写死 #ededed） */
+body:not(.manager) .navbar input[type=search].search-input {
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+}
+/* 主题按钮：去掉 emoji 半月渲染成「半黑半白圆」的怪异观感，按当前主题给明确图标 */
+.theme-toggle { line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
+.theme-toggle .theme-icon::after { content: "\263E"; }        /* ☾ 浅色→可切深色 */
+:root[data-theme="dark"] .theme-toggle .theme-icon::after { content: "\2600"; } /* ☀ 深色→可切浅色 */

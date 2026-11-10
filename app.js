@@ -43,6 +43,12 @@ app.use(bodyParser.urlencoded({ limit: '15mb', extended: true }));
 app.use(cookieParser());//cookie组件
 app.use(express.static(path.join(__dirname, 'public')));//静态资源路径，
 app.use(favicon(__dirname + '/public/images/favicon.ico'));
+// 动态页面（服务端渲染的 HTML）与接口一律不缓存：登录态、文章列表、公告数都是实时数据，
+// 被浏览器/CDN 缓存会导致强刷后看到过期空页或登录态错乱。静态资源已在上面命中并直接返回，不受影响。
+app.use(function (req, res, next) {
+    if (req.method === 'GET') res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    next();
+});
 //session配置，这里使用mongodb作为session存储
 app.use(session({
     resave: false, //添加 resave 选项

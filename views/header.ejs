@@ -90,7 +90,7 @@
                 <ul class="dropdown-menu l-search-select hide js-search-panel" role="menu"> </ul>
             </li>
             <li>
-                <button class="theme-toggle" id="themeToggle" title="切换深色/浅色" onclick="(function(){var r=document.documentElement;var c=r.getAttribute('data-theme');var n=c==='dark'?'light':'dark';r.setAttribute('data-theme',n);try{localStorage.setItem('nl-theme',n);}catch(e){}})()">🌓</button>
+                <button class="theme-toggle" id="themeToggle" title="切换深色/浅色" aria-label="切换深色/浅色" onclick="(function(){var r=document.documentElement;var c=r.getAttribute('data-theme');var n=c==='dark'?'light':'dark';r.setAttribute('data-theme',n);try{localStorage.setItem('nl-theme',n);}catch(e){}})()"><span class="theme-icon" aria-hidden="true"></span></button>
             </li>
         </ul>
     </div>

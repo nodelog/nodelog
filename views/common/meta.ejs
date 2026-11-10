@@ -30,8 +30,10 @@
 <script>
   (function () {
     try {
+      // 始终显式设置 data-theme，保证 CSS 变量、主题按钮图标与系统偏好三者一致
       var t = localStorage.getItem('nl-theme');
-      if (t) document.documentElement.setAttribute('data-theme', t);
+      if (!t) t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', t);
     } catch (e) {}
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () { navigator.serviceWorker.register('/sw.js').catch(function () {}); });

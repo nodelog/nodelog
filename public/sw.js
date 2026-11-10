@@ -1,7 +1,9 @@
-// NODELOG Service Worker：离线缓存静态资源，/api 走网络优先降级
-var CACHE = 'nodelog-v1';
+// NODELOG Service Worker
+// 原则：**服务端渲染的动态 HTML 页面绝不缓存**（登录态、文章列表、公告数都是实时数据），
+// 一律网络优先；只有静态资源（css/js/图片）才缓存优先。
+// v1 曾把首页 HTML 预缓存并 cache-first，导致强刷拿到旧快照、退出登录不生效、部署后白屏。
+var CACHE = 'nodelog-v2';
 var PRECACHE = [
-  '/',
   '/css/style.css',
   '/css/theme.css',
   '/css/bootstrap.css',
@@ -22,6 +24,7 @@ self.addEventListener('activate', function (e) {
   e.waitUntil(
     caches.keys().then(function (keys) {
       return Promise.all(keys.map(function (k) {
+        // 升级时清掉旧版本缓存（含 v1 缓存的首页 HTML 快照）
         if (k !== CACHE) return caches.delete(k);
       }));
     })
@@ -29,18 +32,41 @@ self.addEventListener('activate', function (e) {
   self.clients.claim();
 });
 
+function isHtmlRequest(req) {
+  // 导航请求（地址栏/刷新/点链接）一律视为动态页面
+  if (req.mode === 'navigate') return true;
+  var accept = req.headers.get('accept') || '';
+  return accept.indexOf('text/html') !== -1;
+}
+
 self.addEventListener('fetch', function (e) {
   var req = e.request;
-  if (req.method !== 'GET') return; // 不缓存写请求
+  if (req.method !== 'GET') return; // 不干预写请求
   var url = new URL(req.url);
 
-  // 上传/接口：网络优先，失败回退缓存
-  if (url.pathname.indexOf('/api/') === 0) {
-    e.respondWith(fetch(req).catch(function () { return caches.match(req); }));
+  // 1) 动态 HTML / 接口：网络优先，且**不写入缓存**；断网时才回退已缓存的页面
+  if (isHtmlRequest(req) || url.pathname.indexOf('/api/') === 0) {
+    e.respondWith(
+      fetch(req).catch(function () {
+        return caches.match(req).then(function (cached) {
+          if (cached) return cached;
+          if (isHtmlRequest(req)) {
+            return new Response(
+              '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>暂时离线</title>' +
+              '<body style="font-family:sans-serif;padding:40px"><h2>暂时无法连接服务器</h2>' +
+              '<p>请检查网络后 <a href="/">重新加载</a>。</p></body></html>',
+              { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+            );
+          }
+          return new Response(JSON.stringify({ success: false, msg: 'offline' }),
+            { status: 503, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
+        });
+      })
+    );
     return;
   }
 
-  // 用户上传的图片：缓存优先，缺失则网络并写入缓存
+  // 2) 用户上传的图片：缓存优先，缺失则网络并写入缓存
   if (url.pathname.indexOf('/uploads/') === 0) {
     e.respondWith(
       caches.match(req).then(function (cached) {
@@ -57,7 +83,7 @@ self.addEventListener('fetch', function (e) {
     return;
   }
 
-  // 其余静态资源：缓存优先，缺失则网络并写入缓存
+  // 3) 其余静态资源：缓存优先，缺失则网络并写入缓存
   e.respondWith(
     caches.match(req).then(function (cached) {
       if (cached) return cached;
