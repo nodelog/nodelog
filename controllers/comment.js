@@ -191,7 +191,7 @@ exports.add = function (req, res) {
                 }
                 //发送邮件
                 if(email){
-                    var detailLink = 'http://nodelog.cn/content/detail?id='+contentId+'&view=contentDetail';
+                    var detailLink = 'https://blog.jiangzi.xin/content/detail?id='+contentId+'&view=contentDetail';
                     var _html = '<b style="color: #222222;">'+session.user.realName + '</b>:';
                     _html += '评论了您的文章<b style="color: #2a6496;"><a href=\"'+detailLink+'\">《'+name+'》</a></b><br/>';
                     _html += '评论内容：<b style="color: #222222;">'+comment+'</b><br/>';

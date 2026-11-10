@@ -51,8 +51,8 @@
 
 ### 安装mongodb
 
-- windows：https://nodelog.cn/content/detail?id=53eedd48598efda003c6d0bd&view=contentDetail
-- linux：https://nodelog.cn/content/detail?id=5439cdae19d713190955ceb0&view=contentDetail
+- windows：https://blog.jiangzi.xin/content/detail?id=53eedd48598efda003c6d0bd&view=contentDetail
+- linux：https://blog.jiangzi.xin/content/detail?id=5439cdae19d713190955ceb0&view=contentDetail
 
 ### 启动mongodb
 
@@ -102,14 +102,14 @@
   - ```shell
     server {
         listen      80;
-        server_name nodelog.cn;
+        server_name blog.jiangzi.xin;
         index index.html index.htm index.ejs;
         root /data/www/nodelog;	
         
         #https 加密协议，ssl证书
         # listen      443;
-        # ssl_certificate   cert/nodelog.cn.pem;
-        # ssl_certificate_key  cert/nodelog.cn.key;
+        # ssl_certificate   cert/blog.jiangzi.xin.pem;
+        # ssl_certificate_key  cert/blog.jiangzi.xin.key;
         # ssl_session_timeout 5m;
         # ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:ECDHE:ECDH:AES:HIGH:!NULL:!aNULL:!MD5:!ADH:!RC4;
         # ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
@@ -148,6 +148,6 @@
 ### 访问
 
 - 本地：http://127.0.0.1:3000
-- http：http://nodelog.cn
-- https：https://nodelog.cn
+- http：http://blog.jiangzi.xin
+- https：https://blog.jiangzi.xin
 
