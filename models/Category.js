@@ -65,6 +65,13 @@ CategoryDAO.prototype.findAll = function (callback) {
         callback(err, docs);
     });
 };
+// 按 id 批量拉取（供 Content.enrichDocs 消 N+1，避免逐条查询）
+CategoryDAO.prototype.findByIds = function (ids, callback) {
+    if (!ids || !ids.length) return callback(null, []);
+    CategoryModel.find({"_id": {$in: ids}}, function (err, docs) {
+        callback(err, docs || []);
+    });
+};
 CategoryDAO.prototype.getCount = function (callback) {
     CategoryModel.count({"status": constants.CATEGORY_ENABLE_STATUS}, function (err, total) {
         callback(err, total);

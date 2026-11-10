@@ -67,11 +67,11 @@ function enrichDocs(docs, callback) {
     async.parallel({
         users: function (cb) {
             if (!authorIds.length) return cb(null, []);
-            User.find({_id: {$in: authorIds}}, function (e, us) { cb(e, us || []); });
+            User.findByIds(authorIds, function (e, us) { cb(e, us || []); });
         },
         cats: function (cb) {
             if (!catIds.length) return cb(null, []);
-            Category.find({_id: {$in: catIds}}, function (e, cs) { cb(e, cs || []); });
+            Category.findByIds(catIds, function (e, cs) { cb(e, cs || []); });
         }
     }, function (e, r) {
         var um = {}, cm = {};

@@ -56,6 +56,13 @@ UserDAO.prototype.findAll = function (callback) {
             callback(err, docs);
         });
 };
+// 按 id 批量拉取（供 Content.enrichDocs 消 N+1，避免逐条查询）
+UserDAO.prototype.findByIds = function (ids, callback) {
+    if (!ids || !ids.length) return callback(null, []);
+    UserModel.find({"_id": {$in: ids}}, function (err, docs) {
+        callback(err, docs || []);
+    });
+};
 UserDAO.prototype.getCount = function (callback) {
     UserModel.count(
         {"status": {$lt: constants.USER_DELETE_STATUS}},
