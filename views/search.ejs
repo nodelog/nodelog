@@ -1,46 +1,19 @@
 <%- include('header') %>
-<div class="row js-panel-row">
-
-    <div class="col-sm-12 col-xs-12 no-padding">
-        <div class="panel panel-default">
-            <div class="panel-heading"><%=title%> (<%=total%>)</div>
-            <div class="panel-body">
-                <% if(docs.length > 0){ %>
-                <% for(var i = 0;i < docs.length;i++){ %>
-                <div class="bs-callout">
-                    <h4>
-                        <i class="glyphicon glyphicon-bookmark"></i>
-                        <a href="/content/detail?id=<%= docs[i]._id %>&view=contentDetail"
-                           title="<%= docs[i].name %>"><%= docs[i].name.length > 50 ? docs[i].name.substring(0, 50) + "..." : docs[i].name %></a>
-                    </h4>
-
-                    <div class="clearfix"></div>
-                    <div class="media color-gray">
-                        <span title="作者"><i class="glyphicon glyphicon-user"></i>&nbsp;<%- docs[i].realName %></span>
-                        <span title="分类"><i class="glyphicon glyphicon-tag col-sm-offset-1"></i>&nbsp;<%- docs[i].categoryName %></span>
-                        <span title="发布时间"><i class="glyphicon glyphicon-time  col-sm-offset-1"></i>&nbsp;
-                            <%= format(docs[i].createTime, "YYYY-MM-DD") %>
-                        </span>
-                        <span title="浏览量"><i class="glyphicon glyphicon-eye-open  col-sm-offset-1"></i>&nbsp;<%= docs[i].view %></span>
-                    </div>
-                </div>
-                <% } %>
-                <ul class="pager">
-                    <li class="previous"><a href="javascript:;" class="js-pre-page" data-url="/content/search?word=<%=key%>&"
-                                            data-page="<%= page %>" data-total="<%= totalPage %>">&larr; 上一页</a></li>
-					<li>第<%= page %>页/共<%= totalPage %>页</li>
-                    <li class="next"><a href="javascript:;" class="js-next-page" data-url="/content/search?word=<%=key%>&"
-                                        data-page="<%= page %>" data-total="<%= totalPage %>">下一页 &rarr;</a></li>
-                </ul>
-                <% }else{ %>
-                <div class="alert alert-warning" role="alert">暂无日志!</div>
-                <% } %>
+<div class="container">
+    <div class="layout">
+        <main>
+            <ol class="breadcrumb">
+                <li><a href="/" title="首页">首页</a></li>
+                <li class="active">搜索</li>
+            </ol>
+            <div class="page-head">
+                <h2>搜索：<%= key %></h2>
+                <span class="muted"><%= total %> 条结果</span>
             </div>
-        </div>
+            <%- include('contentPanel') %>
+        </main>
+        <%- include('common/sidebar') %>
     </div>
-
 </div>
 <input type="hidden" class="js-current-menu" value="js-search-bar"/>
 <%- include('footer') %>
-
-

@@ -1,24 +1,16 @@
-<%  if(docs != null && docs.length > 0){ %>
-<% for(var i = 0;i < docs.length;i++){ %>
-<div class="bs-callout">
-    <h4>
-        <span class="label label-default"><%=((docs[i].original)?"转":"原")%></span>
-        <a href="/content/detail?id=<%= docs[i]._id %>&view=contentDetail"
-           title="<%= docs[i].name %>"><%= docs[i].name.length > 50 ? docs[i].name.substring(0, 50) + "..." : docs[i].name %></a>
-    </h4>
-
-    <div class="clearfix"></div>
-    <div class="media color-gray">
-        <span title="作者"><i class="glyphicon glyphicon-user"></i>&nbsp;<%= docs[i].realName?docs[i].realName:docs[i].userName %></span>
-        <span title="分类"><i class="glyphicon glyphicon-tag col-sm-offset-1"></i>&nbsp;<%- docs[i].categoryName %></span>
-                        <span title="发布时间"><i class="glyphicon glyphicon-time  col-sm-offset-1"></i>&nbsp;
-                            <%= format(docs[i].createTime, "YYYY-MM-DD") %>
-                        </span>
-        <span title="浏览量"><i class="glyphicon glyphicon-eye-open  col-sm-offset-1"></i>&nbsp;<%= docs[i].view %></span>
-    </div>
+<% if (typeof docs !== 'undefined' && docs && docs.length) { %>
+<div class="post-grid">
+    <% docs.forEach(function(doc){ %>
+        <%- include('common/postCard', { doc: doc }) %>
+    <% }); %>
+</div>
+<% if (totalPage > 1) { %>
+<div class="pager">
+    <% for (var p = 1; p <= totalPage; p++) { %>
+        <% if (p === page) { %><span class="current"><%= p %></span><% } else { %><a href="<%= url %>page=<%= p %>"><%= p %></a><% } %>
+    <% } %>
 </div>
 <% } %>
-<%- include('common/pager') %>
-<% }else{ %>
-<div class="alert alert-warning" role="alert">暂无日志!</div>
+<% } else { %>
+<div class="card">暂无内容</div>
 <% } %>

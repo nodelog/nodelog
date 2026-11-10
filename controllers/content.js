@@ -167,22 +167,9 @@ exports.findByUser = function (req, res) {
                 Content.findByUser(page, user._id, function (err, objects) { docs = objects; callback(null); });
             } else { callback(null); }
         }],
-        initUser: ["getContentByPage", function (callback) {
-            for (var i = 0; i < docs.length; i++) {
-                docs[i].userName = user.userName; docs[i].realName = user.realName;
-            }
-            callback(null);
-        }],
-        initCategory: ["initUser", function (callback) {
-            var count = 0;
-            if (!docs.length) return callback(null);
-            async.whilst(function () { return count < docs.length; }, function (cb) {
-                var doc = docs[count];
-                Category.findById(doc.category, function (err, obj) {
-                    doc.categoryName = obj != null ? obj.name : "未知";
-                    count++; cb(null);
-                });
-            }, function (err) { callback(err); });
+        // 复用与列表一致的批量补全（作者/分类/标签），消除 N+1 并补齐 categoryName
+        enrich: ["getContentByPage", function (callback) {
+            Content.enrichDocs(docs, callback);
         }]
     }, function (err) {
         var view = "myContent", title = "我的日志", currentMenu = "mycontent";

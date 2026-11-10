@@ -90,6 +90,15 @@ a:hover { text-decoration: underline; }
 .layout { display: grid; grid-template-columns: 1fr 300px; gap: 24px; align-items: start; }
 @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
 
+/* 面包屑 / 子页标题 */
+.breadcrumb { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 16px; }
+.breadcrumb > li + li:before { color: var(--text-soft); }
+.breadcrumb a { color: var(--primary); }
+.breadcrumb .active { color: var(--text); }
+.page-head { display: flex; align-items: baseline; gap: 10px; margin: 4px 0 18px; flex-wrap: wrap; }
+.page-head h2 { margin: 0; font-size: 22px; }
+.page-head .muted { color: var(--text-soft); font-size: 13px; }
+
 /* Hero */
 .hero {
     background: linear-gradient(135deg, var(--primary-weak), var(--surface));
