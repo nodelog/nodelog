@@ -208,3 +208,95 @@ a:hover { text-decoration: underline; }
 .markdown-body th, .markdown-body td { border: 1px solid var(--border); padding: 8px 10px; }
 .markdown-body th { background: var(--surface-2); }
 .markdown-body hr { border: 0; border-top: 1px solid var(--border); margin: 1.5em 0; }
+
+/* ============ Manager 后台管理端（统一到设计系统，不破坏 .js-* 钩子） ============ */
+/* 后台以独立“控制台”外壳呈现：深色顶栏 + 卡片化内容容器 + 设计令牌表格/表单 */
+
+/* 内容居中并限制最大宽度，形成后台面板观感 */
+.manager .l-top-bottom { max-width: 1180px; margin-left: auto; margin-right: auto; }
+
+/* 顶栏：固定 + 深色实底，确保 .color-white 在浅色/暗色模式下都可读 */
+.manager .navbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 1030;
+    background: #1f2530;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    backdrop-filter: none;
+    height: auto; min-height: 50px;
+}
+.manager .navbar .navbar-brand,
+.manager .navbar a,
+.manager .navbar .color-white { color: #fff !important; }
+.manager .navbar .navbar-brand { font-weight: 700; }
+.manager .navbar .nav > li > a { color: #fff; opacity: .85; }
+.manager .navbar .nav > li > a:hover { opacity: 1; background: rgba(255,255,255,.10); text-decoration: none; }
+.manager .navbar .current-menu { background: rgba(255,255,255,.14); border-radius: 6px; opacity: 1; }
+.manager .navbar .icon-bar { background-color: #fff !important; }
+.manager .navbar .navbar-toggle { border-color: rgba(255,255,255,.3); }
+
+/* 内容容器：把 .jumbotron / .bg-white.jumbotron.clear-margin 收口为卡片 */
+.manager .jumbotron {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+    margin: 0;
+}
+/* index 页在卡片内又套了一层 .jumbotron，需还原为透明，避免“卡片套卡片” */
+.manager .bg-white.jumbotron.clear-margin .jumbotron {
+    background: transparent; border: 0; padding: 0; box-shadow: none;
+}
+
+/* 页面标题（原始 <h3>）统一为 page-head 观感 */
+.manager h3 {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 20px; margin: 0 0 18px; line-height: 1.4;
+}
+.manager h3 .pull-right { margin-left: auto; }
+
+/* 面包屑与全局 .breadcrumb 一致（theme.css 已定义，这里补一下间距） */
+.manager .breadcrumb { margin: 0 0 18px; }
+
+/* 表格：统一到设计令牌，保留 .table .table-hover 结构与所有 .js-* 钩子 */
+.manager .table { background: transparent; margin-bottom: 18px; }
+.manager .table > thead > tr > th {
+    border-bottom: 2px solid var(--border);
+    color: var(--text-soft); font-weight: 600; white-space: nowrap;
+    padding: 12px 14px; vertical-align: middle;
+}
+.manager .table > tbody > tr > td,
+.manager .table > tbody > tr > th {
+    border-top: 1px solid var(--border);
+    padding: 12px 14px; color: var(--text); vertical-align: middle;
+}
+.manager .table.table-hover > tbody > tr:hover { background: var(--surface-2); }
+.manager .table a { color: var(--primary); }
+
+/* 表单控件与设计令牌对齐 */
+.manager .form-control { border-color: var(--border); background: var(--surface); color: var(--text); border-radius: var(--radius-sm); }
+.manager .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-weak); }
+.manager .input-group-addon { background: var(--surface-2); border-color: var(--border); color: var(--text-soft); }
+
+/* 按钮 */
+.manager .btn { border-radius: var(--radius-sm); }
+.manager .btn-default { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+.manager .btn-default:hover { background: var(--surface-2); }
+.manager .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+/* 分页（common/pager.ejs：<ul class="pager"> 含 previous/页码/next） */
+.manager .pager {
+    display: flex; gap: 8px; justify-content: center; align-items: center;
+    margin: 22px 0; padding: 0; list-style: none;
+}
+.manager .pager li { display: inline-flex; }
+.manager .pager a, .manager .pager li > span {
+    padding: 6px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text-soft); background: var(--surface);
+}
+.manager .pager a:hover { text-decoration: none; border-color: var(--primary); color: var(--primary); }
+
+/* 公告/空数据提示沿用 bootstrap alert，这里仅补圆角 */
+.manager .alert { border-radius: var(--radius-sm); }
+
+/* 后台内嵌表单面板（新增/修改分类、链接、用户编辑行）与卡片协调 */
+.manager .hide { display: none !important; }
