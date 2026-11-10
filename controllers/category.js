@@ -33,6 +33,9 @@ exports.delete = function (req, res) {
                 if (!err) {
                     result = true;
                     msg = "删除成功";
+                } else if (err && err.message === 'HAS_CHILD') {
+                    result = false;
+                    msg = "该分类下还有子分类，无法删除";
                 } else {
                     result = false;
                     msg = "删除失败";
@@ -78,6 +81,11 @@ var findByName = function (name, callback) {
 //add
 exports.add = function (req, res) {
     var name = (req.body.name || '').trim();
+    var slug = (req.body.slug || '').trim();
+    var parent = (req.body.parent && req.body.parent !== '0' && req.body.parent !== '') ? req.body.parent : null;
+    var description = (req.body.description || '').trim();
+    var cover = req.body.cover || '';
+    var order = parseInt(req.body.order, 10) || 0;
     var msg = "";
     var success = false;
     var flag = false;//是否已发起回调
@@ -90,7 +98,7 @@ exports.add = function (req, res) {
                 msg = "分类已经存在";
                 res.json({'success': success, 'msg': msg});
             } else {
-                obj = {"name": name, "createTime": new Date(), "modifyTime": new Date()};
+                obj = {"name": name, "slug": slug, "parent": parent, "description": description, "cover": cover, "order": order, "createTime": new Date(), "modifyTime": new Date()};
                 Category.save(obj, function (err) {
                     if (!err) {
                         success = true;
@@ -112,6 +120,11 @@ exports.add = function (req, res) {
 exports.update = function (req, res) {
     var id = req.body.id;
     var name = (req.body.name || '').trim();
+    var slug = (req.body.slug || '').trim();
+    var parent = (req.body.parent && req.body.parent !== '0' && req.body.parent !== '') ? req.body.parent : null;
+    var description = (req.body.description || '').trim();
+    var cover = req.body.cover || '';
+    var order = parseInt(req.body.order, 10) || 0;
     var msg = "";
     var success = false;
     var flag = false;//是否已发起回调
@@ -124,7 +137,7 @@ exports.update = function (req, res) {
                 msg = "分类名称已经存在";
                 res.json({'success': success, 'msg': msg});
             } else {
-                Category.update(id, name, function (err) {
+                Category.update(id, {name: name, slug: slug, parent: parent, description: description, cover: cover, order: order}, function (err) {
                     if (!err) {
                         success = true;
                         msg = "修改分类成功";

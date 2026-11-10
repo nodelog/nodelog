@@ -156,7 +156,7 @@ $(function () {
                 }
                 //编辑日志页面关闭提醒
                 if (url.indexOf("view=editContent") != -1) {
-                    $('.js-editor').html($('.js-content-hide').html());
+                    // 编辑器内容已由 editor.ejs 直接填充到 textarea，无需再注入
                     $('.js-category-value').html(_editHtml);
                     if (sessionUser == null) {
                         $('.js-login-btn').click();
@@ -444,9 +444,10 @@ $(function () {
             var name = $('.js-add-content-name').val().trim();
             var oldName = $('.js-add-content-name').attr("data-name");
             var id = $('.js-add-content-name').attr("data-id");
-            var content = $('.js-editor').html();
+            var content = $('.js-editor').val();
             var category = $('.js-category-value').val();
             var original = $('input[name="original"]').val().trim();
+            var contentType = $('.js-content-type').val() || 'markdown';
             if (name === "") {
                 myMsg("标题不能为空");
             } else if (content.trim() === "") {
@@ -457,6 +458,7 @@ $(function () {
                     id: id,
                     name: name,
                     content: content,
+                    contentType: contentType,
                     category: category,
                     oldName: oldName,
                     original: original
@@ -731,7 +733,7 @@ $(function () {
             $('.js-login-btn').click();
         } else {
             var name = $('.js-add-log-name').val().trim();
-            var content = $('.js-editor').html();
+            var content = $('.js-editor').val();
             if (name === "") {
                 myMsg("标题不能为空");
             } else if (content.trim() === "") {

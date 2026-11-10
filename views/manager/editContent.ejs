@@ -10,6 +10,7 @@
 </ol>
 
 <form role="form" action="javascript:;">
+    <input type="hidden" class="js-content-type" value="<%= (doc.contentType=='markdown')?'markdown':'html' %>" />
     <div class="form-group">
         <label>Title</label>
         <span class="pull-right text-primary h4">you can input <i
@@ -21,7 +22,6 @@
     <div class="form-group">
         <label>Content</label>
         <%- include('../editor') %>
-        <div class="hide js-content-hide"><%- doc.content %></div>
     </div>
     <div class="form-group">
         <label>Category</label>
@@ -53,7 +53,6 @@
             });
             $('.js-category-value').html(options);
         }, "json");
-        $('.js-editor').html($('.js-content-hide').html());
     });
 
 </script>

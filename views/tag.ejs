@@ -1,0 +1,35 @@
+<%- include('header') %>
+<div class="container">
+    <section class="hero">
+        <h1># <%= tag.name %></h1>
+        <p>共 <%= total %> 篇相关内容</p>
+    </section>
+
+    <div class="post-grid" style="margin-top:8px">
+        <% if (docs && docs.length) { %>
+            <% docs.forEach(function(doc){ %>
+                <article class="card post-card">
+                    <% if (doc.cover) { %><img class="cover" src="<%= doc.cover %>" alt="<%= doc.name %>"/> <% } %>
+                    <h3><a href="/content/detail?id=<%= doc._id %>"><%= doc.name %></a></h3>
+                    <div class="meta">
+                        <span><i class="glyphicon glyphicon-user"></i> <%= doc.realName ? doc.realName : doc.userName %></span>
+                        <span><i class="glyphicon glyphicon-tag"></i> <%= doc.categoryName %></span>
+                        <span><i class="glyphicon glyphicon-calendar"></i> <%= format(doc.createTime, 'YYYY-MM-DD') %></span>
+                    </div>
+                    <% if (doc.excerpt) { %><p class="excerpt"><%= doc.excerpt %></p><% } %>
+                </article>
+            <% }); %>
+        <% } else { %>
+            <div class="card">该标签下暂无内容</div>
+        <% } %>
+    </div>
+
+    <% if (totalPage > 1) { %>
+    <div class="pager">
+        <% for (var p = 1; p <= totalPage; p++) { %>
+            <% if (p === page) { %><span class="current"><%= p %></span><% } else { %><a href="<%= url %>page=<%= p %>"><%= p %></a><% } %>
+        <% } %>
+    </div>
+    <% } %>
+</div>
+<%- include('footer') %>

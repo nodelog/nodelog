@@ -48,7 +48,7 @@
 
             </div>
             <div class="panel-body break-all js-content">
-                <div><%- doc.content %></div>
+                <div class="article-content"><%- doc.renderedContent %></div>
                 <%if(doc.original){%>
                 <div class="alert alert-success no-margin l-margin-top-20" role="alert">
                     原文链接：<a href="<%= doc.original %>" class="alert-link" target="_blank"><%= doc.original %></a>

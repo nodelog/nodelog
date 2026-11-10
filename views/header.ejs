@@ -89,6 +89,9 @@
                 <input data-toggle="tooltip" data-placement="bottom"  type="search" data-toggle="dropdown" maxlength="50" class="dropdown-toggle form-control search-input js-search" value="<%if(locals.key){%><%=key%><%}%>" placeholder="任意输入、无限搜索" />
                 <ul class="dropdown-menu l-search-select hide js-search-panel" role="menu"> </ul>
             </li>
+            <li>
+                <button class="theme-toggle" id="themeToggle" title="切换深色/浅色" onclick="(function(){var r=document.documentElement;var c=r.getAttribute('data-theme');var n=c==='dark'?'light':'dark';r.setAttribute('data-theme',n);try{localStorage.setItem('nl-theme',n);}catch(e){}})()">🌓</button>
+            </li>
         </ul>
     </div>
 </nav>

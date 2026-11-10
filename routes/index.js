@@ -6,13 +6,19 @@ var content = require('./../controllers/content');
 var comment = require('./../controllers/comment');
 var log = require('./../controllers/log');
 var link = require('./../controllers/link');
+var tag = require('./../controllers/tag');
+var upload = require('./../controllers/upload');
+var ai = require('./../controllers/ai');
+var analytics = require('./../controllers/analytics');
+var rateLimit = require('./../controllers/rateLimit');
+var markdown = require('./../controllers/markdown');
 var route = function (app) {
 	app.get('/', content.findByPage);
     app.get('/index', content.findByPage);
     app.get('/about', function (req, res) {
         res.render('about', { title: '关于我们'});
     });
-    app.post('/user/login', user.login);
+    app.post('/user/login', rateLimit.limit({max: 10, windowMs: 5 * 60 * 1000}), user.login);
     app.post('/user/reg', user.addUser);
     app.get('/user/logout', user.logout);
 
@@ -64,13 +70,26 @@ var route = function (app) {
     app.get('/content/addPage', function (req, res) {
         res.render("addContent", {"title": "发表日志",currentMenu:"content"});
     });
-    app.post('/comment/add', filter.authorize, comment.add);
+    app.post('/comment/add', filter.authorize, rateLimit.limit({max: 10, windowMs: 60 * 1000}), comment.add);
     app.get('/comment/all', comment.findByPageAndContent);
     app.get('/session', user.session);
     app.post('/session', user.session);
     app.get('/content/user', filter.authorize, content.findByUser);
-    app.get('/content/search',content.findByWord);
+    app.get('/content/search',content.searchFull);
     app.post('/content/search',content.findByWordJson);
+    // P0 图床上传（base64 -> public/uploads）
+    app.post('/api/upload', filter.authorize, upload.upload);
+    // P0 编辑器实时预览（服务端 markdown 渲染，与展示一致）
+    app.post('/api/preview', filter.authorize, function (req, res) {
+        res.json({ html: markdown.render(req.body.content || '') });
+    });
+    // P0/P1 标签体系
+    app.get('/tag/:slug', tag.findBySlug);
+    app.get('/tags', tag.list);
+    // P2 AI 辅助（仅管理员，且需配置 AI_API_KEY）
+    app.post('/api/ai/summary', filter.authorizeAdmin, ai.summary);
+    // P2 运营统计
+    app.get('/manager/analytics', filter.authorizeAdmin, analytics.overview);
     // 日志相关路由见上方 log.* （已清理重复的 /log 调试路由 filter.log）
     app.get('/manager/link', function(req, res){res.render('manager/link',{currentMenu:"link",title:"链接管理"});});
     app.post('/manager/link/save', filter.authorizeAdmin, link.save);

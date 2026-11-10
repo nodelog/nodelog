@@ -1,17 +1,70 @@
 <%- include('header') %>
-<div class="row js-panel-row">
+<div class="container">
+    <section class="hero">
+        <h1><%= session.site.name %></h1>
+        <p><%= session.site.copyRight || '记录技术，分享思考' %></p>
+    </section>
 
-    <div class="col-sm-12 col-xs-12 no-padding">
-        <div class="panel panel-default">
-            <div class="panel-heading">所有日志 (<%=total%>)</div>
-            <div class="panel-body">
-                <%- include('contentPanel') %>
+    <div class="layout">
+        <main>
+            <div class="post-grid">
+                <% if (typeof docs !== 'undefined' && docs && docs.length) { %>
+                    <% docs.forEach(function(doc){ %>
+                        <article class="card post-card">
+                            <% if (doc.cover) { %><img class="cover" src="<%= doc.cover %>" alt="<%= doc.name %>"/> <% } %>
+                            <h3><a href="/content/detail?id=<%= doc._id %>"><%= doc.name %></a></h3>
+                            <div class="meta">
+                                <span><i class="glyphicon glyphicon-user"></i> <%= doc.realName ? doc.realName : doc.userName %></span>
+                                <span><i class="glyphicon glyphicon-tag"></i> <%= doc.categoryName %></span>
+                                <span><i class="glyphicon glyphicon-calendar"></i> <%= format(doc.createTime, 'YYYY-MM-DD') %></span>
+                                <span><i class="glyphicon glyphicon-eye-open"></i> <%= doc.view %></span>
+                            </div>
+                            <% if (doc.excerpt) { %><p class="excerpt"><%= doc.excerpt %></p><% } %>
+                            <% if (doc.tags && doc.tags.length) { %>
+                                <div class="tag-chips">
+                                    <% doc.tags.forEach(function(t){ %><a class="chip" href="/tag/<%= encodeURIComponent(t) %>"><%= t %></a><% }); %>
+                                </div>
+                            <% } %>
+                        </article>
+                    <% }); %>
+                <% } else { %>
+                    <div class="card">暂无内容</div>
+                <% } %>
             </div>
-        </div>
-    </div>
 
+            <% if (totalPage > 1) { %>
+            <div class="pager">
+                <% for (var p = 1; p <= totalPage; p++) { %>
+                    <% if (p === page) { %><span class="current"><%= p %></span><% } else { %><a href="<%= url %>page=<%= p %>"><%= p %></a><% } %>
+                <% } %>
+            </div>
+            <% } %>
+        </main>
+
+        <aside class="aside">
+            <div class="card">
+                <h4>热门标签</h4>
+                <div class="tag-chips" id="tagCloud"><span class="chip">加载中…</span></div>
+            </div>
+            <div class="card">
+                <h4>关于</h4>
+                <p style="color:var(--text-soft);font-size:14px;margin:0;">
+                    本站基于 Node.js + Express + MongoDB 构建，支持 Markdown 写作、全文检索与标签体系。
+                </p>
+                <p style="margin-top:12px;"><a class="btn btn-primary" href="/content/addPage">✍️ 写文章</a></p>
+            </div>
+        </aside>
+    </div>
 </div>
 <input type="hidden" class="js-login-flag" value="<%=login%>"/>
 <%- include('footer') %>
 
-
+<script>
+    fetch('/tags').then(function (r) { return r.json(); }).then(function (d) {
+        var box = document.getElementById('tagCloud');
+        if (!d.docs || !d.docs.length) { box.innerHTML = '<span class="chip">暂无标签</span>'; return; }
+        box.innerHTML = d.docs.slice(0, 20).map(function (t) {
+            return '<a class="chip" href="/tag/' + encodeURIComponent(t.name) + '">' + t.name + '</a>';
+        }).join('');
+    }).catch(function () { document.getElementById('tagCloud').innerHTML = ''; });
+</script>

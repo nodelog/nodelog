@@ -25,35 +25,16 @@
 <link rel='stylesheet' href='/css/bootstrap-switch.min.css'/>
 <link rel='stylesheet' href='/js/layer/need/layer.css'/>
 <link rel='stylesheet' href='/css/style.css?t=20160713'/>
+<link rel="stylesheet" href="/css/theme.css">
+<link rel="manifest" href="/manifest.json">
 <script>
-    function getCookie(name){
-        var arr,reg=new RegExp("(^| )"+name+"=([^;]*)(;|$)");
-        if(arr=document.cookie.match(reg))
-            return unescape(arr[2]);
-        else {
-            return null;
-        }
+  (function () {
+    try {
+      var t = localStorage.getItem('nl-theme');
+      if (t) document.documentElement.setAttribute('data-theme', t);
+    } catch (e) {}
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () { navigator.serviceWorker.register('/sw.js').catch(function () {}); });
     }
-    function loadCss(name){
-        document.write("<link rel='stylesheet' href='/css/" + name + ".css'/>")
-    }
-    var theme= getCookie('style-theme');
-    if (!theme) {
-        //随机主题
-        let themeIndex = Math.floor(Math.random()*4);
-        let themes = ["style-green", "style-red", "style-black", "style-blue"];
-        theme = themes[themeIndex];
-    }
-    sessionStorage.theme = theme;
-    loadCss(theme);
-    /*switch(theme) {
-     case "style-blue":
-     case "style-black":
-     case "style-green":
-     case "style-red":
-         loadCss(theme);
-     break;
-     default :
-         loadCss("style-black");
-     }*/
+  })();
 </script>
