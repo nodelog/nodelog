@@ -202,6 +202,10 @@ exports.login = function (req, res) {
 };
 exports.logout = function (req, res) {
     req.session.user = null;
+    // 同时清掉微信扫码登录写入的 30 天凭证 cookie，
+    // 否则本地账号登出后 restoreUser 中间件仍会据该 cookie 把登录态恢复回来。
+    // 返回体保留旧拼写 sucess（前端 common.js 只判断回调，不改）。
+    res.clearCookie('nl_open_jwt', {path: '/'});
     res.json({sucess: true});
 };
 

@@ -1,7 +1,81 @@
-</article>
+    </main>
 </div>
 <%- include('common/links') %>
+<!-- Toast 宿主必须是 body 直属节点，不能放进会被 layer 移走/卸载的 .hide 弹层容器 -->
+<div id="nl-toast-host" class="toast-host" role="status" aria-live="polite" aria-atomic="true"></div>
+
+<script>
+/* 前台状态 HTML 的唯一生成器：JS 动态刷新区域无法调用 EJS，这里与 common/state.ejs 保持同一套 DOM 契约。
+   交互反馈仍统一走 layer 弹层，本函数只负责「空 / 加载 / 失败」三类就地状态，不造第二套 Toast。 */
+(function () {
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  var ICON = {
+    error: '<path d="M12 3 2 20h20L12 3z"/><path d="M12 9v5"/><circle cx="12" cy="17.5" r=".8"/>',
+    fail: '<path d="M12 3 2 20h20L12 3z"/><path d="M12 9v5"/><circle cx="12" cy="17.5" r=".8"/>',
+    empty: '<circle cx="12" cy="12" r="9"/><path d="M8 13h8"/>',
+    success: '<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>'
+  };
+  window.NL = {
+    esc: esc,
+    state: function (kind, o) {
+      o = o || {};
+      var size = o.size || 'inline';
+      var isAlert = (kind === 'error');
+      var head = '<div class="state state--' + kind + ' state--' + size + '" data-state="' + kind + '"' +
+        ' role="' + (isAlert ? 'alert' : 'status') + '" aria-live="' + (isAlert ? 'assertive' : 'polite') + '" aria-atomic="true">';
+      if (kind === 'loading') {
+        return head + '<div class="state-skeleton" aria-hidden="true">' +
+          '<span class="sk sk--title"></span><span class="sk sk--line"></span><span class="sk sk--line sk--short"></span>' +
+          '</div><span class="sr-only">正在加载</span></div>';
+      }
+      var svg = '<span class="state-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">' +
+        (ICON[kind] || ICON.empty) + '</svg></span>';
+      var body = '<div class="state-body">';
+      if (o.title) body += '<p class="state-title">' + esc(o.title) + '</p>';
+      if (o.text) body += '<p class="state-text">' + esc(o.text) + '</p>';
+      var acts = '';
+      if (o.retry) acts += '<button type="button" class="btn btn-sm js-state-retry" data-retry="' + esc(o.retry) + '">' + esc(o.retryLabel || '重试') + '</button>';
+      if (o.actionHref) acts += '<a class="state-link" href="' + esc(o.actionHref) + '">' + esc(o.actionText) + '</a>';
+      if (acts) body += '<div class="state-actions">' + acts + '</div>';
+      body += '</div>';
+      return head + svg + body + '</div>';
+    }
+  };
+  // <a href="javascript:;" role="button"> 补 Space 键；Enter 由浏览器对链接原生触发
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== ' ' && e.key !== 'Spacebar') return;
+    var el = e.target;
+    if (el && el.getAttribute && el.getAttribute('role') === 'button' && el.getAttribute('href') === 'javascript:;') {
+      e.preventDefault();
+      el.click();
+    }
+  });
+  // 错误页「去搜索」动作：回到首页后把焦点交给顶栏检索框
+  if (location.hash === '#nl-site-search') {
+    window.addEventListener('load', function () {
+      var el = document.getElementById('nl-site-search');
+      if (el) el.focus();
+    });
+  }
+})();
+</script>
+
+<% if (typeof needEditor !== 'undefined' && needEditor) { %>
+<!-- 编辑页例外：恢复原有 require.js + /js/main 链（编辑器依赖 wysiwyg / hotkeys / prettify） -->
+<script src="/js/dataFormat.js"></script>
 <script data-main="/js/main" src="/js/require.js?v=3"></script>
+<% } else { %>
+<!-- 普通前台页：不再加载编辑器全家桶；defer 保证 jQuery → 插件 → common 的执行顺序 -->
+<script defer src="/js/jquery-1.10.2.min.js"></script>
+<script defer src="/js/bootstrap.js"></script>
+<script defer src="/js/layer/layer.js"></script>
+<script defer src="/js/dataFormat.js"></script>
+<script defer src="/js/common.js"></script>
+<% } %>
+<script src="/js/qr-login.js?v=20261111" defer></script>
 
 <!-- 登录 / 注册弹层内容：common.js 会把 .js-*-panel 的 html 移入 layer 弹层，钩子不可改名 -->
 <div class="hide">

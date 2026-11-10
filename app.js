@@ -67,6 +67,30 @@ app.use(session({
     //  url: settings.url
     // })
 }));
+// ===== LINK ONE 开放平台：30 天免登录恢复 + 全站微信分享元数据 =====
+// 必须放在 session 之后、initSite 之前：恢复登录态只依赖 cookie 与 session，不依赖站点配置。
+app.use(require('./controllers/openAuth').restoreUser);
+app.use(function (req, res, next) {
+    var cfg = settings.openPlatform || {};
+    var DEFAULT_COVER = 'https://blog.jiangzi.xin/images/share-cover.png';
+    // 危险字符一律拒绝：引号、反斜杠、尖括号、空白、控制字符。
+    // shareCover 会被注入内联 JS 与 OG 属性，Host / Proto 头又可被客户端伪造，装配侧先净化。
+    var UNSAFE = /['"\\<>\s\u0000-\u001f]/;
+    var host = String(req.headers['x-forwarded-host'] || req.headers.host || cfg.siteHost || 'blog.jiangzi.xin')
+        .split(',')[0].trim();
+    if (!/^[a-z0-9.\-:\[\]]+$/i.test(host) || UNSAFE.test(host)) {
+        host = String(cfg.siteHost || 'blog.jiangzi.xin').split(',')[0].trim();
+    }
+    var isLocal = /^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(host);
+    var proto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim()
+        || (req.secure ? 'https' : (isLocal ? 'http' : 'https'));
+    if (!/^https?$/i.test(proto)) proto = isLocal ? 'http' : 'https';
+    // og:url / 签名 URL 必须与浏览器地址栏完全一致（含 query，不含 #hash）
+    res.locals.ogUrl = proto + '://' + host + req.originalUrl;
+    var cover = String(cfg.shareCover || '');
+    res.locals.shareCover = (/^https:\/\//i.test(cover) && !UNSAFE.test(cover)) ? cover : DEFAULT_COVER;
+    next();
+});
 //接受请求
 app.use(function (req, res, next) {
     res.locals.session = req.session;

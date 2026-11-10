@@ -12,7 +12,16 @@ var ai = require('./../controllers/ai');
 var analytics = require('./../controllers/analytics');
 var rateLimit = require('./../controllers/rateLimit');
 var markdown = require('./../controllers/markdown');
+var openAuth = require('./../controllers/openAuth');
 var route = function (app) {
+    // ===== LINK ONE 开放平台：扫码登录 + 公众号 JS-SDK 签名（按需求排除支付）=====
+    // 上游 AppID / AppSecret 只在服务端使用，前端永远拿不到
+    // 阈值按前端真实频率定：qr-login.js 每 1.5s 轮询一次 ≈ 40 次/分钟，
+    // status 若只给 10~30 次/分钟会把正常扫码打回 429，故放宽到 90 次/分钟。
+    app.get('/open/qrcode', rateLimit.limit({max: 15, windowMs: 60 * 1000, key: 'open-qrcode'}), openAuth.qrcode);
+    app.get('/open/status', rateLimit.limit({max: 90, windowMs: 60 * 1000, key: 'open-status'}), openAuth.status);
+    app.get('/open/jsConfig', rateLimit.limit({max: 60, windowMs: 60 * 1000, key: 'open-jsconfig'}), openAuth.jsConfig);
+    app.get('/open/logout', openAuth.logout);
 	app.get('/', content.findByPage);
     app.get('/index', content.findByPage);
     app.get('/about', function (req, res) {

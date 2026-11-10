@@ -8,6 +8,13 @@ var UserSchema = new Schema({
     realName: {type: 'String', required: true},
     password: {type: 'String', required: true},
     email: {type: 'String', required: false},
+    // ===== 开放平台（微信扫码登录）扩展字段 =====
+    // 三者都不设 required，旧文档缺失该字段时不会触发校验失败。
+    // openUserId 只建普通索引、不加 unique：历史文档该字段普遍缺失，唯一索引会冲突；
+    // 重复创建的兜底由 findByOpenUserId 先查后建 + 后续收敛保证。
+    openUserId: {type: 'String', index: true},
+    phone: {type: 'String'},
+    loginType: {type: 'String', default: 'local'},
     createTime: { type: Date, default: Date.now},
     modifyTime: {type: Date, default: Date.now},
     role: {type: 'Number', default: 1, required: true, min: 0, max: 1 },//0 super admin,1 normal user
@@ -93,6 +100,21 @@ UserDAO.prototype.update = function (obj, callback) {
         function (err) {
             callback(err);
         });
+};
+// 按开放平台用户 ID 查本地账号（只取未删除的，status < 2）
+UserDAO.prototype.findByOpenUserId = function (openUserId, callback) {
+    UserModel.findOne(
+        {"openUserId": openUserId, "status": {$lt: constants.USER_DELETE_STATUS}},
+        function (err, obj) {
+            callback(err, obj);
+        });
+};
+// 创建开放平台用户；回调必须返回保存后的文档（含 _id），供调用方写入 session
+UserDAO.prototype.createOpenUser = function (obj, callback) {
+    var userEntity = new UserModel(obj);
+    userEntity.save(function (err, doc) {
+        callback(err, doc);
+    });
 };
 UserDAO.prototype.updatePassword = function (callback) {
     var salt = bcrypt.genSaltSync(10);
