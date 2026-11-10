@@ -10,16 +10,16 @@ var cmsUtils = require('./cmsUtils.js');//自定义util工具
  * @param res
  */
 exports.update = function (req, res) {
-    var name = req.body.name.trim();
-    var copyRight = req.body.copyRight.trim();
-    var icp = req.body.icp.trim();
-    var version = req.body.version.trim();
-    var phone = req.body.phone.trim();
-    var address = req.body.address.trim();
+    var name = (req.body.name || '').trim();
+    var copyRight = (req.body.copyRight || '').trim();
+    var icp = (req.body.icp || '').trim();
+    var version = (req.body.version || '').trim();
+    var phone = (req.body.phone || '').trim();
+    var address = (req.body.address || '').trim();
     var statistical = req.body.statistical;
     var msg = "";
     var success = false;
-    var falg = false;//callback
+    var flag = false;//是否已发起回调
     if (name === "") {
         msg = "站点名称不能为空";
     } else if (copyRight === "") {

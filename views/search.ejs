@@ -1,4 +1,4 @@
-<%- include header %>
+<%- include('header') %>
 <div class="row js-panel-row">
 
     <div class="col-sm-12 col-xs-12 no-padding">
@@ -19,7 +19,7 @@
                         <span title="作者"><i class="glyphicon glyphicon-user"></i>&nbsp;<%- docs[i].realName %></span>
                         <span title="分类"><i class="glyphicon glyphicon-tag col-sm-offset-1"></i>&nbsp;<%- docs[i].categoryName %></span>
                         <span title="发布时间"><i class="glyphicon glyphicon-time  col-sm-offset-1"></i>&nbsp;
-                            <%=: docs[i].createTime |  format:"YYYY-MM-DD" %>
+                            <%= format(docs[i].createTime, "YYYY-MM-DD") %>
                         </span>
                         <span title="浏览量"><i class="glyphicon glyphicon-eye-open  col-sm-offset-1"></i>&nbsp;<%= docs[i].view %></span>
                     </div>
@@ -41,6 +41,6 @@
 
 </div>
 <input type="hidden" class="js-current-menu" value="js-search-bar"/>
-<%- include footer %>
+<%- include('footer') %>
 
 

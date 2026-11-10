@@ -101,14 +101,14 @@ var findUserByName = function (userName, callback) {
 exports.addUser = function (req, res) {
 
     //todo 暂停开放注册
-    res.json({'success': falg, 'msg': '暂停开放注册'});
+    return res.json({'success': false, 'msg': '暂停开放注册'});
 
-    var userName = (req.body.userName).trim();
-    var password = (req.body.password).trim();
-    var password2 = (req.body.password2).trim();
+    var userName = (req.body.userName || '').trim();
+    var password = (req.body.password || '').trim();
+    var password2 = (req.body.password2 || '').trim();
     var msg = "";
     var success = false;
-    var falg = false;//callback
+    var flag = false;//是否已发起回调
     if (userName == "") {
         msg = "用户名不能为空";
     } else if (password == "") {
@@ -154,14 +154,14 @@ exports.login = function (req, res) {
 
     if (userName !== "nodelog") {
         //todo 暂停开放注册
-        res.json({'success': falg, 'msg': '暂停开放登录'});
+        return res.json({'success': false, 'msg': '暂停开放登录'});
     }
 
-    var falg = false;//callback
+    var flag = false;//是否已发起回调
     if (userName == "") {
-        msg = "用户名不能为空";
+        return res.json({'success': false, 'msg': "用户名不能为空"});
     } else if (password == "") {
-        msg = "密码不能为空";
+        return res.json({'success': false, 'msg': "密码不能为空"});
     } else {
         flag = true;
         findUserByName(userName, function (err, obj) {

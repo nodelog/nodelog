@@ -36,8 +36,11 @@ exports.findByPage = function (req, res) {
         }]
     }, function (err, results) {
         var view = req.query.view;
+        if (!view) {
+            view = (req.path.indexOf('/manager') === 0) ? 'manager/log' : 'log';
+        }
         var title = "系统公告";
-        if (view.indexOf("manager")) {
+        if (view.indexOf("manager") >= 0) {
             title = "公告管理";
         }
         res.render(view, {docs: docs, title: title, page: page, totalPage: totalPage, total: total, url:"/"+view+"?view="+view+"&",currentMenu:"log"});
@@ -67,6 +70,9 @@ exports.findById = function (req, res) {
             console.log("data err");
         }
         var view = req.query.view;
+        if (!view) {
+            view = (req.path.indexOf('/manager') === 0) ? 'manager/logDetail' : 'logDetail';
+        }
         res.render(view,{title:doc.name,doc:doc});
     });
 };
@@ -78,12 +84,12 @@ var findByName = function (name, callback) {
 };
 exports.add = function (req, res) {
     var id = req.body.id;
-    var name = req.body.name.trim();
+    var name = (req.body.name || '').trim();
     var oldName = req.body.oldName;
-    var content = req.body.content;
+    var content = (req.body.content || '').trim();
     var msg = "";
     var success = false;
-    var falg = false;//callback
+    var flag = false;//是否已发起回调
     if (name === "") {
         msg = "标题不能为空";
     } else if (content === "") {
@@ -143,10 +149,10 @@ exports.add = function (req, res) {
 //update
 exports.update = function (req, res) {
     var id = req.body.id;
-    var name = req.body.name.trim();
+    var name = (req.body.name || '').trim();
     var msg = "";
     var success = false;
-    var falg = false;//callback
+    var flag = false;//是否已发起回调
     if (name == "") {
         msg = "Log Name is empty";
     } else {

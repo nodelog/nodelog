@@ -1,4 +1,4 @@
-<%- include header %>
+<%- include('header') %>
 
 <div class="row js-panel-row">
 
@@ -24,7 +24,7 @@
                     <span title="category"><i
                                 class="glyphicon glyphicon-tag col-sm-offset-1"></i>&nbsp;<%- doc.categoryName %></span>
                     <span title="time"><i
-                                class="glyphicon glyphicon-time  col-sm-offset-1"></i>&nbsp;<%=: doc.createTime | format %></span>
+                                class="glyphicon glyphicon-time  col-sm-offset-1"></i>&nbsp;<%= format(doc.createTime) %></span>
                     <span title="view count"><i
                                 class="glyphicon glyphicon-eye-open  col-sm-offset-1"></i>&nbsp;<%= doc.view %></span>
                 </div>
@@ -45,7 +45,7 @@
     </div>
     
 </div>
-<%- include footer %>
+<%- include('footer') %>
 <script>
     $(function () {
         $('.js-content-manager').addClass("bg-black");

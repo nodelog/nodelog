@@ -1,4 +1,4 @@
-<%- include header %>
+<%- include('header') %>
 <ol class="breadcrumb">
     <li><a href="/manager">后台首页</a></li>
     <li><a href="/manager/log?view=manager/log&page=1">公告管理</a></li>
@@ -17,7 +17,7 @@
             </div>
             <div class="form-group">
                 <label>内容</label>
-                <%- include ../editor %>
+                <%- include('../editor') %>
                 <!--<textarea class="js-add-log-content form-control l-heigh-200"></textarea>-->
             </div>
             <div class="form-group">
@@ -29,7 +29,7 @@
         </form>
     </div>
 </div>
-<%- include footer %>
+<%- include('footer') %>
 <script>
     $(function () {
         $('.js-log-manager').addClass("bg-black");

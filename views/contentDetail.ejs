@@ -1,4 +1,4 @@
-<%- include header %>
+<%- include('header') %>
 
 <div class="row js-panel-row">
 
@@ -34,7 +34,7 @@
                     <span title="分类"><i
                                 class="glyphicon glyphicon-tag col-sm-offset-1"></i>&nbsp;<%- doc.categoryName %></span>
                     <span title="发布时间"><i
-                                class="glyphicon glyphicon-time  col-sm-offset-1"></i>&nbsp;<%=: doc.createTime | format:"YYYY-MM-DD" %></span>
+                                class="glyphicon glyphicon-time  col-sm-offset-1"></i>&nbsp;<%= format(doc.createTime, "YYYY-MM-DD") %></span>
                     <span title="浏览量"><i
                                 class="glyphicon glyphicon-eye-open  col-sm-offset-1"></i>&nbsp;<%= doc.view %></span>
                     <span>
@@ -102,5 +102,5 @@
 <input type="hidden" class="js-current-menu" value="js-my-content-menu"/>
 <% } %>
 
-<%- include footer %>
+<%- include('footer') %>
 

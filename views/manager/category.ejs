@@ -1,4 +1,4 @@
-<%- include header %>
+<%- include('header') %>
 <ol class="breadcrumb">
     <li><a href="/manager">后台首页</a></li>
     <li class="active">分类管理</li>
@@ -27,14 +27,14 @@
         <td><%= i + 1 %></td>
         <td><a href="javascript:;" data-id="<%= docs[i]._id %>" class="js-modify-category"
                title="点击修改分类"><%= docs[i].name %></a></td>
-        <td><%=: docs[i].createTime | format %></td>
-        <td><%=: docs[i].modifyTime | format %></td>
+        <td><%= format(docs[i].createTime) %></td>
+        <td><%= format(docs[i].modifyTime) %></td>
         <td><a href="javascript:;" class="js-category-delete" data-id="<%= docs[i]._id %>">删除</a></td>
     </tr>
     <% } %>
     </tbody>
 </table>
-<%- include ../common/pager%>
+<%- include('../common/pager') %>
 <% }else{ %>
 <div class="alert alert-warning" role="alert">暂无数据</div>
 <% } %>
@@ -57,7 +57,7 @@
         </form>
     </div>
 </div>
-<%- include footer %>
+<%- include('footer') %>
 <script>
     $(function () {
         $('.js-category-manager').addClass("bg-black");

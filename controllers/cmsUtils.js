@@ -1,7 +1,10 @@
 var constants = require('./../models/constants');
-String.prototype.trim = function () {
-    return this.replace(/(^\s*)|(\s*$)/g, "");
-}
+
+// 转义正则特殊字符，防止把用户输入当作正则（正则注入 / ReDoS）
+exports.escapeRegExp = function (str) {
+    if (!str) return '';
+    return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
 
 exports.isNotBlank = function(str) {
     return str && str.trim()!="";
@@ -35,3 +38,22 @@ Date.prototype.format=function(fmt) {
     }
     return fmt;
 }
+
+// 兼容旧模板的日期格式化（替代 EJS 旧版 `<%=: x | format %>` 过滤器）。
+// 支持 moment 风格的 YYYY/MM/DD/HH/mm/ss 标记（本质上复用 Date.prototype.format，仅将 YYYY 映射为 yyyy）。
+exports.format = function (value, pattern) {
+    var d;
+    if (value instanceof Date) {
+        d = value;
+    } else if (value === undefined || value === null || value === '') {
+        d = new Date();
+    } else {
+        d = new Date(value);
+    }
+    if (!(d instanceof Date) || isNaN(d.getTime())) {
+        d = new Date();
+    }
+    var p = pattern || 'YYYY-MM-DD HH:mm:ss';
+    p = p.replace(/YYYY/g, 'yyyy').replace(/YY/g, 'yy').replace(/DD/g, 'dd');
+    return d.format(p);
+};

@@ -1,4 +1,4 @@
-<%- include header %>
+<%- include('header') %>
 <ol class="breadcrumb">
     <li><a href="/manager">后台首页</a></li>
     <li class="active">公告管理</li>
@@ -26,18 +26,18 @@
     <tr>
         <td><%= i + 1 %></td>
         <td><a href="/manager/log/detail?id=<%= docs[i]._id %>&view=manager/logDetail" data-id="<%= docs[i]._id %>"><%= docs[i].name %></a></td>
-        <td><%=: docs[i].createTime | format %></td>
-        <td><%=: docs[i].modifyTime | format %></td>
+        <td><%= format(docs[i].createTime) %></td>
+        <td><%= format(docs[i].modifyTime) %></td>
         <td><a href="javascript:;" class="js-log-delete" data-id="<%= docs[i]._id %>">删除</a></td>
     </tr>
     <% } %>
     </tbody>
 </table>
-<%- include ../common/pager %>
+<%- include('../common/pager') %>
 <% }else{ %>
 <div class="alert alert-warning" role="alert">暂无数据</div>
 <% } %>
-<%- include footer %>
+<%- include('footer') %>
 <script>
     $(function () {
         $('.js-log-manager').addClass("bg-black");

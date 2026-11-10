@@ -10,7 +10,7 @@ var mailer        = require('nodemailer');
 var transport = mailer.createTransport({
     host: settings.email.host,
     port: settings.email.port,
-    secureConnection: settings.email.secure,
+    secure: settings.email.secure,
     auth: {
         user: settings.email.user,
         pass: settings.email.pass
@@ -108,6 +108,9 @@ exports.delete = function (req, res) {
 exports.findById = function (req, res) {
     var id = req.query.id;
     var view = req.query.view;
+    if (!view) {
+        view = (req.path.indexOf('/manager') === 0) ? 'manager/commentDetail' : 'commentDetail';
+    }
     var doc = null;
     async.auto({
         getComment: function (callback, results) {
@@ -166,10 +169,10 @@ exports.add = function (req, res) {
     var contentId = req.body.contentId;
     var name = req.body.name;
     var email = req.body.email;
-    var comment = req.body.comment.trim();
+    var comment = (req.body.comment || '').trim();
     var msg = "";
     var success = false;
-    var falg = false;//callback
+    var flag = false;//是否已发起回调
     if (comment === "") {
         msg = "评论内容不能为空";
     } else {
@@ -240,7 +243,7 @@ exports.update = function (req, res) {
     var name = req.body.name.trim();
     var msg = "";
     var success = false;
-    var falg = false;//callback
+    var flag = false;//是否已发起回调
     if (name == "") {
         msg = "Comment Name is empty";
     } else {

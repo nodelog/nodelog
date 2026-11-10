@@ -1,4 +1,4 @@
-<%- include header %>
+<%- include('header') %>
 <ol class="breadcrumb">
     <li><a href="/manager">后台首页</a></li>
     <li class="active">用户管理</li>
@@ -44,8 +44,8 @@
         <td><%= session.user.userName %></td>
         <td><%= session.user.realName?session.user.realName:session.user.userName%></td>
         <td><%= session.user.email || '未设置' %></td>
-        <td><%=: session.user.createTime | format %></td>
-        <td><%=: session.user.modifyTime | format %></td>
+        <td><%= format(session.user.createTime) %></td>
+        <td><%= format(session.user.modifyTime) %></td>
         <td>
             <input type="checkbox" data-id="<%= session.user._id %>" data-type="<%= session.user.status %>"
                    class="js-user-status" disabled="disabled" /></td>
@@ -70,8 +70,8 @@
         <td><%= docs[i].userName %></td>
         <td><%= docs[i].realName?docs[i].realName:docs[i].userName%></td>
         <td><%= docs[i].email || '未设置' %></td>
-        <td><%=: docs[i].createTime | format %></td>
-        <td><%=: docs[i].modifyTime | format %></td>
+        <td><%= format(docs[i].createTime) %></td>
+        <td><%= format(docs[i].modifyTime) %></td>
         <td>
                 <input type="checkbox" data-id="<%= docs[i]._id %>" data-type="<%= docs[i].status %>"
                    class="js-user-status" /></td>
@@ -88,12 +88,12 @@
     </tbody>
 </table>
 <% if (session.user.role==0) {%>
-    <%- include ../common/pager%>
+    <%- include('../common/pager') %>
     <%if (docs.length < 0) {%>
         <div class="alert alert-warning" role="alert">暂无数据</div>
     <%}%>
 <%}%>
-<%- include footer %>
+<%- include('footer') %>
 <script>
     $(function () {
         $('.js-user-manager').addClass("bg-black");

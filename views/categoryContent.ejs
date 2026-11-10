@@ -1,4 +1,4 @@
-<%- include header %>
+<%- include('header') %>
 
 <div class="row js-panel-row">
 
@@ -11,11 +11,11 @@
         <div class="panel panel-default">
             <div class="panel-heading"><%= title %> (<%=total%>)</div>
             <div class="panel-body">
-                <%- include /contentPanel%>
+                <%- include('contentPanel') %>
             </div>
         </div>
     </div>
 </div>
 <input type="hidden" class="js-current-menu" value="js-category-content"/>
-<%- include footer %>
+<%- include('footer') %>
 

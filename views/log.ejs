@@ -1,4 +1,4 @@
-<%- include header %>
+<%- include('header') %>
 
 <div class="row js-panel-row">
 
@@ -21,12 +21,12 @@
                     <div class="clearfix"></div>
                     <div class="media color-gray">
                         <span title="发布时间"><i class="glyphicon glyphicon-time"></i>&nbsp;
-                            <%=: docs[i].createTime |  format:"YYYY-MM-DD" %>
+                            <%= format(docs[i].createTime, "YYYY-MM-DD") %>
                         </span>
                     </div>
                 </div>
                 <% } %>
-                <%- include /common/pager %>
+                <%- include('common/pager') %>
                 <% }else{ %>
                 <div class="alert alert-warning" role="alert">暂无日志!</div>
                 <% } %>
@@ -36,7 +36,7 @@
 
 </div>
 <input type="hidden" class="js-current-menu" value="js-log"/>
-<%- include footer %>
+<%- include('footer') %>
 
 
 

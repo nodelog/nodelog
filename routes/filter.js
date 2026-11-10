@@ -1,6 +1,5 @@
 var User = require('./../models/User');
 var Site = require('./../models/Site');
-var os = require('os');
 //验证用户登录
 exports.authorize = function (req, res, next) {
     if (!req.session.user) {
@@ -19,28 +18,14 @@ exports.authorizeAdmin = function (req, res, next) {
         next();
     }
 };
-//创建用户
-exports.createUser = function (req, res, next) {
-    User.findByName("admin", function (err, obj) {
-        if (obj == null) {
-            obj = {
-                userName: "admin",
-                password: "admin",
-                role: 0,//0 super admin,1 normal user
-                status: 0
-            };
-            User.save(obj,function (err) {
-                next();
-            });
-        } else {
-            next();
-        }
-    });
-};
 //初始化网站配置信息
 exports.initSite = function (req, res, next) {
     if(!req.session.site){//session不存在
         Site.findOne(function (err, obj) { //查询site
+            if (err) {
+                console.error('[initSite] 读取站点配置失败：', err.message);
+                return next(); // 不阻塞请求，使用默认值继续
+            }
             if (obj == null) {//不存在创建新的
                 obj = {
                     name: "NODELOG",
@@ -51,7 +36,11 @@ exports.initSite = function (req, res, next) {
                     address: "福建厦门"
                 };
                 Site.save(obj,function (err) {
-                    console.log("添加site完成");
+                    if (err) {
+                        console.error('[initSite] 创建站点配置失败：', err.message);
+                    } else {
+                        console.log("添加site完成");
+                    }
                     next();
                 });
             } else { //把网站配置加入session
@@ -64,42 +53,10 @@ exports.initSite = function (req, res, next) {
         next();
     }
 };
-//获取日期
-function getDate()
-{
-	var date = new Date();
-    
-    var format="yyyy-MM-dd hh:mm:ss";
-     
-    var o = {
-        "M+" : date.getMonth() + 1,
-        "d+" : date.getDate(),
-        "h+" : date.getHours(),
-        "m+" : date.getMinutes(),
-        "s+" : date.getSeconds(),
-        "q+" : Math.floor((date.getMonth() + 3) / 3),
-        "S" : date.getMilliseconds()
-    }
-    if (/(y+)/.test(format))
-    {
-        format = format.replace(RegExp.$1, (date.getFullYear() + "").substr(4
-            - RegExp.$1.length));
-    }
-
-    for (var k in o)
-    {
-        if (new RegExp("(" + k + ")").test(format))
-        {
-            format = format.replace(RegExp.$1, RegExp.$1.length == 1
-                ? o[k]
-                : ("00" + o[k]).substr(("" + o[k]).length));
-        }
-    }
-    return format;
-}
+//获取日期（统一使用 cmsUtils 提供的 Date.prototype.format，避免重复实现）
 exports.log = function(req, res){
     console.log("==============================================================");
-	console.log("current request time:\t"+getDate());
+	console.log("current request time:\t"+new Date().format("yyyy-MM-dd hh:mm:ss"));
     // var _ip = req.headers['x-forwarded-for'] ||
     //     req.connection.remoteAddress ||
     //     req.socket.remoteAddress ||

@@ -1,4 +1,4 @@
-<%- include header %>
+<%- include('header') %>
 <div class="row js-panel-row">
     <div class="col-sm-12 col-xs-12 no-padding">
         <ol class="breadcrumb">
@@ -26,7 +26,7 @@
                     </div>
                     <div class="form-group">
                         <label>内容</label>
-                        <%- include editor %>
+                        <%- include('editor') %>
 
                     </div>
                     <div class="form-group">
@@ -53,4 +53,4 @@
 </div>
 <input type="hidden" value="<%= doc.category %>" class="js-edit-content-category"/>
 <input type="hidden" class="js-current-menu" value="js-my-content-menu"/>
-<%- include footer %>
+<%- include('footer') %>

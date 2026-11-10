@@ -1,4 +1,4 @@
-<%- include header %>
+<%- include('header') %>
 
 <div class="jumbotron">
 <% if (session.user.role==0) {%>
@@ -44,4 +44,4 @@
     <h1>欢迎使用<%=session.site.name%>管理系统!</h1>
 <%}%>
 </div>
-<%- include footer %>
+<%- include('footer') %>

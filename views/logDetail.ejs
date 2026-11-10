@@ -1,4 +1,4 @@
-<%- include header %>
+<%- include('header') %>
 
 <div class="row js-panel-row">
 
@@ -20,7 +20,7 @@
 
                 <div class="media color-gray">
                     <span title="发布时间"><i
-                                class="glyphicon glyphicon-time"></i>&nbsp;<%=: doc.createTime |  format:"YYYY-MM-DD" %></span>
+                                class="glyphicon glyphicon-time"></i>&nbsp;<%= format(doc.createTime, "YYYY-MM-DD") %></span>
                 </div>
 
             </div>
@@ -35,5 +35,5 @@
     
 </div>
 <input type="hidden" class="js-current-menu" value="js-log"/>
-<%- include footer %>
+<%- include('footer') %>
 

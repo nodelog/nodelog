@@ -77,10 +77,10 @@ var findByName = function (name, callback) {
 };
 //add
 exports.add = function (req, res) {
-    var name = req.body.name.trim();
+    var name = (req.body.name || '').trim();
     var msg = "";
     var success = false;
-    var falg = false;//callback
+    var flag = false;//是否已发起回调
     if (name == "") {
         msg = "分类名称不能为空";
     } else {
@@ -111,10 +111,10 @@ exports.add = function (req, res) {
 //update
 exports.update = function (req, res) {
     var id = req.body.id;
-    var name = req.body.name.trim();
+    var name = (req.body.name || '').trim();
     var msg = "";
     var success = false;
-    var falg = false;//callback
+    var flag = false;//是否已发起回调
     if (name == "") {
         msg = "分类名称不能为空";
     } else {

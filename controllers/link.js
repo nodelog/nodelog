@@ -6,15 +6,15 @@ var cmsUtils = require('./cmsUtils.js');//自定义util工具
 
 exports.save = function (req, res) {
     var id = req.body.id;
-    var name = req.body.name.trim();
-    var url = req.body.url.trim();
+    var name = (req.body.name || '').trim();
+    var url = (req.body.url || '').trim();
     var blank = req.body.blank;
     if(blank == null){
         blank = 1;
     }
     var msg = "";
     var success = false;
-    var falg = false;//callback
+    var flag = false;//是否已发起回调
     if (name === "") {
         msg = "名称不能为空";
     } else if (url === "") {

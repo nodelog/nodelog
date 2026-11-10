@@ -7,20 +7,19 @@
   },
   "dependencies": {
     "async": "^1.5.2",
-    "bcryptjs": "~2.3.0",
-    "body-parser": "^1.19.1",
-    "compression": "^1.7.4",
+    "bcryptjs": "~2.4.3",
+    "body-parser": "^1.20.3",
+    "compression": "^1.7.5",
     "connect-mongo": "^4.6.0",
-    "cookie-parser": "^1.4.6",
-    "debug": "^4.3.3",
-    "ejs": "0.8.5",
-    "express": "~4.2.0",
-    "express-session": "~1.6.5",
-    "moment": "^2.29.1",
-    "mongodb": "~4.3.0",
-    "mongoose": "^6.11.3",
+    "cookie-parser": "^1.4.7",
+    "debug": "^4.4.0",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1",
+    "mongodb": "^4.17.2",
+    "mongoose": "^6.13.5",
     "morgan": "^1.10.0",
-    "nodemailer": "^6.7.2",
-    "serve-favicon": "^2.5.0"
+    "nodemailer": "^6.9.16",
+    "serve-favicon": "^2.5.1"
   }
 }

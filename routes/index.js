@@ -81,8 +81,8 @@ var route = function (app) {
     // 下面的路由必须放到最后，404页面
     // app.get('*', function(req, res){res.redirect('/error');});
     app.get('/clock', function(req, res){res.render('clock',{title:"html5时钟"})});
-    app.get('/sitemap.xml', function(req, res){res.sendfile('sitemap.xml')});
-    app.get('/sitemap.html', function(req, res){res.sendfile('sitemap.html')});
-    app.get('/google46e8392abe1a37f5.html', function(req, res){res.sendfile('google46e8392abe1a37f5.html')});
+    app.get('/sitemap.xml', function(req, res){res.sendFile('sitemap.xml')});
+    app.get('/sitemap.html', function(req, res){res.sendFile('sitemap.html')});
+    app.get('/google46e8392abe1a37f5.html', function(req, res){res.sendFile('google46e8392abe1a37f5.html')});
 };
 exports.route = route;

@@ -155,6 +155,15 @@ exports.share = function (req, res) {
 exports.findById = function (req, res) {
     var id = req.query.id;
     var view = req.query.view;
+    if (!view) {
+        if (req.path === '/content/edit') {
+            view = 'editContent';
+        } else if (req.path.indexOf('/manager') === 0) {
+            view = 'manager/contentDetail';
+        } else {
+            view = 'contentDetail';
+        }
+    }
     var doc = null;
     async.auto({
         getContent: function (callback, results) {
@@ -233,11 +242,11 @@ exports.findByCategory = function (req, res) {
         getCategoryById: function (callback, results) {
             categoryId = req.query.categoryId;
             Category.findById(categoryId, function (err, obj) {
-                category = obj;
-                if (category == null || category == {}) {
+                if (err || obj == null) {
                     res.redirect('error');
                     return;
                 }
+                category = obj;
                 callback(null);
             });
         },
@@ -517,14 +526,14 @@ var findByName = function (name, callback) {
 exports.add = function (req, res) {
     console.log("add content");
     var id = req.body.id;
-    var name = req.body.name.trim();
+    var name = (req.body.name || '').trim();
     var oldName = req.body.oldName;
-    var content = req.body.content;
+    var content = (req.body.content || '').trim();
     var category = req.body.category;
     var original = req.body.original;
     var msg = "";
     var success = false;
-    var falg = false;//callback
+    var flag = false;//是否已发起回调
     if (name === "") {
         msg = "标题不能为空";
     } else if (content === "") {
@@ -592,10 +601,10 @@ exports.add = function (req, res) {
 //update
 exports.update = function (req, res) {
     var id = req.body.id;
-    var name = req.body.name.trim();
+    var name = (req.body.name || '').trim();
     var msg = "";
     var success = false;
-    var falg = false;//callback
+    var flag = false;//是否已发起回调
     if (name == "") {
         msg = "Content Name is empty";
     } else {

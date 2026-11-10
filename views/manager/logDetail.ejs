@@ -1,4 +1,4 @@
-<%- include header %>
+<%- include('header') %>
 
 <div class="row js-panel-row">
 
@@ -20,7 +20,7 @@
 
                 <div class="media color-gray">
                     <span title="发布时间"><i
-                                class="glyphicon glyphicon-time"></i>&nbsp;<%=: doc.createTime | format %></span>
+                                class="glyphicon glyphicon-time"></i>&nbsp;<%= format(doc.createTime) %></span>
                 </div>
 
             </div>
@@ -34,7 +34,7 @@
     </div>
     
 </div>
-<%- include footer %>
+<%- include('footer') %>
 <script>
     $(function () {
         $('.js-log-manager').addClass("bg-black");

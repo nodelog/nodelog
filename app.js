@@ -19,6 +19,9 @@ var app = express();
 app.set('views', path.join(__dirname, 'views'));
 //设置view层使用的模板引擎
 app.set('view engine', 'ejs');
+// 视图层全局可用的日期格式化辅助（替代旧版 EJS `| format` 过滤器，兼容 YYYY-MM-DD 等标记）
+var cmsUtils = require('./controllers/cmsUtils');
+app.locals.format = cmsUtils.format;
 
 // app.use(favicon());//网站图标
 app.use(logger('dev'));//日志级别
@@ -35,11 +38,16 @@ app.use(favicon(__dirname + '/public/images/favicon.ico'));
 //session配置，这里使用mongodb作为session存储
 app.use(session({
     resave: false, //添加 resave 选项
-    saveUninitialized: true, //添加 saveUninitialized 选项
-    secret: settings.cookieSecret,
+    saveUninitialized: false, // 不为匿名访客创建空 session，减少 MongoDB 写入
+    secret: process.env.SESSION_SECRET || settings.cookieSecret,
     store: MongoStore.create({
         mongoUrl: settings.url,
-    })
+    }),
+    cookie: {
+        httpOnly: true, // 禁止客户端脚本读取 cookie
+        secure: process.env.NODE_ENV === 'production', // 生产(HTTPS)环境启用 secure
+        maxAge: 1000 * 60 * 60 * 24 * 7 // 7 天
+    }
     // store: new MongoStore({
     //  url: settings.url
     // })

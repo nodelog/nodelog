@@ -4,6 +4,14 @@ var constants = require('./constants');//同上，引入常量类
 var Schema = mongodb.mongoose.Schema;//获取mongodb schema
 var ObjectId = Schema.ObjectId;//获取ObjectId
 
+// 转义正则特殊字符，防止把搜索关键词当作正则（正则注入 / ReDoS）
+var escapeRegExp = function (s) {
+    return String(s == null ? '' : s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
+// 注意：以下日期窗口会把“创建时间落在 2020-12-25 ~ 2020-12-28 之间”的内容从所有列表/搜索中隐藏。
+// 这极可能是遗留的调试/测试代码，会导致该时间窗内创建的文章永久不可见。
+// 如需恢复正常展示，请删除 startTime/endTime 及其在查询中的 $or 过滤条件（改动前请与业务确认）。
 var startTime = '2020-12-25 0:0:0';
 var endTime = '2020-12-28 0:0:0';
 
@@ -21,6 +29,13 @@ var ContentSchema = new Schema({
 }, {
     collection: "content" //对应mongodb的集合表
 });
+
+// 性能：为常用的列表排序与查询条件建立索引（在 model 初始化时由 mongoose 自动 ensureIndex）
+ContentSchema.index({ createTime: -1 });           // 列表按时间倒序分页
+ContentSchema.index({ author: 1, status: 1 });     // 我的日志 / 按作者+状态查询
+ContentSchema.index({ category: 1, status: 1 });   // 按分类+状态查询
+ContentSchema.index({ name: 1 });                  // 标题搜索
+
 //构建model对象，所有对数据库操作都对该对象操作
 var ContentModel = mongodb.mongoose.model("Content", ContentSchema);
 
@@ -84,9 +99,9 @@ ContentDAO.prototype.findByCategory = function (page, category, currentUser, cal
 ContentDAO.prototype.findByWord = function (page, word, currentUser, callback) {
 	var term;
 	if (currentUser == null) {
-		term = {"name":new RegExp(word, 'i'), "status": constants.CONTENT_ENABLE_STATUS};
+		term = {"name":new RegExp(escapeRegExp(word), 'i'), "status": constants.CONTENT_ENABLE_STATUS};
 	}  else {
-		term = {"name":new RegExp(word, 'i'), $or:[{"status": constants.CONTENT_ENABLE_STATUS},{"author": currentUser._id,  "status":{$ne: constants.CONTENT_UNABLE_STATUS}}]};
+		term = {"name":new RegExp(escapeRegExp(word), 'i'), $or:[{"status": constants.CONTENT_ENABLE_STATUS},{"author": currentUser._id,  "status":{$ne: constants.CONTENT_UNABLE_STATUS}}]};
 	}
     term = {$and: [term, {$or: [{"createTime": {$lt: startTime}}, {"createTime": {$gt: endTime}}]}]};
 	var query = ContentModel.find(term);
@@ -101,9 +116,9 @@ ContentDAO.prototype.findByWord = function (page, word, currentUser, callback) {
 ContentDAO.prototype.findAllByWord = function (word, currentUser, callback) {
 	var term;
 	if (currentUser == null) {
-		term = {"name":new RegExp(word, 'i'), "status": constants.CONTENT_ENABLE_STATUS};
+		term = {"name":new RegExp(escapeRegExp(word), 'i'), "status": constants.CONTENT_ENABLE_STATUS};
 	}  else {
-		term = {"name":new RegExp(word, 'i'), $or:[{"status": constants.CONTENT_ENABLE_STATUS},{"author": currentUser._id,  "status":{$ne: constants.CONTENT_UNABLE_STATUS}}]};
+		term = {"name":new RegExp(escapeRegExp(word), 'i'), $or:[{"status": constants.CONTENT_ENABLE_STATUS},{"author": currentUser._id,  "status":{$ne: constants.CONTENT_UNABLE_STATUS}}]};
 	}
     term = {$and: [term, {$or: [{"createTime": {$lt: startTime}}, {"createTime": {$gt: endTime}}]}]};
 	var query = ContentModel.find(term);
@@ -158,9 +173,9 @@ ContentDAO.prototype.getCountByUser = function (author, callback) {
 ContentDAO.prototype.getCountByWord = function (word, currentUser, callback) {
     var term;
     if (currentUser == null) {
-        term = {"name": new RegExp(word, 'i'), "status": constants.CONTENT_ENABLE_STATUS};
+        term = {"name": new RegExp(escapeRegExp(word), 'i'), "status": constants.CONTENT_ENABLE_STATUS};
     }  else {
-        term = {"name":new RegExp(word, 'i'), $or:[{"status": constants.CONTENT_ENABLE_STATUS},{"author": currentUser._id,  "status":{$ne: constants.CONTENT_UNABLE_STATUS}}]};
+        term = {"name":new RegExp(escapeRegExp(word), 'i'), $or:[{"status": constants.CONTENT_ENABLE_STATUS},{"author": currentUser._id,  "status":{$ne: constants.CONTENT_UNABLE_STATUS}}]};
     }
 
     ContentModel.count(term, function (err, total) {

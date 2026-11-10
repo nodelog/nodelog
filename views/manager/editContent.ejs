@@ -1,4 +1,4 @@
-<%- include header %>
+<%- include('header') %>
 <ol class="breadcrumb">
     <li><a href="/" title="Go Home">Home</a></li>
     <li>
@@ -20,7 +20,7 @@
     </div>
     <div class="form-group">
         <label>Content</label>
-        <%- include ../editor %>
+        <%- include('../editor') %>
         <div class="hide js-content-hide"><%- doc.content %></div>
     </div>
     <div class="form-group">
@@ -36,7 +36,7 @@
 </form>
 
 
-<%- include footer %>
+<%- include('footer') %>
 <script>
     $(function () {
         $.get("/content/addPage", {
