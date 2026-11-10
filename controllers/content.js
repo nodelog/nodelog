@@ -54,7 +54,7 @@ exports.findByPage = function (req, res) {
         var title = req.session.site.name;
         var currentMenu = "home";
         if (req.query.manager === "true") {
-            view = "manager/content"; url = "/manager/content?manager=true&"; title = "日志管理"; currentMenu = "content";
+            view = "manager/content"; url = "/manager/content?manager=true&"; title = "文章管理"; currentMenu = "content";
         }
         res.render(view, {docs: docs, title: title, login: login, page: page, totalPage: totalPage, total: total, url: url, currentMenu: currentMenu});
     });
@@ -108,10 +108,10 @@ exports.findById = function (req, res) {
         if (view == "contentDetail") {
             Content.addView(doc, function (err) {
                 if (err) console.log("add view failure"); else doc.view = (doc.view + 1);
-                res.render(view, {"doc": doc, "title": doc != null ? doc.name : "日志没有找到"});
+                res.render(view, {"doc": doc, "title": doc != null ? doc.name : "文章没有找到"});
             });
         } else {
-            res.render(view, {"doc": doc, "title": doc != null ? doc.name : "日志没有找到"});
+            res.render(view, {"doc": doc, "title": doc != null ? doc.name : "文章没有找到"});
         }
     });
 };
@@ -139,7 +139,7 @@ exports.findByCategory = function (req, res) {
     }, function (err) {
         if (docs.length == 0) { res.redirect('error'); return; }
         res.render("categoryContent", {
-            docs: docs, category: category, title: category.name + " 相关日志",
+            docs: docs, category: category, title: category.name + " 相关文章",
             page: page, totalPage: totalPage, total: total, url: "/content/category?categoryId=" + categoryId + "&",
             currentMenu: "category"
         });
@@ -151,9 +151,14 @@ exports.findByUser = function (req, res) {
         getUserById: function (callback) {
             var userId = req.query.userId;
             var session = req.session;
-            if (userId == null && session != null) userId = session.user._id;
+            // session 对象存在不代表 session.user 存在（session 过期/重建/异常登录态）。
+            // 原来直接取 session.user._id 会在异步回调里抛 TypeError，前端表现为 502。
+            if (userId == null && session != null && session.user != null) userId = session.user._id;
             if (userId != null) {
-                User.findById(userId, function (err, obj) { user = obj; callback(null); });
+                User.findById(userId, function (err, obj) {
+                    if (!err && obj) user = obj;
+                    callback(null);
+                });
             } else { callback(null); }
         },
         totalCount: ["getUserById", function (callback) {
@@ -172,8 +177,8 @@ exports.findByUser = function (req, res) {
             Content.enrichDocs(docs, callback);
         }]
     }, function (err) {
-        var view = "myContent", title = "我的日志", currentMenu = "mycontent";
-        if (req.query.manager === "true") { view = "manager/content"; title = "日志管理"; currentMenu = "content"; }
+        var view = "myContent", title = "我的文章", currentMenu = "mycontent";
+        if (req.query.manager === "true") { view = "manager/content"; title = "文章管理"; currentMenu = "content"; }
         res.render(view, {docs: docs, title: title, page: page, totalPage: totalPage, total: total, url: "/content/user?", currentMenu: currentMenu});
     });
 };
@@ -195,7 +200,7 @@ exports.findByWord = function (req, res) {
         }]
     }, function (err) {
         if (req.query.type != "json") {
-            res.render("search", {docs: docs, title: "标题包含 \"" + word + "\" 的日志搜索结果", key: word, page: page, totalPage: totalPage, total: total});
+            res.render("search", {docs: docs, title: "标题包含 \"" + word + "\" 的文章搜索结果", key: word, page: page, totalPage: totalPage, total: total});
         } else {
             res.json({docs: docs});
         }
@@ -253,23 +258,23 @@ exports.add = function (req, res) {
         flag = true;
         findByName(f.name, function (err, obj) {
             if (id == null) {//add
-                if (obj !== null) { msg = "日志已经存在"; res.json({'success': success, 'msg': msg}); }
+                if (obj !== null) { msg = "文章已经存在"; res.json({'success': success, 'msg': msg}); }
                 else {
                     var session = req.session;
                     f.author = session.user._id;
                     Tag.syncTags(f.tags, function () {});
                     Content.save(f, function (err) {
-                        if (!err) { success = true; msg = "发表日志成功"; } else { console.log(err.message); msg = "发表日志失败"; }
+                        if (!err) { success = true; msg = "发表文章成功"; } else { console.log(err.message); msg = "发表文章失败"; }
                         res.json({'success': success, 'msg': msg});
                     });
                 }
             } else {//update
-                if (obj !== null && obj.name != oldName) { msg = "日志已经存在"; res.json({'success': success, 'msg': msg}); }
+                if (obj !== null && obj.name != oldName) { msg = "文章已经存在"; res.json({'success': success, 'msg': msg}); }
                 else {
                     f.id = id;
                     Tag.syncTags(f.tags, function () {});
                     Content.update(f, function (err) {
-                        if (!err) { success = true; msg = "编辑日志成功"; console.log("success"); } else { console.log(err.message); msg = "编辑日志失败"; }
+                        if (!err) { success = true; msg = "编辑文章成功"; console.log("success"); } else { console.log(err.message); msg = "编辑文章失败"; }
                         res.json({'success': success, 'msg': msg, 'id': f.id});
                     });
                 }
