@@ -59,18 +59,18 @@ app.use(function (req, res, next) {
     err.status = 404;
     next(err);
 });
-//环境设置和服务器500错误处理
-// if (app.get('env') === 'development') {
-//     app.use(function (err, req, res, next) {
-//         res.status(err.status || 500);
-//         res.redirect('/error');
-//     });
-// }
-// // 500错误页面
-// app.use(function (err, req, res, next) {
-//     res.status(err.status || 500);
-//     res.redirect('/error');
-// });
+// 404 / 500 错误处理：接住上面 next(err) 抛出的错误，返回友好页面（不暴露堆栈）
+app.use(function (err, req, res, next) {
+    var status = err.status || 500;
+    res.status(status);
+    if (status === 404) {
+        res.render('error', { title: '没有找到', state: '404' });
+    } else {
+        // 非 404 错误：堆栈只记在服务端日志，不回传给客户端
+        console.error('[' + new Date().toISOString() + '] ' + (err && err.stack ? err.stack : err));
+        res.render('error', { title: '出错了', state: String(status) });
+    }
+});
 
 //var debug = require('debug')('my-application'); // debug模块
 //module.exports = app;
