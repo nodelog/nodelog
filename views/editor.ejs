@@ -6,29 +6,89 @@
 <% if (typeof(doc) !== 'undefined' && doc && doc.htmlBackup) { %>
 <div class="alert">这篇是旧版富文本文章，已自动转换为 Markdown 显示。检查排版后点「保存修改」即完成转换；原始 HTML 会一并留档，可随时回滚。未保存前文章页仍按原格式展示。</div>
 <% } %>
-<div class="md-editor panel panel-default">
-  <div class="md-toolbar btn-toolbar panel-heading" role="toolbar" aria-label="Markdown 编辑器工具栏">
-    <div class="btn-group btn-group-sm">
-      <button type="button" class="btn btn-default" data-md="bold" title="加粗"><i class="icon-bold"></i></button>
-      <button type="button" class="btn btn-default" data-md="italic" title="斜体"><i class="icon-italic"></i></button>
-      <button type="button" class="btn btn-default" data-md="heading" title="标题"><i class="icon-text-height"></i></button>
-    </div>
-    <div class="btn-group btn-group-sm">
-      <button type="button" class="btn btn-default" data-md="link" title="链接"><i class="icon-link"></i></button>
-      <button type="button" class="btn btn-default" data-md="quote" title="引用"><i class="icon-quote-left"></i></button>
-      <button type="button" class="btn btn-default" data-md="code" title="行内代码"><i class="icon-code"></i></button>
-      <button type="button" class="btn btn-default" data-md="ul" title="无序列表"><i class="icon-list-ul"></i></button>
-      <button type="button" class="btn btn-default" data-md="ol" title="有序列表"><i class="icon-list-ol"></i></button>
-    </div>
-    <div class="btn-group btn-group-sm">
-      <button type="button" class="btn btn-default js-md-img" title="上传并插入图片"><i class="icon-picture"></i> 图片</button>
-      <input type="file" class="js-md-file hide" accept="image/*">
-      <button type="button" class="btn btn-default js-md-preview" title="实时预览"><i class="icon-eye-open"></i> 预览</button>
-    </div>
-    <span class="md-hint text-muted hidden-xs"><i class="icon-info-sign"></i> 支持 Markdown · 草稿自动存本地</span>
-  </div>
-  <div class="md-body panel-body">
-    <textarea class="js-editor form-control md-input" id="editor" placeholder="开始书写，支持 Markdown 语法（# 标题、**加粗**、- 列表、![](图片) …）"><%= edContent %></textarea>
-    <div class="md-preview markdown-body hide"><div class="js-md-preview-body markdown-body"></div></div>
-  </div>
+<div class="vditor-host">
+  <!-- 真实数据源：隐藏文本域，承载 Markdown；保存逻辑（common.js）读取 .js-editor -->
+  <textarea id="editor" class="js-editor" style="display:none" aria-hidden="true"><%= edContent %></textarea>
+  <!-- Vditor 挂载点 -->
+  <div id="vditor"></div>
+  <p class="text-muted vditor-hint"><i class="icon-info-sign"></i> 支持 Markdown / 富文本混排 · 拖拽或粘贴图片自动上传 · 草稿自动存本地</p>
 </div>
+
+<!-- Vditor：本地化，不依赖 CDN（cdn 指向 /vendor/vditor，资源经 /vendor/vditor/dist/js/... 加载） -->
+<link rel="stylesheet" href="/vendor/vditor/dist/index.css" />
+<script src="/vendor/vditor/dist/index.min.js"></script>
+<script>
+(function () {
+  if (typeof Vditor === 'undefined') {
+    // 兜底：Vditor 没加载出来时退回纯文本框，保证文章仍能保存
+    var $ta = document.getElementById('editor');
+    if ($ta) { $ta.style.display = 'block'; $ta.className = 'js-editor form-control'; $ta.setAttribute('rows', '20'); }
+    return;
+  }
+  var $src = document.getElementById('editor');
+  var $title = document.querySelector('.js-add-content-name');
+  var docId = $title ? ($title.getAttribute('data-id') || 'new') : 'new';
+  var draftKey = 'nl-draft-' + docId;
+
+  // 草稿回灌：仅当服务端内容为空（新建 / 上次未保存）时，用本地草稿覆盖
+  var initial = $src.value || '';
+  try {
+    var draft = localStorage.getItem(draftKey);
+    if (draft && initial.trim() === '') initial = draft;
+  } catch (e) {}
+
+  function sync(val) {
+    $src.value = val || '';
+    try { localStorage.setItem(draftKey, val || ''); } catch (e) {}
+  }
+
+  // 上传：复用现有 /api/upload（base64 -> /uploads），把 {success,url} 适配成 Vditor 要求的结构
+  function uploadOne(file) {
+    return new Promise(function (resolve) {
+      if (!file) { resolve({ name: '', url: null }); return; }
+      if (file.size > 5 * 1024 * 1024) { resolve({ name: file.name, url: null }); return; }
+      var reader = new FileReader();
+      reader.onload = function () {
+        var b64 = reader.result;
+        $.ajax({
+          url: '/api/upload', type: 'POST', data: { data: b64 }, dataType: 'json'
+        }).done(function (d) {
+          resolve({ name: file.name, url: (d && d.success) ? d.url : null });
+        }).fail(function () {
+          resolve({ name: file.name, url: null });
+        });
+      };
+      reader.onerror = function () { resolve({ name: file.name, url: null }); };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  var vd = new Vditor('vditor', {
+    cdn: '/vendor/vditor',
+    mode: 'wysiwyg',
+    lang: 'zh_CN',
+    value: initial,
+    cache: { enable: false },          // 容器 id 固定，禁用内置缓存，改用按文章 id 的草稿
+    outline: { enable: true, position: 'left' },
+    toolbarConfig: { pin: true },
+    upload: {
+      accept: 'image/*',
+      handler: function (files) {
+        var tasks = [];
+        for (var i = 0; i < files.length; i++) tasks.push(uploadOne(files[i]));
+        return Promise.all(tasks).then(function (results) {
+          var succMap = {}, errFiles = [];
+          results.forEach(function (r) {
+            if (r.url) succMap[r.name] = r.url;
+            else if (r.name) errFiles.push(r.name);
+          });
+          return { code: errFiles.length ? 1 : 0, msg: '', data: { errFiles: errFiles, succMap: succMap } };
+        });
+      }
+    },
+    input: function (value) { sync(value); },
+    after: function () { sync(this.getValue()); }
+  });
+  window.__vditor = vd;
+})();
+</script>

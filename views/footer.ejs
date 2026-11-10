@@ -64,9 +64,12 @@
 </script>
 
 <% if (typeof needEditor !== 'undefined' && needEditor) { %>
-<!-- 编辑页例外：恢复原有 require.js + /js/main 链（编辑器依赖 wysiwyg / hotkeys / prettify） -->
+<!-- 编辑页：标准链（jQuery → bootstrap → layer → common.js），编辑器由 editor.ejs 内联 Vditor 资源承载 -->
 <script src="/js/dataFormat.js"></script>
-<script data-main="/js/main" src="/js/require.js?v=3"></script>
+<script defer src="/js/jquery-1.10.2.min.js"></script>
+<script defer src="/js/bootstrap.js"></script>
+<script defer src="/js/layer/layer.js"></script>
+<script defer src="/js/common.js"></script>
 <% } else { %>
 <!-- 普通前台页：不再加载编辑器全家桶；defer 保证 jQuery → 插件 → common 的执行顺序 -->
 <script defer src="/js/jquery-1.10.2.min.js"></script>
