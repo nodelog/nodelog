@@ -81,20 +81,46 @@ exports.initSite = function (req, res, next) {
 };
 
 // CSRF 同源校验：仅拦截「跨站」的状态变更请求（POST/PUT/DELETE/PATCH）。
-// 同源请求（浏览器自动带 Origin/Referer 且 host 一致）或缺少来源头的请求（同源表单/服务端调用）一律放行，无需前端改造。
+// 兼容反向代理（nginx/宝塔）：上游 req.headers.host 常为内网地址（如 127.0.0.1:3000），
+// 而浏览器 AJAX 会自动携带 Origin/Referer（公网域名）。若直接用 host 比对，会把所有同源 POST 误判为非法（403），
+// 导致登录/评论/发文/后台全部失效。因此「自身域名」取 [配置白名单 settings.siteHost, X-Forwarded-Host, Host] 的并集，任一匹配即放行。
+function loadSiteHost() {
+    try {
+        return require('./../settings').siteHost || process.env.SITE_HOST;
+    } catch (e) {
+        return process.env.SITE_HOST;
+    }
+}
+function selfHostCandidates(req) {
+    var list = [];
+    var cfg = loadSiteHost();
+    if (cfg) {
+        String(cfg).split(',').forEach(function (h) {
+            h = (h || '').trim();
+            if (h) list.push(h);
+        });
+    }
+    // 兜底默认域名（已知公网域名），确保未配置 settings.siteHost 时同源 AJAX 也能放行
+    ['blog.jiangzi.xin', 'www.blog.jiangzi.xin', 'nodelog.cn', 'www.nodelog.cn'].forEach(function (h) {
+        if (list.indexOf(h) === -1) list.push(h);
+    });
+    if (req.headers['x-forwarded-host']) list.push(req.headers['x-forwarded-host']);
+    if (req.headers.host) list.push(req.headers.host);
+    return list;
+}
 exports.csrfGuard = function (req, res, next) {
     if (['POST', 'PUT', 'DELETE', 'PATCH'].indexOf(req.method) === -1) {
         return next();
     }
-    var host = req.headers.host;
     var origin = req.headers.origin;
     var referer = req.headers.referer;
     if (!origin && !referer) {
         return next();
     }
+    var hosts = selfHostCandidates(req);
     function sameOrigin(u) {
         try {
-            return new URL(u).host === host;
+            return hosts.indexOf(new URL(u).host) !== -1;
         } catch (e) {
             return false;
         }

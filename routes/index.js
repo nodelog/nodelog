@@ -99,8 +99,17 @@ var route = function (app) {
     // 下面的路由必须放到最后，404页面
     // app.get('*', function(req, res){res.redirect('/error');});
     app.get('/clock', function(req, res){res.render('clock',{title:"html5时钟"})});
-    app.get('/sitemap.xml', function(req, res){res.sendFile('sitemap.xml')});
-    app.get('/sitemap.html', function(req, res){res.sendFile('sitemap.html')});
+    // sitemap 文件可能未生成，缺失时返回 404 而非 500
+    function sendSitemap(req, res, file) {
+        var p = require('path').join(__dirname, '..', file);
+        if (require('fs').existsSync(p)) {
+            res.sendFile(p);
+        } else {
+            res.status(404).render('error', { title: '没有找到', state: '404' });
+        }
+    }
+    app.get('/sitemap.xml', function (req, res) { sendSitemap(req, res, 'sitemap.xml'); });
+    app.get('/sitemap.html', function (req, res) { sendSitemap(req, res, 'sitemap.html'); });
     app.get('/google46e8392abe1a37f5.html', function(req, res){res.sendFile('google46e8392abe1a37f5.html')});
 };
 exports.route = route;
