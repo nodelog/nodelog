@@ -1,6 +1,6 @@
 # NODELOG 对接 LINK ONE 开放平台
 
-范围：**开放平台除「扫码支付」外的全部对外接口**；登录改为微信扫码登录；前端所有页面支持微信 JS-SDK 自定义分享。
+范围：**开放平台除「扫码支付」外的全部对外接口**；登录统一为微信扫码登录（不再保留账号密码登录/注册）；**前台所有页面**支持微信 JS-SDK 自定义分享（后台管理端不注入分享）。
 
 契约来源：`https://jiangzi.xin/open-platform.html`、开放平台服务端源码实读（`D:/code/LINKONE/server/app/api/`）、线上接口 curl 实测；分享避坑依据 `https://jiangzi.xin/wechat-share-pitfalls.html` 与已真机双端验证的 `方案报价/assets/wechat-share.js` v4。
 
@@ -78,7 +78,7 @@ npm start
 
 - 新用户：`wx_{userId}` 为用户名，昵称取脱敏手机号，密码为随机串的 bcrypt 哈希（仅满足旧 Schema 的 required 约束，不可用于登录），`role` 由 `OPEN_ADMIN_PHONES` 决定。
 - 免登录：`app.js` 的 `restoreUser` 中间件在无 session 但 cookie 有效时自动恢复登录态；退出登录同时清 session 与 cookie。
-- 原有账号密码登录保留作为管理员应急入口（`/user/login` 仍限制 `nodelog` 账号），扫码是默认主入口。
+- **账号密码登录 / 注册入口已移除**：前台 `views/footer.ejs` 的 `.js-login-panel`（账号密码）与 `.js-register-panel`（注册）表单删除，导航去「注册」链接；后端 `/user/login`、`/user/reg` 早已 `暂停开放登录/注册`。扫码是唯一入口，首登自动建档（`openUserId` 为唯一键），无需注册。
 
 ---
 
@@ -88,14 +88,14 @@ npm start
 
 所有 34 个 EJS 页面都经过 `views/header.ejs`（前台）/ `views/manager/header.ejs`（后台），以及 `views/footer.ejs` / `views/manager/footer.ejs`。因此只在公共 head/footer 注入即覆盖全站，包括 404/500 的 `error.ejs`、`clock.ejs`、后台各页，无需逐页改模板。
 
-**注意：head 模板有两份，改分享逻辑必须同步两份。** 接入期间并行的「前台设计改造」把 `views/header.ejs` 的 include 从 `common/meta` 换成了 `common/meta-front`（前台精简 CSS 的新版 head），后台 `views/manager/header.ejs` 仍用 `common/meta`。目前 `meta-front.ejs` 与 `meta.ejs` 都含有完全一致的 OG/Twitter 标签、`WX_SHARE_CONFIG` 安全注入与 `wechat-share.js` 引用；`footer.ejs` 与 `manager/footer.ejs` 都含有 `qr-login.js` 引用。后续若调整分享参数或封面，请两份一起改（更彻底的做法是抽成 `common/wechat-share-meta.ejs` 由两份 head 共同 include）。
+**注意：前台/后台 head 模板是分开的两个文件，分享注入只在前台。** 前台 `views/header.ejs` 经 `common/meta-front.ejs` 注入 OG/Twitter + `jweixin` + `wechat-share.js`；后台 `views/manager/header.ejs` 经 `common/meta.ejs`，**已按要求移除分享注入**（无 OG、`jweixin`、`wechat-share.js`、`WX_SHARE_CONFIG`）。后台保留 `manager/footer.ejs` 里的 `qr-login.js`，扫码登录照常可用。因此改分享参数/封面只动 `meta-front.ejs` 一处即可。
 
 ### 关键实现（对应避坑指南的 P0/P1）
 
 | 坑 | 本项目的做法 |
 |---|---|
 | 入口白名单（P0） | 代码无法绕过；对外分发用二维码或公众号菜单，见第六节 |
-| `imgUrl` 为空降级（P0） | 默认封面 `public/images/share-cover.png`（480×480、2.2KB、HTTPS 静态直链），EJS 输出 `og:image` |
+| `imgUrl` 为空降级（P0） | 默认封面 `public/images/share-cover.png`（480×480、按「链付收银博客」品牌文字生成的 PNG、HTTPS 静态直链），EJS 输出 `og:image` |
 | `link ≠ 当前页 URL`（P0） | `shareLink = signUrl = location.href.split('#')[0]`，不剥离任何 query |
 | 多个分享接口同步连调（P1） | 单一策略 + 350ms 错峰串行，支持 `?mode=new\|legacy\|both` 真机切换 |
 | `jsApiList` 混入未授权接口（P1） | **不使用上游返回的 jsApiList**（实测含 `chooseWXPay`/`getLocation`/`openAddress`），只声明 4 个分享接口 |
@@ -170,12 +170,13 @@ node scripts/verify-open-platform.js
 
 ## 九、验证记录（本次实跑）
 
-`node scripts/verify-open-platform.js` → **16 项通过 / 0 失败**：
+`node scripts/verify-open-platform.js` → **17 项通过 / 0 失败**：
 
 - JWT：正确密钥、错误密钥、过期、格式错误、空值；
 - 配置：字段齐全、未配置时降级、不外泄 AppSecret；
 - 上游签名服务（真实联网）：拿到 signature / timestamp、带 query 的 URL 原样回显；实测上游 `jsApiList` 共 11 条且含 `chooseWXPay`/`getLocation` 等未授权接口，印证前端必须自行收敛到 4 条；
-- HTTP 层集成（真实 Express 路由）：`/open/qrcode` 降级、`/open/status` 非法 token 400、`/open/jsConfig` 返回签名且 URL 未二次编码、`/open/logout` 清除 30 天 cookie。
+- HTTP 层集成（真实 Express 路由）：`/open/qrcode` 降级、`/open/status` 非法 token 400、`/open/jsConfig` 返回签名且 URL 未二次编码、`/open/logout` 清除 30 天 cookie；
+- **回归：上游 PHP `chunk_split()` 会在 base64 data URI 内插入 `\r\n`，归一化（去全部空白）后 `/open/qrcode` 正确返回二维码**——修复了实测「二维码数据无效，请刷新重试」的根因（之前误把换行符当非法字符）。
 
 另跑：12 个 JS 文件 `node --check` 全通过；`require('./app')` 模块加载通过；EJS 双数据集渲染冒烟（完整 / 缺变量）无 500、无 undefined；恶意 `shareCover` 注入测试确认 `<` 被转成 `\u003c`、单引号不破坏 JS 字符串、OG 属性被 HTML 转义。
 
@@ -183,10 +184,13 @@ node scripts/verify-open-platform.js
 
 ---
 
-## 十、上线前请你确认的三件事
+## 十、本次已确认的产品决策
 
-前端第一版在此暂停，确认后再进真机验证 / 上线：
+用户已确认并落地：
 
-1. 扫码登录弹层的整体方向（自建 overlay，沿用站点 theme.css 令牌，深浅主题自适应）；
-2. 有无一眼别扭之处（二维码尺寸、弹层文案、导航「扫码登录」措辞、分享封面是否为默认几何图）；
-3. 功能范围是否合适（保留原有账号密码登录作为管理员应急入口，注册入口未动，未接支付）。
+1. **登录统一为微信扫码**，移除账号密码登录与注册入口（前台 `.js-login-panel` / `.js-register-panel` 表单与导航「注册」删除，后端 `/user/login`、`/user/reg` 早已 `暂停开放`），扫码首登自动建档，无需注册；
+2. **分享封面按「链付收银博客」文字制作**（`public/images/share-cover.png`，深青底 + 绿强调色 + ¥ 品牌标记）；
+3. **后台管理端不注入微信分享**（移除 `common/meta.ejs` 的 OG / `jweixin` / `wechat-share.js` 块），前台 `meta-front.ejs` 保持不变；
+4. 支付接口按首版要求排除，未对接。
+
+**仍需上线前补验（环境限制）**：真浏览器渲染截图、微信 iOS/Android 真机扫码与分享验证；`createToken` → confirmed 真实链路需商家后台真实 AppID + 小程序授权。

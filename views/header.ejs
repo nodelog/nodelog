@@ -40,7 +40,6 @@
                 <a href="/manager" title="后台管理" class="color-white"><%= session.user.realName ? session.user.realName : session.user.userName %></a>
             </li>
             <li class="js-login-toggle">
-                <a href="javascript:;" class="js-register-btn color-white" role="button" style="display: none;">注册</a>
                 <a href="javascript:;" title="退出登录" role="button" class="color-white js-logout-btn">退出</a>
             </li>
             <% }else{ %>
@@ -49,7 +48,6 @@
                 <a href="/manager" class="color-white" style="display: none;"><span class="js-user-name"></span></a>
             </li>
             <li class="js-login-toggle">
-                <a href="javascript:;" title="注册" class="js-register-btn color-white" role="button">注册</a>
                 <a href="javascript:;" role="button" class="color-white js-logout-btn" style="display: none;">退出</a>
             </li>
             <% } %>

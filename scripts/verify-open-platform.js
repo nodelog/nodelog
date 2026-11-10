@@ -8,6 +8,11 @@
  */
 'use strict';
 
+// 自检用：注入测试用 AppID/AppSecret，让 openAuth.readConfig() 判定为「已配置」，
+// 否则 qrcode 处理器会在调用上游前直接返回「未配置」，4.0 回归 stub 无法触发。
+process.env.OPEN_APP_ID = process.env.OPEN_APP_ID || 'verify-script-test-appid';
+process.env.OPEN_APP_SECRET = process.env.OPEN_APP_SECRET || 'verify-script-test-secret';
+
 var path = require('path');
 var root = path.join(__dirname, '..');
 var jwt = require(path.join(root, 'services/openJwt'));
@@ -63,17 +68,29 @@ function runHttpChecks() {
                 });
             }
             (async function () {
-                // 4.1 未配置密钥时明确降级且不打上游；已配置时只验结构，避免自检依赖商家凭证
+                // 4.0 回归：上游 PHP chunk_split() 会在 base64 data URI 内每 76 字符插入 \r\n。
+                // 归一化（去全部空白）后必须通过校验，否则会误报「二维码数据无效，请刷新重试」。
+                var origCreateToken = op.createToken;
+                op.createToken = function () {
+                    return Promise.resolve({
+                        token: 'a'.repeat(32),
+                        qrcodeUrl: 'data:image/png;base64,' + 'A'.repeat(180) + '\r\n' + 'B'.repeat(60) + '\r\n'
+                    });
+                };
+                var r0 = await get('/open/qrcode');
+                var j0 = {}; try { j0 = JSON.parse(r0.body); } catch (e) {}
+                check('含 \\r\\n 的二维码 data URI 被归一化后通过',
+                    r0.status === 200 && j0.success === true
+                    && /^[^\r\n]+$/.test(j0.qrcodeUrl || '')
+                    && /^data:image\//.test(j0.qrcodeUrl || ''),
+                    j0.success ? '归一化 ok' : (j0.msg || '').slice(0, 40));
+                op.createToken = origCreateToken; // 复原原函数，避免后续请求变为 undefined
+
+                // 4.1 /open/qrcode 返回结构化结果（已配置时走上游 + 归一化；未配置时明确降级）
                 var r1 = await get('/open/qrcode');
                 var j1 = {}; try { j1 = JSON.parse(r1.body); } catch (e) {}
-                if (!conf.appId || !conf.appSecret) {
-                    check('未配置密钥时 /open/qrcode 明确降级',
-                        r1.status === 200 && j1.success === false && /未配置/.test(j1.msg || ''),
-                        r1.body.slice(0, 70));
-                } else {
-                    check('已配置密钥时 /open/qrcode 返回结构化结果',
-                        r1.status === 200 && typeof j1.success === 'boolean');
-                }
+                check('已配置密钥时 /open/qrcode 返回结构化结果',
+                    r1.status === 200 && typeof j1.success === 'boolean', r1.body.slice(0, 70));
 
                 // 4.2 非法 token 前置拒绝，不触发网络/DB
                 var r2 = await get('/open/status?token=not-a-token');

@@ -106,7 +106,8 @@
   }
   function isSafeSrc(u) {
     if (typeof u !== 'string') return false;
-    u = u.replace(/^\s+|\s+$/g, '');
+    // 上游 PHP chunk_split 会在 base64 data URI 内插入 \r\n，整体去空白后再校验
+    u = u.replace(/\s+/g, '');
     return /^data:image\//i.test(u) || /^https:\/\//i.test(u);
   }
   function setQr(src) {

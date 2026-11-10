@@ -79,17 +79,22 @@ exports.qrcode = function (req, res) {
 
     openPlatform.createToken().then(function (data) {
         var d = data || {};
+        // 上游 PHP 用 chunk_split() 生成 base64 data URI，默认每 76 字符插入 \r\n 换行符。
+        // 浏览器可容忍，但我们的 BAD_QR_CHARS(\s) 会误判为非法 src → 报「二维码数据无效」。
+        // 先做归一化：去掉所有空白（不影响 base64 / URL 语义），再校验。
+        var rawUrl = d.qrcodeUrl;
+        var qrcodeUrl = (typeof rawUrl === 'string') ? rawUrl.replace(/\s+/g, '') : '';
         // 纵深防御：上游异常/被劫持时不能把非法 src 或不合规 token 交给前端，
         // 否则前端白名单会拒绝渲染、或轮询一直吃 400。文案与 qr-login.js 保持一致。
         if (!TOKEN_RE.test(String(d.token == null ? '' : d.token)) ||
-            typeof d.qrcodeUrl !== 'string' ||
-            !SAFE_QR_SRC.test(d.qrcodeUrl) || BAD_QR_CHARS.test(d.qrcodeUrl)) {
+            !qrcodeUrl ||
+            !SAFE_QR_SRC.test(qrcodeUrl) || BAD_QR_CHARS.test(qrcodeUrl)) {
             return res.json({success: false, msg: '二维码数据无效，请刷新重试'});
         }
         res.json({
             success: true,
             token: d.token,
-            qrcodeUrl: d.qrcodeUrl,
+            qrcodeUrl: qrcodeUrl,
             expiresIn: 300 // 上游扫码 token 有效期 300 秒，数字秒
         });
     }).catch(function (err) {
