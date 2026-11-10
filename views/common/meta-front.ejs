@@ -1,0 +1,67 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="cache-control" content="public">
+<meta http-equiv="expires" content="Fri,1 Jan 2016 00:00:00 GMT">
+<meta name="Generator" content="WebStorm">
+<meta name="Author" content="匠子心">
+<meta name="Robots" content="all">
+<meta content="nodelog,<%=session.site.name%>,<%if(locals.title){%><%=title%><%}%>,匠子心,技术博客,打造最快的搜索体验,nodejs,express,monogodb,code,博客,日志,技术" name="keywords" />
+<meta content="nodelog,<%=session.site.name%>,<%if(locals.title){%><%=title%><%}%>,匠子心,技术博客,打造最快的搜索体验,nodejs,express,monogodb,code,博客,日志,技术" name="description" />
+<!--baidu站长验证-->
+<meta name="baidu-site-verification" content="hBcEJxnpRy" />
+<!--sogou-->
+<meta name="sogou_site_verification" content="Ve5KEBC5yH"/>
+<meta property="qc:admins" content="1542100672652272374526367" />
+<!--alexa排名验证-->
+<meta name="alexaVerifyID" content="UmbHL7uQNFzJnFyC4OkkDx5CA3E"/>
+<title><%if(locals.title){%><%=title%><%}%>-打造最快的搜索体验</title>
+<!-- 前台仅 3 份 CSS：bootstrap.css 承载 collapse/dropdown 结构，theme.css 是唯一视觉源 -->
+<link rel="stylesheet" href="/css/bootstrap.css">
+<link rel="stylesheet" href="/js/layer/need/layer.css">
+<% if (typeof needEditor !== 'undefined' && needEditor) { %>
+<!-- 仅编辑页按需加载：编辑器图标 / 旧工具栏 / 代码高亮 -->
+<link rel="stylesheet" href="/css/font-awesome.css">
+<link rel="stylesheet" href="/css/index.css">
+<link rel="stylesheet" href="/js/external/google-code-prettify/prettify.css">
+<% } %>
+<link rel="stylesheet" href="/css/theme.css">
+<link rel="manifest" href="/manifest.json">
+<script>
+  (function () {
+    try {
+      // 始终显式设置 data-theme，保证 CSS 变量、主题按钮图标与系统偏好三者一致
+      var t = localStorage.getItem('nl-theme');
+      if (!t) t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', t);
+    } catch (e) {}
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () { navigator.serviceWorker.register('/sw.js').catch(function () {}); });
+    }
+  })();
+</script>
+<!-- 开放平台：微信自定义分享 / OG / Twitter 元数据（与后台 meta.ejs 保持一致） -->
+<meta property="og:type" content="website">
+<meta property="og:locale" content="zh_CN">
+<% if (locals.title) { %>
+<meta property="og:title" content="<%= title %> · <%= session.site.name %>">
+<meta property="og:description" content="<%= title %> · <%= session.site.name %>">
+<% } else { %>
+<meta property="og:title" content="<%= session.site.name %>">
+<meta property="og:description" content="<%= session.site.name %>">
+<% } %>
+<meta property="og:site_name" content="<%= session.site.name %>">
+<% if (locals.ogUrl) { %>
+<meta property="og:url" content="<%= ogUrl %>">
+<% } %>
+<% if (locals.shareCover) { %>
+<meta property="og:image" content="<%= shareCover %>">
+<meta name="twitter:image" content="<%= shareCover %>">
+<% } %>
+<meta property="og:image:width" content="480">
+<meta property="og:image:height" content="480">
+<meta name="twitter:card" content="summary_large_image">
+<script src="/js/jweixin-1.6.0.js"></script>
+<script>
+  window.WX_SHARE_CONFIG = { api: '/open/jsConfig', imgUrl: <%- JSON.stringify(locals.shareCover || '').replace(/</g, '\\u003c') %> };
+</script>
+<script src="/js/wechat-share.js?v=20261111" defer></script>

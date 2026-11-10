@@ -1,0 +1,45 @@
+<%
+  // 数字分页统一组件。search 的 findByWord 分支不传 url，必须兜底，否则该路由 EJS 会抛错。
+  var _page  = (typeof page !== 'undefined' && page) ? parseInt(page, 10) : 1;
+  var _total = (typeof totalPage !== 'undefined' && totalPage) ? parseInt(totalPage, 10) : 0;
+  var _url = (typeof url !== 'undefined' && url) ? url :
+      ((typeof key !== 'undefined' && key) ? '/content/search?word=' + encodeURIComponent(key) + '&' : '?');
+  function _href(n) { return _url + 'page=' + n; }
+  var _win = 2;
+  var _pages = [];
+  for (var _p = 1; _p <= _total; _p++) {
+    if (_p === 1 || _p === _total || (_p >= _page - _win && _p <= _page + _win)) _pages.push(_p);
+  }
+  var _prev = 0;
+%>
+<% if (_total > 1) { %>
+<div class="pagination">
+  <ul class="pager-list" aria-label="分页">
+    <% if (_page > 1) { %>
+    <li><a class="pager-link" href="<%= _href(1) %>" aria-label="第一页">首页</a></li>
+    <li><a class="pager-link js-pre-page" data-url="<%= _url %>" data-page="<%= _page %>" data-total="<%= _total %>" href="<%= _href(_page - 1) %>" rel="prev">上一页</a></li>
+    <% } else { %>
+    <li><span class="pager-link is-disabled" aria-disabled="true">首页</span></li>
+    <li><span class="pager-link is-disabled" aria-disabled="true">上一页</span></li>
+    <% } %>
+
+    <% _pages.forEach(function (n) { %>
+      <% if (n - _prev > 1) { %><li><span class="pager-ellipsis" aria-hidden="true">…</span></li><% } %>
+      <% if (n === _page) { %>
+      <li><span class="pager-link current" aria-current="page"><%= n %></span></li>
+      <% } else { %>
+      <li><a class="pager-link" href="<%= _href(n) %>" aria-label="第 <%= n %> 页"><%= n %></a></li>
+      <% } %>
+      <% _prev = n; %>
+    <% }); %>
+
+    <% if (_page < _total) { %>
+    <li><a class="pager-link js-next-page" data-url="<%= _url %>" data-page="<%= _page %>" data-total="<%= _total %>" href="<%= _href(_page + 1) %>" rel="next">下一页</a></li>
+    <li><a class="pager-link" href="<%= _href(_total) %>" aria-label="最后一页">末页</a></li>
+    <% } else { %>
+    <li><span class="pager-link is-disabled" aria-disabled="true">下一页</span></li>
+    <li><span class="pager-link is-disabled" aria-disabled="true">末页</span></li>
+    <% } %>
+  </ul>
+</div>
+<% } %>
