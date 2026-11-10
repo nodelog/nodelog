@@ -13,3 +13,5 @@ sitemap.*
 /playwright-cli.json
 /.npmrc
 /nul
+/.design/
+/.git-rewrite/
