@@ -86,7 +86,9 @@ npm start
 
 ### 覆盖路径
 
-所有 34 个 EJS 页面都经过 `views/header.ejs`（前台）/ `views/manager/header.ejs`（后台）→ `views/common/meta.ejs`，以及 `views/footer.ejs` / `views/manager/footer.ejs`。因此只改这 4 个公共文件即覆盖全站，包括 404/500 的 `error.ejs`、`clock.ejs`、后台各页，无需逐页改模板。
+所有 34 个 EJS 页面都经过 `views/header.ejs`（前台）/ `views/manager/header.ejs`（后台），以及 `views/footer.ejs` / `views/manager/footer.ejs`。因此只在公共 head/footer 注入即覆盖全站，包括 404/500 的 `error.ejs`、`clock.ejs`、后台各页，无需逐页改模板。
+
+**注意：head 模板有两份，改分享逻辑必须同步两份。** 接入期间并行的「前台设计改造」把 `views/header.ejs` 的 include 从 `common/meta` 换成了 `common/meta-front`（前台精简 CSS 的新版 head），后台 `views/manager/header.ejs` 仍用 `common/meta`。目前 `meta-front.ejs` 与 `meta.ejs` 都含有完全一致的 OG/Twitter 标签、`WX_SHARE_CONFIG` 安全注入与 `wechat-share.js` 引用；`footer.ejs` 与 `manager/footer.ejs` 都含有 `qr-login.js` 引用。后续若调整分享参数或封面，请两份一起改（更彻底的做法是抽成 `common/wechat-share-meta.ejs` 由两份 head 共同 include）。
 
 ### 关键实现（对应避坑指南的 P0/P1）
 
