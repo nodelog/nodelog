@@ -3,8 +3,8 @@
   if (typeof(doc) !== 'undefined' && doc && doc.content) edContent = doc.content;
   else if (typeof(template) !== 'undefined' && template) edContent = template;
 %>
-<% if (typeof(doc) !== 'undefined' && doc && doc.htmlBackup) { %>
-<div class="alert">这篇是旧版富文本文章，已自动转换为 Markdown 显示。检查排版后点「保存修改」即完成转换；原始 HTML 会一并留档，可随时回滚。未保存前文章页仍按原格式展示。</div>
+<% if (typeof(doc) !== 'undefined' && doc && doc.legacyHtmlPending) { %>
+<div class="alert">检测到这篇是旧版富文本文章，已临时转换为 Markdown 显示。检查排版后点「保存修改」即完成迁移；原始 HTML 会一并留档，可随时回滚。保存前文章页仍按原格式展示。</div>
 <% } %>
 <div class="vditor-host">
   <!-- 真实数据源：隐藏文本域，承载 Markdown；保存逻辑（common.js）读取 .js-editor -->

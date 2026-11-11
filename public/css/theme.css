@@ -165,8 +165,10 @@ body:not(.manager) .page-shell { padding-top: var(--space-8); padding-bottom: va
 .breadcrumb a:hover { color: var(--accent); }
 .breadcrumb .active { color: var(--ink); }
 
-/* 阅读型页面单列 68ch，左沿与列表主列对齐（不居中漂移） */
-.article-detail, .article-body, .prose-single, .error-page, .timeline { max-width: var(--measure); margin-left: 0; margin-right: auto; }
+/* 阅读型页面单列 68ch，左沿与列表主列对齐（不居中漂移）。
+   文章详情页正文改为铺满整栏（与评论区卡片同宽），不再右侧空一半。 */
+.prose-single, .error-page, .timeline { max-width: var(--measure); margin-left: 0; margin-right: auto; }
+.article-detail, .article-body { max-width: 100%; }
 .error-page { margin-left: auto; margin-right: auto; }
 
 /* ---- 4. 顶栏 ----------------------------------------------------------- */
@@ -436,7 +438,9 @@ a.pager-link:hover { border-color: var(--accent); color: var(--accent); text-dec
 .article-detail .card { margin-bottom: var(--space-6); }
 section.card + section.card { margin-top: var(--space-6); }
 .card > h2, .card > h3 { font-size: var(--fs-h3); margin-bottom: var(--space-4); }
-.article-content, .markdown-body { font-size: var(--fs-body); line-height: 1.75; color: var(--ink); max-width: var(--measure); word-wrap: break-word; }
+.article-content, .markdown-body { font-size: var(--fs-body); line-height: 1.75; color: var(--ink); word-wrap: break-word; }
+/* 编辑器预览 .markdown-body 保留 68ch 阅读宽度；正文 .article-content 铺满整栏 */
+.markdown-body { max-width: var(--measure); }
 .article-content > *:first-child, .markdown-body > *:first-child { margin-top: 0; }
 .article-content h1, .markdown-body h1 { font-size: var(--fs-h2); margin: 1.4em 0 .6em; }
 .article-content h2, .markdown-body h2 { font-size: var(--fs-h3); margin: 1.4em 0 .6em; }
@@ -554,7 +558,8 @@ html body .layui-layer-dialog .layui-layer-content { background: var(--surface) 
 @media (max-width: 1023px) {
     .layout { grid-template-columns: minmax(0,1fr); gap: var(--space-8); }
     .aside { grid-template-columns: repeat(2, minmax(0,1fr)); align-items: start; }
-    .article-detail, .article-body, .prose-single, .error-page, .timeline { max-width: min(var(--measure), 100%); }
+    .prose-single, .error-page, .timeline { max-width: min(var(--measure), 100%); }
+    .article-detail, .article-body { max-width: 100%; }
 }
 @media (max-width: 767px) {
     :root { --fs-h1: 34px; --fs-h2: 28px; --fs-display: 40px; }

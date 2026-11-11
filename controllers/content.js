@@ -104,9 +104,14 @@ exports.findById = function (req, res) {
             // 原始 HTML 由 ContentDAO.update 自动存入 htmlBackup，可回滚。
             if (String(view).indexOf('editContent') !== -1 &&
                 doc.contentType !== 'markdown' && html2md.isHtml(doc.content)) {
-                doc.htmlBackup = doc.content;
+                doc.htmlBackup = doc.content;              // 仅内存留档，不写库
                 doc.content = html2md.convert(doc.content);
                 doc.contentType = 'markdown';
+                // 仅内存标志：本次打开是「历史富文本 → 临时转 Markdown 预览」，尚未点保存迁移。
+                // 编辑页提示只认这个标志。不能用 htmlBackup 判断：文章保存迁移后该字段会
+                // 永久留在库中（ContentDAO.update 写入供回滚），会让已转成 Markdown 的文章
+                // 每次打开编辑页都误报「旧版富文本」。
+                doc.legacyHtmlPending = true;
             }
             callback(null);
         }]
