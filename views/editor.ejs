@@ -43,23 +43,28 @@
     try { localStorage.setItem(draftKey, val || ''); } catch (e) {}
   }
 
-  // 上传：复用现有 /api/upload（base64 -> /uploads），把 {success,url} 适配成 Vditor 要求的结构
+  // 上传：复用现有 /api/upload（base64 -> /uploads），把 {success,url} 适配成 Vditor 要求的结构。
+  // 去 jQuery 后改用原生 fetch；任何失败都必须 resolve，避免 Promise 悬挂导致图片永远上传不出去。
   function uploadOne(file) {
     return new Promise(function (resolve) {
+      var fail = function () { resolve({ name: file ? file.name : '', url: null }); };
       if (!file) { resolve({ name: '', url: null }); return; }
-      if (file.size > 5 * 1024 * 1024) { resolve({ name: file.name, url: null }); return; }
+      if (file.size > 5 * 1024 * 1024) { fail(); return; } // 与服务端 5MB 上限对齐
       var reader = new FileReader();
+      reader.onerror = fail;
       reader.onload = function () {
-        var b64 = reader.result;
-        $.ajax({
-          url: '/api/upload', type: 'POST', data: { data: b64 }, dataType: 'json'
-        }).done(function (d) {
+        fetch('/api/upload', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: reader.result })
+        }).then(function (r) {
+          if (!r.ok) throw new Error('upload HTTP ' + r.status);
+          return r.json();
+        }).then(function (d) {
           resolve({ name: file.name, url: (d && d.success) ? d.url : null });
-        }).fail(function () {
-          resolve({ name: file.name, url: null });
-        });
+        }).catch(fail);
       };
-      reader.onerror = function () { resolve({ name: file.name, url: null }); };
       reader.readAsDataURL(file);
     });
   }

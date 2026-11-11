@@ -36,8 +36,10 @@ app.use(function (req, res, next) {
 });
 // app.use(bodyParser.json());//json
 // app.use(bodyParser.urlencoded());//url编码
-// 收紧请求体上限：富文本文章通常远小于 15MB，原 50MB 易被滥用造成内存压力
-app.use(bodyParser.json({ limit: '5mb' }));
+// 请求体上限：原 50MB 易被滥用造成内存压力，收紧到 8mb。
+// 8mb 是为 /api/upload 的 base64 图片留量：编辑器上限 5MB 原图，base64 膨胀约 1/3 ≈ 6.7MB，
+// 若设 5mb，4MB 以上的图片会被 413（且返回 HTML 而非 JSON，前端解析失败）。8mb 仍远低于 50MB。
+app.use(bodyParser.json({ limit: '8mb' }));
 app.use(bodyParser.urlencoded({ limit: '15mb', extended: true }));
 
 app.use(cookieParser());//cookie组件

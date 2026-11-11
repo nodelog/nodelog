@@ -15,3 +15,6 @@ sitemap.*
 /nul
 /.design/
 /.git-rewrite/
+# 用户上传的图片：运行时产生，不入库（保留目录占位）
+/public/uploads/*
+!/public/uploads/.gitkeep
