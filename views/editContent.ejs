@@ -1,4 +1,4 @@
-<%- include('header') %>
+<%- include('header', { needEditor: true }) %>
 <div class="page-head">
     <h1>编辑文章</h1>
     <p class="muted"><%= doc.name %></p>
@@ -30,4 +30,4 @@
 </div>
 <input type="hidden" value="<%= doc.category %>" class="js-edit-content-category"/>
 <input type="hidden" class="js-current-menu" value="js-my-content-menu"/>
-<%- include('footer') %>
+<%- include('footer', { needEditor: true }) %>

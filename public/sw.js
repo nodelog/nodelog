@@ -2,14 +2,21 @@
 // 原则：**服务端渲染的动态 HTML 页面绝不缓存**（登录态、文章列表、公告数都是实时数据），
 // 一律网络优先；只有静态资源（css/js/图片）才缓存优先。
 // v1 曾把首页 HTML 预缓存并 cache-first，导致强刷拿到旧快照、退出登录不生效、部署后白屏。
-var CACHE = 'nodelog-v2';
+// v3：前台 CSS/JS 已分流（删掉 style.css / require.js 全家桶），必须升版本，
+// 否则 cache-first 会让已安装 SW 的用户永远看到旧的 theme.css 与旧脚本。
+var CACHE = 'nodelog-v3';
 var PRECACHE = [
-  '/css/style.css',
   '/css/theme.css',
   '/css/bootstrap.css',
-  '/js/main.js',
+  '/js/layer/need/layer.css',
+  '/js/jquery-1.10.2.min.js',
+  '/js/bootstrap.js',
+  '/js/layer/layer.js',
   '/js/common.js',
-  '/js/editor.js',
+  '/js/jweixin-1.6.0.js',
+  // 下面两个带版本号：与前台实际加载的 URL 完全一致，cache-first 才能直接命中
+  '/js/wechat-share.js?v=20261111',
+  '/js/qr-login.js?v=20261111',
   '/images/favicon.ico'
 ];
 
@@ -39,13 +46,25 @@ function isHtmlRequest(req) {
   return accept.indexOf('text/html') !== -1;
 }
 
+// 动态请求一律网络优先且不写缓存。
+// /open/* 是并发落地的微信扫码登录/开放平台接口：/open/status 是轮询接口，
+// Accept 不是 text/html，若走静态资源 cache-first 会被缓存成旧响应，扫码登录会卡在「等待扫码」。
+function isDynamicRequest(req, url) {
+  var p = url.pathname;
+  return isHtmlRequest(req) ||
+    p.indexOf('/api/') === 0 ||
+    p.indexOf('/open/') === 0 ||
+    p === '/comment/all' ||
+    p.indexOf('/session') === 0;
+}
+
 self.addEventListener('fetch', function (e) {
   var req = e.request;
   if (req.method !== 'GET') return; // 不干预写请求
   var url = new URL(req.url);
 
-  // 1) 动态 HTML / 接口：网络优先，且**不写入缓存**；断网时才回退已缓存的页面
-  if (isHtmlRequest(req) || url.pathname.indexOf('/api/') === 0) {
+  // 1) 动态 HTML / 接口（含 /open/* 轮询）：网络优先，且**不写入缓存**；断网时才回退已缓存的页面
+  if (isDynamicRequest(req, url)) {
     e.respondWith(
       fetch(req).catch(function () {
         return caches.match(req).then(function (cached) {

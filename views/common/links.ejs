@@ -1,6 +1,6 @@
-<footer class="site-footer">
+<footer class="site-footer" aria-label="站点页脚">
     <p class="footer-links js-links-panel"></p>
-    <p>
+    <p class="footer-meta">
         &copy; <%= new Date().getFullYear() %> <%= session.site.copyRight %>
         <% if (session.site.icp) { %>&nbsp;·&nbsp;<a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener"><%= session.site.icp %></a><% } %>
     </p>

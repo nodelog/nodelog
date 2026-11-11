@@ -1,10 +1,25 @@
 <%- include('header') %>
+<ol class="breadcrumb" aria-label="面包屑">
+    <li><a href="/">首页</a></li>
+    <li class="active" aria-current="page">关于本站</li>
+</ol>
 <div class="page-head">
     <h1>关于本站</h1>
-    <p class="muted"><%=session.site.name%></p>
+    <p class="kicker"><%=session.site.name%></p>
 </div>
-<div class="card article-content">
+<div class="card article-content prose-single">
     <p><%=session.site.name%> 是一个基于 Node.js + Express + MongoDB 构建的技术博客，用来记录开发实践与思考。</p>
-    <p>支持 Markdown 写作、全文检索、分类与标签体系。</p>
+    <p>支持 Markdown 写作、全文检索，以及按分类浏览文章。</p>
+
+    <h2>联系</h2>
+    <% if (session.site && (session.site.phone || session.site.address || session.site.email)) { %>
+    <ul class="contact-list">
+        <% if (session.site.phone) { %><li>电话：<%= session.site.phone %></li><% } %>
+        <% if (session.site.email) { %><li>邮箱：<%= session.site.email %></li><% } %>
+        <% if (session.site.address) { %><li>所在城市：<%= session.site.address %></li><% } %>
+    </ul>
+    <% } else { %>
+    <p>更多站点信息请看页脚。</p>
+    <% } %>
 </div>
 <%- include('footer') %>

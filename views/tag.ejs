@@ -1,23 +1,21 @@
 <%- include('header') %>
+<ol class="breadcrumb" aria-label="面包屑">
+    <li><a href="/">首页</a></li>
+    <li class="active" aria-current="page">标签</li>
+</ol>
 <div class="page-head">
     <h1># <%= tag.name %></h1>
-    <p class="muted">共 <%= total %> 篇</p>
+    <p class="kicker">共 <%= total %> 篇</p>
 </div>
 
 <% if (docs && docs.length) { %>
-<div class="post-grid">
+<div class="post-list">
     <% docs.forEach(function(doc){ %>
-        <%- include('common/postCard', { doc: doc }) %>
+        <%- include('common/postCard', { doc: doc, variant: 'list' }) %>
     <% }); %>
 </div>
-<% if (totalPage > 1) { %>
-<div class="pager">
-    <% for (var p = 1; p <= totalPage; p++) { %>
-        <% if (p === page) { %><span class="current"><%= p %></span><% } else { %><a href="<%= url %>page=<%= p %>"><%= p %></a><% } %>
-    <% } %>
-</div>
-<% } %>
+<%- include('common/pagination', { page: page, totalPage: totalPage, url: (typeof locals.url === 'string' && locals.url) ? locals.url : '/tag/' + encodeURIComponent(tag.name) + '?' }) %>
 <% } else { %>
-<div class="empty"><span class="empty-title">没有找到文章</span>试试其他分类或关键词。</div>
+<%- include('common/state', { kind: 'empty', size: 'block', title: '这个标签下还没有文章', text: '回首页看看最新文章', actionHref: '/', actionText: '回首页' }) %>
 <% } %>
 <%- include('footer') %>

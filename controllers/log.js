@@ -73,7 +73,7 @@ exports.findById = function (req, res) {
         if (!view) {
             view = (req.path.indexOf('/manager') === 0) ? 'manager/logDetail' : 'logDetail';
         }
-        res.render(view,{title:doc.name,doc:doc});
+        res.render(view,{title: doc && doc.name ? doc.name : '公告不存在', doc:doc});
     });
 };
 

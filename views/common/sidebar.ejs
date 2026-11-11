@@ -1,21 +1,71 @@
-<aside class="aside">
+<aside class="aside" aria-label="侧栏">
     <div class="card">
-        <h4>标签</h4>
-        <div class="tag-chips" id="tagCloud"><span class="chip">加载中…</span></div>
+        <h2 class="aside-title">标签</h2>
+        <div class="tag-chips" id="tagCloud"><%- include('state', { kind: 'loading', size: 'inline' }) %></div>
     </div>
     <div class="card">
-        <h4>关于本站</h4>
-        <p>基于 Node.js + Express + MongoDB，支持 Markdown 写作、全文检索与标签。</p>
+        <h2 class="aside-title">关于本站</h2>
+        <p>基于 Node.js + Express + MongoDB，支持 Markdown 写作、全文检索与分类。</p>
         <a class="btn btn-primary" href="/content/addPage">写文章</a>
     </div>
 </aside>
 <script>
-    fetch('/tags').then(function (r) { return r.json(); }).then(function (d) {
-        var box = document.getElementById('tagCloud');
-        if (!box) return;
-        if (!d.docs || !d.docs.length) { box.innerHTML = '<span class="chip">暂无标签</span>'; return; }
-        box.innerHTML = d.docs.slice(0, 20).map(function (t) {
-            return '<a class="chip" href="/tag/' + encodeURIComponent(t.name) + '">' + t.name + '</a>';
-        }).join('');
-    }).catch(function () { var b = document.getElementById('tagCloud'); if (b) b.innerHTML = '<span class="chip">暂无标签</span>'; });
+/* 标签云四态：加载骨架 / 成功 chips / 空态 / 失败带重试。
+   失败绝不写成「暂无标签」；重试失败时保留已经渲染出来的 chips。 */
+(function () {
+  var box = document.getElementById('tagCloud');
+  if (!box) return;
+  var hasRendered = false;
+
+  function chips(list) {
+    return list.slice(0, 20).map(function (t) {
+      return '<a class="chip" href="/tag/' + encodeURIComponent(t.name) + '">' + window.NL.esc(t.name) + '</a>';
+    }).join('');
+  }
+  function errorHtml() {
+    return window.NL.state('error', {
+      title: '标签没加载出来', text: '稍后再试，文章列表不受影响', retry: 'tags'
+    });
+  }
+  function render() {
+    if (!window.NL) return;               // 生成器缺失就保留模板骨架，绝不误写成空态
+    if (!hasRendered) box.innerHTML = window.NL.state('loading');
+    var ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    var timer = ctl ? setTimeout(function () { ctl.abort(); }, 8000) : null;
+    fetch('/tags', ctl ? { signal: ctl.signal } : {}).then(function (r) {
+      if (!r.ok) throw new Error('tags request failed');
+      return r.json();
+    }).then(function (d) {
+      if (timer) clearTimeout(timer);
+      var list = d && d.docs;
+      if (!list || !list.length) {
+        box.innerHTML = window.NL.state('empty', { title: '还没有标签', text: '发表文章后会在这里汇总' });
+        return;
+      }
+      box.innerHTML = chips(list);
+      hasRendered = true;
+    }).catch(function () {
+      if (timer) clearTimeout(timer);
+      if (hasRendered) {
+        box.insertAdjacentHTML('beforeend', errorHtml());
+      } else {
+        box.innerHTML = errorHtml();
+      }
+    });
+  }
+  box.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest ? e.target.closest('.js-state-retry') : null;
+    if (b && b.getAttribute('data-retry') === 'tags') {
+      var old = box.querySelector('.state--error');
+      if (old) old.remove();
+      hasRendered = false;
+      render();
+    }
+  });
+  // 本脚本位于 main 内，早于 footer 里定义 window.NL 的脚本；
+  // DOMContentLoaded 时 footer 已解析完，NL 一定就绪，且比 load 更早开始请求。
+  function boot() { render(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
 </script>

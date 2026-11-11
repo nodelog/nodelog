@@ -1,15 +1,16 @@
 <%- include('header') %>
 <% if (doc != null) { %>
-<ol class="breadcrumb">
+<ol class="breadcrumb" aria-label="面包屑">
     <li><a href="/" title="首页">首页</a></li>
     <li><a href="/log?page=1&view=log">系统公告</a></li>
-    <li class="active">正文</li>
+    <li class="active" aria-current="page">正文</li>
 </ol>
-<h1><%= doc.name %></h1>
-<div class="article-meta"><span><%= format(doc.createTime, "YYYY-MM-DD") %></span></div>
+<h1 class="article-title"><%= doc.name %></h1>
+<div class="article-meta"><time datetime="<%= format(doc.createTime, "YYYY-MM-DD") %>"><%= format(doc.createTime, "YYYY-MM-DD") %></time></div>
 <div class="card article-body article-content"><%- doc.content %></div>
 <% } else { %>
-<div class="empty"><span class="empty-title">公告不存在</span>它可能已被删除。</div>
+<h1 class="sr-only">公告没有找到</h1>
+<%- include('common/state', { kind: 'empty', size: 'block', title: '这条公告可能已被删除', text: '返回公告列表继续浏览', actionHref: '/log?page=1&view=log', actionText: '回到公告列表' }) %>
 <% } %>
 <input type="hidden" class="js-current-menu" value="js-log"/>
 <%- include('footer') %>

@@ -1,17 +1,36 @@
-<article class="card post-card <% if (typeof lead !== 'undefined' && lead) { %>post-card--lead<% } %>">
-    <% if (doc.cover) { %><img class="cover" src="<%= doc.cover %>" alt="<%= doc.name %>"/><% } %>
-    <h3><a href="/content/detail?id=<%= doc._id %>"><%= doc.name %></a></h3>
-    <div class="meta">
-        <span><%= doc.realName ? doc.realName : (doc.userName || '佚名') %></span>
-        <span><%= doc.categoryName || '未分类' %></span>
-        <span><%= format(doc.createTime || doc.modifyTime, 'YYYY-MM-DD') %></span>
-        <span><%= doc.view %> 次阅读</span>
-        <% if (doc.readingTime) { %><span>约 <%= doc.readingTime %> 分钟</span><% } %>
-    </div>
-    <% if (doc.excerpt) { %><p class="excerpt"><%= doc.excerpt %></p><% } %>
-    <% if (doc.tags && doc.tags.length) { %>
+<%
+  // 三种版式：lead（首页首篇，唯一 h1，跨满宽度）/ grid（2 列卡片）/ list（索引列表条目）
+  var v = (typeof variant !== 'undefined' && variant) ? variant
+        : ((typeof lead !== 'undefined' && lead) ? 'lead' : 'grid');
+  var isLead = (v === 'lead');
+  var isList = (v === 'list');
+  var _date = format(doc.createTime || doc.modifyTime, 'YYYY-MM-DD');
+%>
+<article class="post-card post-card--<%= v %>">
+    <% if (!isList && doc.cover) { %>
+    <a class="post-cover" href="/content/detail?id=<%= doc._id %>" tabindex="-1" aria-hidden="true">
+        <img class="cover" src="<%= doc.cover %>" alt="<%= doc.name %>" width="640" height="360"
+             decoding="async"<% if (!isLead) { %> loading="lazy"<% } %>>
+    </a>
+    <% } %>
+    <div class="post-body">
+        <% if (isLead) { %>
+        <h1><a href="/content/detail?id=<%= doc._id %>"><%= doc.name %></a></h1>
+        <% } else { %>
+        <h2><a href="/content/detail?id=<%= doc._id %>"><%= doc.name %></a></h2>
+        <% } %>
+        <div class="meta">
+            <span><%= doc.realName ? doc.realName : (doc.userName || '佚名') %></span>
+            <span><%= doc.categoryName || '未分类' %></span>
+            <time datetime="<%= _date %>"><%= _date %></time>
+            <span><%= doc.view %> 次阅读</span>
+            <% if (doc.readingTime) { %><span>约 <%= doc.readingTime %> 分钟</span><% } %>
+        </div>
+        <% if (doc.excerpt) { %><p class="excerpt"><%= doc.excerpt %></p><% } %>
+        <% if (doc.tags && doc.tags.length) { %>
         <div class="tag-chips">
             <% doc.tags.forEach(function(t){ %><a class="chip" href="/tag/<%= encodeURIComponent(t) %>"><%= t %></a><% }); %>
         </div>
-    <% } %>
+        <% } %>
+    </div>
 </article>

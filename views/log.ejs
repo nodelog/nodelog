@@ -1,19 +1,23 @@
 <%- include('header') %>
+<ol class="breadcrumb" aria-label="面包屑">
+    <li><a href="/">首页</a></li>
+    <li class="active" aria-current="page">系统公告</li>
+</ol>
 <div class="page-head">
     <h1>系统公告</h1>
-    <p class="muted">共 <%=total%> 条</p>
+    <p class="kicker">共 <%= total %> 条</p>
 </div>
-<div class="card">
+<div class="card timeline">
     <% if(docs.length > 0){ %>
         <% for(var i = 0; i < docs.length; i++){ %>
         <div class="bs-callout">
-            <h4><a href="/log/detail?id=<%= docs[i]._id %>&view=logDetail" title="<%= docs[i].name %>"><%= docs[i].name.length > 50 ? docs[i].name.substring(0, 50) + "…" : docs[i].name %></a></h4>
-            <div class="article-meta"><span><%= format(docs[i].createTime, "YYYY-MM-DD") %></span></div>
+            <h2><a href="/log/detail?id=<%= docs[i]._id %>&view=logDetail" title="<%= docs[i].name %>"><%= docs[i].name.length > 50 ? docs[i].name.substring(0, 50) + "…" : docs[i].name %></a></h2>
+            <div class="article-meta"><time datetime="<%= format(docs[i].createTime, "YYYY-MM-DD") %>"><%= format(docs[i].createTime, "YYYY-MM-DD") %></time></div>
         </div>
         <% } %>
-        <%- include('common/pager') %>
+        <%- include('common/pagination', { page: page, totalPage: totalPage, url: (typeof locals.url === 'string' && locals.url) ? locals.url : '/log?view=log&' }) %>
     <% } else { %>
-        <div class="empty"><span class="empty-title">暂无公告</span>有新公告时会显示在这里。</div>
+        <%- include('common/state', { kind: 'empty', size: 'block', title: '还没有公告', text: '有新公告时会显示在这里', actionHref: '/', actionText: '回首页' }) %>
     <% } %>
 </div>
 <input type="hidden" class="js-current-menu" value="js-log"/>

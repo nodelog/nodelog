@@ -1,10 +1,22 @@
 <%- include('header') %>
+<ol class="breadcrumb" aria-label="面包屑">
+    <li><a href="/">首页</a></li>
+    <li class="active" aria-current="page">搜索结果</li>
+</ol>
 <div class="page-head">
     <h1>搜索「<%= key %>」</h1>
-    <p class="muted">共找到 <%= total %> 篇</p>
+    <p class="kicker">共找到 <%= total %> 篇</p>
+    <!-- 页头独立检索框：可回显关键词、回车即提交，不与顶栏 .js-search 建议钩子冲突 -->
+    <form class="page-search" action="/content/search" method="get">
+        <label for="page-search-input" class="sr-only">搜索文章关键词</label>
+        <input type="search" id="page-search-input" name="word" class="form-control"
+               value="<%= key %>" placeholder="搜索文章关键词" maxlength="50">
+        <input type="hidden" name="page" value="1">
+        <button type="submit" class="btn btn-primary">搜索</button>
+    </form>
 </div>
 <div class="layout">
-    <main><%- include('contentPanel') %></main>
+    <div class="layout-main"><%- include('contentPanel') %></div>
     <%- include('common/sidebar') %>
 </div>
 <input type="hidden" class="js-current-menu" value="js-search-bar"/>

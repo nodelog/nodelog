@@ -1,6 +1,17 @@
 <%- include('header') %>
-<div class="empty">
-    <span class="empty-title">页面不存在</span>
-    <p>5 秒后自动返回首页，也可以 <a href="/">立即返回</a>。</p>
+<%
+  var _code = (typeof state !== 'undefined' && state) ? String(state) : '404';
+  var _is404 = (_code === '404');
+%>
+<div class="error-page">
+    <h1 class="sr-only"><%= _is404 ? '页面不存在' : '服务暂时出了点问题' %></h1>
+    <p class="kicker">错误 <%= _code %></p>
+    <%- include('common/state', {
+         kind: 'error', size: 'block',
+         title: _is404 ? '页面不存在' : '服务暂时出了点问题',
+         text: _is404 ? '这个地址可能写错了，或者内容已经被移走' : '请稍后再试，你填写的内容没有丢失',
+         actionHref: '/', actionText: '回首页',
+         actionHref2: '/#nl-site-search', actionText2: '去搜索'
+       }) %>
 </div>
 <%- include('footer') %>

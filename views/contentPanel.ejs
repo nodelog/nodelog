@@ -1,16 +1,22 @@
+<%
+  // 被 categoryContent / search / myContent 复用。search 的 findByWord 分支不传 url，这里显式兜底。
+  var _rawUrl = (typeof locals !== 'undefined' && locals && typeof locals.url === 'string') ? locals.url : '';
+  var _pageUrl = _rawUrl ? _rawUrl
+      : '/content/search?word=' + encodeURIComponent(typeof key !== 'undefined' ? key : '') + '&';
+  var _kw = (typeof key !== 'undefined' && key) ? key : '';
+%>
 <% if (typeof docs !== 'undefined' && docs && docs.length) { %>
-<div class="post-grid">
+<div class="post-list">
     <% docs.forEach(function(doc){ %>
-        <%- include('common/postCard', { doc: doc }) %>
+        <%- include('common/postCard', { doc: doc, variant: 'list' }) %>
     <% }); %>
 </div>
-<% if (totalPage > 1) { %>
-<div class="pager">
-    <% for (var p = 1; p <= totalPage; p++) { %>
-        <% if (p === page) { %><span class="current"><%= p %></span><% } else { %><a href="<%= url %>page=<%= p %>"><%= p %></a><% } %>
-    <% } %>
-</div>
-<% } %>
+<%- include('common/pagination', { page: page, totalPage: totalPage, url: _pageUrl }) %>
 <% } else { %>
-<div class="empty"><span class="empty-title">没有找到文章</span>试试其他分类或关键词。</div>
+<%- include('common/state', {
+     kind: 'empty', size: 'block',
+     title: _kw ? '没找到「' + _kw + '」' : '这里还没有文章',
+     text: _kw ? '换个词试试，或者回首页按分类浏览' : '换个分类或等一等，新文章会显示在这里',
+     actionHref: '/', actionText: _kw ? '回首页按分类浏览' : '回首页看看'
+   }) %>
 <% } %>

@@ -3,22 +3,22 @@
 <input type="hidden" class="js-doc-id" value="<%- doc._id %>"/>
 
 <article class="article-detail">
-    <ol class="breadcrumb">
+    <ol class="breadcrumb" aria-label="面包屑">
         <li><a href="/" title="首页">首页</a></li>
-        <li><a href="/content/category?categoryId=<%= doc.category %>&page=1" title="<%= doc.categoryName %>"><%= doc.categoryName %></a></li>
-        <li class="active">正文</li>
+        <li><a href="/content/category?categoryId=<%= doc.category %>&page=1" title="<%= doc.categoryName || '未分类' %>"><%= doc.categoryName || '未分类' %></a></li>
+        <li class="active" aria-current="page">正文</li>
     </ol>
 
-    <h1><%= doc.name %></h1>
+    <h1 class="article-title"><%= doc.name %></h1>
     <div class="article-meta">
         <span><%= doc.realName ? doc.realName : doc.userName %></span>
-        <span><%= doc.categoryName %></span>
-        <span><%= format(doc.createTime, "YYYY-MM-DD") %></span>
+        <span><%= doc.categoryName || '未分类' %></span>
+        <time datetime="<%= format(doc.createTime, "YYYY-MM-DD") %>"><%= format(doc.createTime, "YYYY-MM-DD") %></time>
         <span><%= doc.view %> 次阅读</span>
         <% if (session.user != null && session.user._id == doc.author) { %>
         <a href="/content/edit?id=<%= doc._id %>&view=editContent" class="btn btn-primary">编辑</a>
         <% } else { %>
-        <a href="javascript:;" class="js-open-comment-btn">发表评论</a>
+        <a href="javascript:;" class="js-open-comment-btn" role="button">发表评论</a>
         <% } %>
     </div>
 
@@ -31,16 +31,16 @@
 </article>
 
 <section class="card">
-    <h3 class="js-comment-title">评论</h3>
-    <div class="alert js-all-comment hide" role="alert">暂无评论</div>
-    <div class="js-comment-panel">加载评论…</div>
+    <h2 class="js-comment-title">评论</h2>
+    <div class="js-all-comment hide" aria-hidden="true"></div>
+    <div class="js-comment-panel"><%- include('common/state', { kind: 'loading', size: 'block' }) %></div>
     <div class="hide js-more-comment">
         <button type="button" class="btn js-more-comment-btn">加载更多</button>
     </div>
 </section>
 
 <section class="card">
-    <h3>发表评论</h3>
+    <h2>发表评论</h2>
     <form role="form" action="javascript:;">
         <div class="form-group">
             <label for="commentInput">内容</label>
@@ -52,7 +52,8 @@
 </section>
 
 <% } else { %>
-<div class="empty"><span class="empty-title">文章不存在</span>它可能已被删除或下架。</div>
+<h1 class="sr-only">文章没有找到</h1>
+<%- include('common/state', { kind: 'empty', size: 'block', title: '这篇文章可能已被删除', text: '返回首页继续浏览', actionHref: '/', actionText: '返回首页' }) %>
 <% } %>
 <% if (typeof doc !== 'undefined' && doc != null && session.user != null && session.user._id == doc.author) { %>
 <input type="hidden" class="js-current-menu" value="js-my-content-menu"/>

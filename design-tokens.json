@@ -1,0 +1,154 @@
+{
+  "$schema": "nodelog-design-tokens/1.0",
+  "project": "NODELOG",
+  "phase": 2,
+  "source": "DESIGN.md (single source of truth)",
+  "themes": {
+    "light": {
+      "bg": "#f9fafb",
+      "surface": "#ffffff",
+      "surface-2": "#f2f4f7",
+      "border": "#e0e3e6",
+      "border-strong": "#8b939e",
+      "ink": "#171b21",
+      "muted": "#606a76",
+      "accent": "#1d4ed8",
+      "accent-hover": "#1a43b8",
+      "accent-weak": "#e8f0fe",
+      "on-accent": "#ffffff",
+      "ring": "#1d4ed8",
+      "danger": "#c32d28",
+      "warning": "#8a5a0a",
+      "success": "#2f7d5d",
+      "info": "#1d4ed8",
+      "shadow": "0 1px 2px rgba(16,24,40,.05), 0 8px 24px rgba(16,24,40,.06)"
+    },
+    "dark": {
+      "bg": "#12151a",
+      "surface": "#1b1f26",
+      "surface-2": "#232830",
+      "border": "#303640",
+      "border-strong": "#667080",
+      "ink": "#eef1f5",
+      "muted": "#9aa4b2",
+      "accent": "#6aa6ff",
+      "accent-hover": "#8fbcff",
+      "accent-weak": "#1b2a42",
+      "on-accent": "#0d1117",
+      "ring": "#6aa6ff",
+      "danger": "#f0736e",
+      "warning": "#e0ad55",
+      "success": "#67c99a",
+      "info": "#6aa6ff",
+      "shadow": "0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35)"
+    }
+  },
+  "managerNav": {
+    "scope": "后台 manager 顶栏专用，前台组件一律不得引用；属既有深色顶栏身份的令牌化，不是第二套前台调色板",
+    "light": {"bg": "#1f2530", "fg": "#ffffff", "line": "rgba(255,255,255,.08)", "hover": "rgba(255,255,255,.12)", "edge": "rgba(255,255,255,.30)"},
+    "dark": {"bg": "#12151a", "fg": "#eef1f5", "line": "rgba(255,255,255,.08)", "hover": "rgba(255,255,255,.12)", "edge": "rgba(255,255,255,.30)"},
+    "contrast": {"light-fg-on-bg": 15.38, "dark-fg-on-bg": 16.15},
+    "rules": ["仅在 :root 令牌定义段出现裸 hex，组件内只写 var(--manager-nav-*)", "theme.css 第 100 行之后实测零裸 hex"]
+  },
+  "semantic": {
+    "light": {
+      "info":    {"tint": "#e8f0fe", "ink": "#1d4ed8", "contrast": 5.85},
+      "warning": {"tint": "#fdf3e2", "ink": "#8a5a0a", "contrast": 5.38},
+      "danger":  {"tint": "#fdeceb", "ink": "#a3221e", "contrast": 6.55},
+      "success": {"tint": "#e8f5ee", "ink": "#1f6349", "contrast": 6.37}
+    },
+    "dark": {
+      "info":    {"tint": "#1b2a42", "ink": "#a8c8ff", "contrast": 8.49},
+      "warning": {"tint": "#332a17", "ink": "#e8bd6a", "contrast": 8.03},
+      "danger":  {"tint": "#3a1f1e", "ink": "#ff9d99", "contrast": 7.55},
+      "success": {"tint": "#173027", "ink": "#8edcae", "contrast": 8.73}
+    },
+    "note": "tint vs surface is only 1.10-1.17:1; never rely on tint alone. Every state needs SVG icon + deep ink text + plain-language copy."
+  },
+  "contrastEvidence": {
+    "method": "WCAG 2.1 relative luminance, sRGB linearization",
+    "old-accent-387fdc": {"on-white": 4.01, "on-bg": 3.84, "white-on-it": 4.01, "verdict": "FAIL <4.5"},
+    "new-accent-1d4ed8": {"on-white": 6.70, "on-bg": 6.41, "white-on-it": 6.70, "on-accent-weak": 5.85, "hover-white-on-it": 8.27, "verdict": "PASS"},
+    "dark-accent-6aa6ff": {"on-bg": 7.41, "on-surface": 6.70, "ink-on-it": 7.67, "verdict": "PASS"},
+    "light": {"ink-on-bg": 16.54, "ink-on-surface": 17.28, "muted-on-bg": 5.26, "muted-on-surface": 5.50, "muted-on-surface-2": 4.99, "danger-on-surface": 5.64, "warning-on-surface": 5.92, "border-strong-on-surface": 3.10},
+    "dark": {"ink-on-bg": 16.15, "ink-on-surface": 14.59, "muted-on-bg": 7.25, "muted-on-surface": 6.55, "muted-on-surface-2": 5.87, "danger-on-surface": 5.81, "border-strong-on-surface": 3.30}
+  },
+  "typography": {
+    "fontSans": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", \"Source Han Sans SC\", \"Noto Sans CJK SC\", sans-serif",
+    "fontMono": "\"SFMono-Regular\", Consolas, \"Liberation Mono\", Menlo, monospace",
+    "scale": {
+      "fs-small":   {"size": "13px", "lineHeight": 1.50, "weight": 400, "letterSpacing": "0.01em", "role": "date / count / badge"},
+      "fs-body-sm": {"size": "15px", "lineHeight": 1.60, "weight": 400, "letterSpacing": "0", "role": "sidebar / button / form / pager / excerpt"},
+      "fs-body":    {"size": "17px", "lineHeight": 1.75, "weight": 400, "letterSpacing": "0", "role": "article body"},
+      "fs-lead":    {"size": "22px", "lineHeight": 1.45, "weight": 500, "letterSpacing": "0", "role": "card title / lead"},
+      "fs-h3":      {"size": "26px", "lineHeight": 1.40, "weight": 500, "letterSpacing": "0", "role": "section title (aux)"},
+      "fs-h2":      {"size": "34px", "lineHeight": 1.35, "weight": 500, "letterSpacing": "0", "role": "page title"},
+      "fs-h1":      {"size": "46px", "lineHeight": 1.30, "weight": 500, "letterSpacing": "0", "role": "detail title"},
+      "fs-display": {"size": "61px", "lineHeight": 1.30, "weight": 500, "letterSpacing": "0", "role": "homepage lead article"}
+    },
+    "mobileOverrides": {"fs-display": "40px", "fs-h1": "34px", "fs-h2": "28px", "fs-body": "17px (never shrink)"},
+    "maxScalePerPage": 5,
+    "measure": {"body": "68ch (~578px, ~34 CJK chars)", "excerpt": "42ch", "sidebar": "280px"},
+    "scaleRatio": {"display-over-body": 3.59, "h1-over-body": 2.71},
+    "rules": ["Chinese letter-spacing must be 0, never negative", "Chinese line-height >= 1.3 for display, 1.7-1.8 for body", "font-weight <= 500 in functional UI", "ALL-CAPS Latin needs 0.06-0.1em tracking (not used here)"]
+  },
+  "spacing": {"scale": ["4px", "8px", "12px", "16px", "24px", "32px", "48px", "72px"], "grid": "4px", "sectionGap": "48px", "oneTimeGap": "72px (homepage lead to rest)", "itemGap": "24px", "controlGap": "8px"},
+  "radius": {"none": "0px", "sm": "8px", "md": "12px", "control": "999px", "forbidden": ["10px", "14px", "18px", "24px"]},
+  "layout": {
+    "wrap": "1040px",
+    "wrapWide": "1200px (viewport >=1280px)",
+    "paddingX": "24px",
+    "paddingXMobile": "16px",
+    "grid": "12 columns desktop / 8 tablet / 4 mobile",
+    "columns": {
+      "homepage": {"main": "992px", "gridTwoCol": "488px each", "gap": "16px", "lead": "992px", "sidebar": 0},
+      "list": {"main": "680px", "sidebar": "280px", "gap": "32px", "template": "minmax(0,1fr) 280px"},
+      "detail": {"main": "68ch (~578px)", "sidebar": 0, "align": "same left edge as list main column"}
+    },
+    "breakpoints": {"desktop": ">=1024px", "tablet": "768-1023px", "mobile": "<768px", "testWidths": [320, 375, 414, 768, 834, 1024, 1280, 1440], "sidebarCollapse": "1024px (was 900px; covers iPad 834)"}
+  },
+  "zIndex": {"base": 0, "dropdown": 100, "sticky": 200, "overlay": 300, "modal": 400, "toast": 500, "tooltip": 600},
+  "elevation": {"rule": "floating = shadow + border:0; flat = 1px border + no shadow; never both on one element", "card": "1px border only (remove theme.css box-shadow-sm)"},
+  "motion": {
+    "linkColor": "150ms ease",
+    "buttonHover": "150ms ease",
+    "sectionEnter": "300ms ease-out, translateY(8px) + fade, once only",
+    "skeletonShimmer": "1.2s linear (static under reduced-motion)",
+    "toastAutoDismiss": "4000ms",
+    "reducedMotion": "@media (prefers-reduced-motion: reduce) -> animation/transition none, shimmer static",
+    "forbidden": ["autoplay carousel", "meta refresh redirect", "decorative micro-interactions", "flashing >3Hz"]
+  },
+  "icons": {"system": "inline SVG, single stroke set, 24x24 viewBox, stroke-width 1.75, stroke=currentColor, fill=none", "sizes": [16, 20, 24], "emoji": false, "iconFont": false, "note": "replace theme.css :207/208 character glyphs (\\263E \\2600) with inline SVG"},
+  "stateComponent": {
+    "path": "views/common/state.ejs (reference implementation in DESIGN.md §5; frontend to create)",
+    "params": ["kind: empty|loading|error|success|fail", "size: block|inline", "title", "text", "retryUrl", "retryLabel", "actionHref", "actionText"],
+    "dom": "container[data-state][role][aria-live][aria-atomic] > (skeleton|svg[aria-hidden]) + body(title/text/actions)",
+    "aria": {"empty": {"role": "status", "live": "polite"}, "loading": {"role": "status", "live": "polite", "srOnlyText": "正在加载"}, "error": {"role": "alert", "live": "assertive", "retry": true}, "success": {"role": "status", "live": "polite", "surface": "global toast"}, "fail": {"role": "status", "live": "polite", "surface": "global toast", "retry": true}},
+    "sizes": {"block": {"minHeight": "200px", "padding": "48px 24px", "icon": "24px", "title": "22px", "text": "15px", "actionGap": "16px"}, "inline": {"minHeight": "44px", "padding": "12px 16px", "icon": "16px", "text": "15px", "gap": "12px", "retryTapTarget": "44x44"}},
+    "skeleton": {"title": "22px x 60%", "line": "15px x 100%", "shortLine": "15px x 72%", "gap": "12px", "radius": "8px", "color": "surface-2"},
+    "loadingPolicy": "local async refresh = skeleton (predictable size, CLS~0, keeps content usable); whole-page route load = one centered spinner; never mix on the same page",
+    "hardRules": ["never render a failed request as an empty-state copy", "on failure keep existing data and user input", "every error/fail carries a retry action", "toast host is a direct child of body, never inside a panel that can unmount", "toast reports only completed/failed, never in-progress, no progress bar"],
+    "reuseTargets": ["index.ejs / contentPanel.ejs empty", "#tagCloud loading|empty|error", ".js-comment-panel loading|empty|error|success", ".js-search-panel loading|empty|error", ".pager error", "error.ejs error", "log.ejs empty", "contentDetail.ejs article-not-found empty"]
+  },
+  "accessibility": {
+    "contrastText": ">=4.5:1 (large bold >=18.66px: 3:1)",
+    "focusVisible": "outline: 2px solid var(--ring); outline-offset: 2px",
+    "skipLink": "first focusable, href=#main, visible on focus, z-index 600",
+    "landmarks": "one main#main[tabindex=-1], one nav[role=navigation], one aside, one footer",
+    "ariaCurrent": "keep class=\"current-menu\" AND add aria-current=\"page\" (CSS/JS hooks must survive)",
+    "viewport": "width=device-width, initial-scale=1 (remove maximum-scale=1)",
+    "metaRefresh": "forbidden; error.ejs uses clickable link instead",
+    "touchTarget": "44x44px, gap >=8px",
+    "safeArea": "env(safe-area-inset-top/bottom)",
+    "headingOrder": "one h1, h1->h2->h3 no skips",
+    "keyboard": "all flows Tab-reachable; dropdown/modal Esc-close + focus trap + focus return"
+  },
+  "performance": {
+    "frontendCssRequests": "<=3 (theme.css + minimal structure css + editor-only css loaded on demand)",
+    "removeFromFrontend": ["bootstrap.css", "docs.min.css", "bootstrap-switch.min.css", "font-awesome.css", "style.css full link", "require.js + /js/main on non-editor pages"],
+    "images": "declare width/height or aspect-ratio, loading=lazy (except above-the-fold lead cover), decoding=async",
+    "themeFlash": "keep inline data-theme script in head",
+    "noNewDependencies": true,
+    "noNewFeatures": true
+  }
+}

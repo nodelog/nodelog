@@ -1,29 +1,21 @@
 <%- include('header') %>
-<div class="page-head">
-    <h1>最新文章</h1>
-    <p class="muted"><%= total %> 篇 · 记录技术，分享思考</p>
-</div>
+<p class="kicker">最新文章 · <%= total %> 篇</p>
 
 <div class="layout">
-    <main>
+    <div class="layout-main">
         <% if (typeof docs !== 'undefined' && docs && docs.length) { %>
         <div class="post-grid">
             <% docs.forEach(function(doc, i){ %>
-                <%- include('common/postCard', { doc: doc, lead: i === 0 }) %>
+                <%- include('common/postCard', { doc: doc, variant: i === 0 ? 'lead' : 'grid' }) %>
             <% }); %>
         </div>
         <% } else { %>
-        <div class="empty"><span class="empty-title">还没有文章</span>发布第一篇文章后，这里会显示文章列表。</div>
+        <h1 class="sr-only">最新文章</h1>
+        <%- include('common/state', { kind: 'empty', size: 'block', title: '还没有文章', text: '发布第一篇文章后，这里会显示文章列表', actionHref: '/content/addPage', actionText: '去写第一篇' }) %>
         <% } %>
 
-        <% if (totalPage > 1) { %>
-        <div class="pager">
-            <% for (var p = 1; p <= totalPage; p++) { %>
-                <% if (p === page) { %><span class="current"><%= p %></span><% } else { %><a href="<%= url %>page=<%= p %>"><%= p %></a><% } %>
-            <% } %>
-        </div>
-        <% } %>
-    </main>
+        <%- include('common/pagination', { page: page, totalPage: totalPage, url: (typeof locals.url === 'string' && locals.url) ? locals.url : '/index?' }) %>
+    </div>
 
     <%- include('common/sidebar') %>
 </div>

@@ -1,0 +1,248 @@
+{
+  "project": "NODELOG",
+  "phase": 2,
+  "owner": "mvp-dev-expert-team-designer",
+  "verdict": "pass",
+  "contractRevision": "R2 修正登记口径（更正库基线 #2b67b6 达标的事实错误、typePair 改 app-type、登记 W1-W3）；R3 补登记后台 --manager-nav-* 令牌（含 15.38/16.15 实算）、澄清分页双实现与钩子保留、把 design_drift_check 的第三方 CSS 命中与保留性令牌定性为 W4/W5 豁免；R4 针对已接线的 vditor 立 W6 条件性条款（P0-1 的 UGC 例外具体化 + 接线三条硬要求 + 门禁排除范围），并补写 P0-1 的 UGC 例外；R5 更正归属（9865e95 为用户提交、editor.ejs 不许碰，故「回退 vditor」不可由团队自主执行），把 §8 样式表判据精确化为普通前台页 3 份 / 编辑页 ≤6 且单一入口（当前 7 份超 1），决策收敛为保留 vditor 前提下的 emoji 面板取舍；R6 依据 QA 真机 CDP 证据裁定 emoji 面板为『内容候选样本』不命中 P0-1（非豁免，P0 不可豁免），把 W6 重定性为『条件性边界登记、非 P0 豁免』，边界细化为 A/B 双判据 + 三硬约束 + 复审触发，并写入『静态 grep + 真机展开浮层』双轨验证基线；同时登记 G18 误报为 PASS、确认 405 个 vendor 文件已入库；清理 §8 R5 残留的『收敛为禁用面板/登记豁免』与『529 未跟踪待决』旧结论，并把 R4 条件 2 的『编辑页 ≤3』修正为 §8 R5 的『≤6 且单一入口』，消除契约内部矛盾；R7 依据前端技术核对修正 R5 的一处不可达判据：把 7 份 CSS 精确分解为 meta-front 合计 6 份（公共 2 + needEditor 3 + theme 1）+ editor.ejs:18 第 7 份，把合取式『≤6 且单一入口』拆成『硬指标 ≤6（只裁 prettify.css，可达）/ 单一入口降为目标态（需授权改用户禁改文件且再裁 1 份）/ dist/index.css 令牌覆盖必做』三层，实证 editor.ejs:14 图标字体为红线偏离但非 P0、登记为已登记偏离第 4 条，并把『是否授权改 editor.ejs』单列为与 emoji 正交的独立决策项；R8 依据前端提醒补上范围边界声明：QA 报的是两个 P0、R6 只裁 emoji 那个，草稿回灌保存空内容的数据完整性缺陷仍在（editor.ejs:90 after 回调 / dist index.js:2528,15840），设计侧不裁等级与修法但不得连带关掉；据此把 openDecision 动因扩为 D1/D2、默认建议由 A 更正为 B；清掉 R7 未清干净的『单一入口』硬要求残留（§10 条件 2 与 conditions[1] 改为目标态登记）；登记 theme.css 的 .vditor 覆盖规则数 = 0 与两项零禁改冲突的并行工作；R9 依 QA 撤回 V1 后的三条 advisory 收口：把『编辑页 ≤6』固定为 HTML 源码 <link> 数（运行时注入 9 份/生效 8 份单独登记）、标注 cond[2] 门禁自动化仍为 manual 且落 gates.config.json 需授权、订正 git 状态数字（目录级 0 / 全局 20 M + 4 ??），并把 cssConsumers 提升为 W6 顶层键消除字段路径歧义；另登记 QA 补的三处编辑器 P2 可访问性限制与令牌覆盖 P1 运行时证据；R10 依前端 CDP 补证收紧三处口径：源码级计数同时覆盖普通页（源码 3 / 运行时 4，layer.css 404 注入）与编辑页（源码 7 / 运行时 9）、令牌覆盖对象扩为 dist/index.css + content-theme/*.css（暗色实测仍注 light.css、.vditor 无 data-theme、背景透明）、V2 触发面为每次加载均抛 TypeError 而非仅草稿回灌；并按 QA advisory 给 §8 归属段末句加『仅就视觉/性能范围而言』限定，明确 V2/B2 两个 P0 仍待修，同时把 conditions[1] 与 hardGate 的计数口径统一为 HTML 源码 <link> 数；R11 依前端复核订正 B 方案算式（搬 link 后源码总仍 7，只需裁 prettify.css 一份即达 ≤6，font-awesome.css 须先换 SVG 才可选裁）、新增候选 D 分级授权并把默认建议由 B 改为 D（零授权 / 最小授权只改 editor.ejs:90 一行修 V2 / 完整授权三档可拆）、登记 dist 双证据源互认，并清理 §9 把 about.ejs 文案误列为待 PM 决策的过时陈述（实为任务书 §四.15 已落地，about.ejs:12 全文『标签』0 命中）；R12 依 QA/前端双向补证补登 content-theme 资产清单（vendor 自带 light.css 200/13 hex token 与 dark.css 200/约 2851-2855 B、10 hex / 26 含 rgb，属『有文件没用』而非缺文件）、登记必做项两条实现路线甲/乙及成本（设计侧不代定）、订正 §10 条件性段残留的目录级 git status 误写为全局、并把 /js/need/layer.css 404 定性为 P2 既有 vendor 缺陷非本次回归（backlog 单列）；另确认 contractRevision 本串已含 R11；R13 依 QA advisory 订正 R11 一处会误导上线的表述（『最小授权是解除 release: no-go 的最短路径』不成立，no-go 由 V2 + B2 双 P0 共同支撑，只修 V2 仅清掉一项），同步改 §8 分级表效果列 / ② 段 / §10 R8 段 / decisionScope / options[D].cost，新增 releaseGate（B2 现状与 QA 六条复验硬判据）与 openDecisionsOutsideDesign（QA-A 更多评论 .fail() 静默、QA-B /comment/all 与 /session cache-first 仍未落地，排期别漏），并把 content-theme/dark.css 计数口径精确化为「10/13 去重色值 vs 26 次出现」「2851 字符数 vs 2855 字节数、同一文件」；§10 条件性段的目录级 git status 订正与 dark.css 资产登记均已在 R12 落盘，QA/前端读到的残留为旧快照；R14 依 QA/前端双向校正做两处精度补强（不改任何判定）：① content-theme 色值口径定稿——设计侧按字节流独立复算，light.css 2560 B/2556 字符、hex 21 出现/11 去重、hex+rgb() 24 出现/13 去重；dark.css 2855 B/2851 字符、hex 24 出现/9 去重、hex+rgb() 26 出现/10 去重；明确『10/13』是两文件各自的 hex+rgb() 去重值而非 hex-only 或同文件两口径，R12『13 hex token / 2851 B』与 R13『10/13 去重色值数』旧标签作废，contentThemeAssets 改为结构化四格权威表；② releaseGate.b2 补前端无意触发的只读复现入口 GET /log/detail?view=logDetail（无有效 id）→ controllers/log.js:76 ← models/Log.js:34 完整堆栈，并登记『复验须隔离实例、禁止在共享 3000/3001 触发』，为 v2RetestCriteria 末项补上可操作触发条件；R15 依前端复核补齐 openDecision.recommended 的漏改口径（该字段此前仍留 R11『V2 是卡上线的 P0』单因表述，与 R13『V2 + B2 双 P0 共同支撑 no-go』不一致），改为『V2 是卡上线的 P0 之一、与未修的 B2 共同支撑 release: no-go，见 W6.releaseGate；最小授权只清掉 V2，no-go 仍被 B2 卡住』；decisionScope / options[D].cost 已在 R13 改过，本次仅补 recommended，不改判定、不新增裁决。design-tokens.json 顶层 19 键为 4 个元数据标量（$schema/project/phase/source）+ 15 个分组 dict，均属设计数据与结构令牌、不记决策修订，无需同步（R16 订正措辞）。R16 依 QA advisory 精修该句：此前写『顶层 19 键全为数值令牌』不准确，实读为 4 标量 + 15 dict；结论（不记修订、无需同步、不为刷一致性改它）不变，仅改 contractRevision 措辞，不改任何判定、字段、令牌值；R17 依 QA 真机 CDP 证据补 §5 验收基线（非新豁免、不改判定）：把评论区拆为『首屏 loadComments()』与『更多评论 .js-more-comment-btn』两条独立异步路径（此前复用点表格只写一行导致后者漏检），订正硬规则『失败绝不降级成空态 / 错误态带重试且保留已渲染内容与输入』适用于每一条异步路径；登记 CDP 注入 createTime:null 的实证（common.js:543-577 更多评论旧链无 .fail()、new Date(val.createTime.toLocaleString()) 抛 TypeError、整页分页评论静默丢失：items 仍 1 / error=0 / retry=0 / .js-more-comment 不隐藏 / data-page 卡 1 / 连点重复请求），以及 fmtCommentTime() 用 isNaN(d.getTime()) 判不住 new Date(null) 会显示假 1970 epoch；新增『R17 异步路径四态对账清单』五条路径与 QA 四条复验判据（统一 fmtCommentTime 并显式判空 / createTime 5 种形状兜底 / 独立 data-retry 只重发 page+1 且 data-page 仅成功后前进 / 回归集补 5 形状）。定性 P1 advisory、归决策 A，不判 P0、不推翻 verdict: pass、不开 W7、不改业务代码；advisory 同步加一条；R18 依 QA 备案把『.design/cdp7-profile 工具产物污染 design_drift_check』登记为扫描范围边界（非缺陷、不提单、不开豁免）：SKIP 集合不含 .design，rglob 扫进 CDP 临时 profile 里 Chrome 扩展自带 antd.min.css / content.css / main.css 而报 [P0] DR07 未定义令牌 63 个，排除 .design 的临时根重跑 P0=0 / exit=0、profile 并行清理后真实根自动恢复；处置为交付前清理 .design/*-profile，长期免打扰需把 .design 加入门禁 exclude（授权动作，不擅改），与 R17 的 design_choice_check FileNotFoundError 同污染源同类竞态，共同支撑『并行采样不作裁决依据、以稳定态连续采样为准』。落点在 DESIGN.md §10「R3 复核补登记」的漂移门禁口径段（与 W4/W5 同段），advisory 加第 10 条；R19 依前端技术输入补 §5 R17 清单的捕获边界：.fail() 挂在 $.get(...).fail(...) 上（common.js:169/633/741 同型）只捕 jqXHR 网络/HTTP 失败，createTime.toLocaleString() 的 TypeError 在 success 回调内 $.each 同步抛出时 jqXHR 已 resolve、.fail() 接不住，故③『补 .fail() + 独立 data-retry』不能替代①②，必须同时在 handler 内复用 fmtCommentTime / 加 5 形状兜底并显式判空（首屏 isNaN(d.getTime()) 同样判不住 new Date(null) 假 epoch）；四条判据登记为一组、缺任一不算通过，别只验『有没有 .fail()』。仅补契约说明，不改判定、不开 W7、不改业务代码；advisory 第 9 条 action 同步。DESIGN.md §5/§8/§9/§10 与 design-tokens.json 同步. R20 依 QA 真机补正（R19 之上的精度增量，不改判定、不开 W7、不改业务代码）把 §5 error 态明确定义为两条正交失败源：(A) 网络失败 jqXHR reject → .fail()/data-retry，(B) success 回调内数据形状异常 → fmtCommentTime 显式判空/5 形状兜底/try-catch；二者不可互替，仅验证 .fail() 存在不构成四态达标证据、不得据此把 QA-A 判为已落地。新增『修复与验收顺序 ①② 先于 ③』（先形状兜底再网络链，倒过来会在只补 .fail() 的中间态被误判成 QA-A 已关闭）；登记 QA 追加实测的整批丢失机制（common.js:560-568 html+= 在 $.each 内、:575 append(html) 在循环外，null 放第 3 条时连其之前的合法条目也一起不落地：items 仍 1，对照全合法 items=6；jQuery 1.10.2 的 Deferred.done(抛异常).fail() → failCalled=false，只挂 .fail() 的模拟仍 failHandlerCalled=false，是 QA-A 假绿直接证据）；并把 QA 报主理人的决策 A 第 5 条硬判据（5 形状注入零异常无假 1970 / null 之前合法条目全部落地 / null 场景 data-page 不前进且 error+重试出现）登记进 §5 与 W6.openDecisionsOutsideDesign 的 QA-A.acceptanceCriteria。advisory[8].action 同步补 R20 口径。DESIGN.md §5 与 design-tokens.json 同步.",
+  "router": "ROUTER.md §一 (按阶段=2 设计 / 0 画之前) + §二 (症状: 每节长得一样 / 移动端挤爆 / 交接物缺失)",
+  "libraryQuery": "python3 scripts/design/design_query.py --brief \"NODELOG 技术博客\" --industry 内容平台 --mood 沉静克制",
+  "mode": "Read (content-first); homepage first screen has one Persuade-style lead article",
+  "register": "Product + Read (design serves the content, not the brand)",
+  "axis": {"DESIGN_VARIANCE": 3, "MOTION_INTENSITY": 2, "VISUAL_DENSITY": 5},
+  "redesignJudgement": "继承（inherit + systematic closure），不是重做。theme.css 已有的九槽/八档字号/1040 容器/.empty/.pager 就是项目身份，代码里的连贯性即身份。",
+  "style": "vercel-mono",
+  "styleContrast": "docs-quiet",
+  "styleRationale": {
+    "primary": "黑白极简 / 内容优先（design_query --brief 命中；关键词 纯黑白 / 大字号 / 无衬线）",
+    "localContrast": "中台规范风（仅后台 manager 页，前台不采用）",
+    "rejected": ["极光（深底光带/缓慢流动）——违反用户『避免堆砌装饰和不必要动效』", "中台规范风作为前台主线——信息密度过高，不适合阅读"],
+    "source": "design_query.py --brief §一；库 id vercel-mono=黑白极简 / docs-quiet=文档安静风"
+  },
+  "palette": "ink-blue-light",
+  "paletteDark": "ink-blue-dark",
+  "paletteRationale": {
+    "source": "design_query.py --brief §二（浅色日常/深色展示双主题原则）+ 项目 theme.css 继承",
+    "light": "九槽继承 + accent 选定 #1d4ed8（原 #387fdc 实测 4.01/3.84/4.01 不达标）/ border-strong #8b939e / warning #8a5a0a",
+    "dark": "九槽继承不动（#6aa6ff 实测 7.41/6.70/7.67 全部达标）",
+    "reason": "库 id ink-blue-light/dark（墨蓝·浅色/深色）与项目身份一致。库基线 primary #2b67b6 实测 5.65:1 白底 / 5.40:1 页面底 / 5.65:1 白字按钮，本身已达标；本项目仍选 #1d4ed8（6.70/6.41/6.70），理由是在页面底与按钮两个场景都留 >=1.5:1 余量、与深色 #6aa6ff 配对、并给 hover 阶 #1a43b8 留出空间，不是因为库基线不达标。design_query 返回的灰玫/梅紫为紫粉系，按『继承而非重做』不采用。"
+  },
+  "typePair": "app-type",
+  "typographyRationale": {
+    "source": "design_query.py --brief §三（同族字体需靠字号比 >=1.414 + 字重差）+ theme.css 八档",
+    "pair": "系统无衬线栈（含 4 个中文回退）+ 等宽栈（仅代码块）",
+    "familyCount": 2,
+    "scaleCount": 8,
+    "maxPerPage": 5,
+    "note": "库 id app-type = SF Pro / system-ui + system-ui，overused=false，与项目实际零 Web 字体依赖的系统栈完全一致；R2 起用它替换 geist-geist（后者会触发门禁『高频默认字体』WARN），这是更准确的登记，不是妥协。"
+  },
+  "layouts": ["hero-minimal", "list-detail", "long-form", "timeline", "empty-state"],
+  "layoutFamilyCount": 5,
+  "uxRules": ["nav-01", "nav-05", "form-01", "form-05", "fb-01", "fb-05", "load-01", "load-05", "err-01", "err-02"],
+  "layoutFamilies": {
+    "source": "design_voice.md §三 + design_query.py --brief §五（四个不同家族）",
+    "quota": "7 页覆盖 6 种家族，相邻两节不重复",
+    "pages": {
+      "home": "满宽主角 + 2 列网格",
+      "list": "索引列表（border-top 条目，非卡片网格）",
+      "detail": "单栏阅读（撤侧栏）",
+      "category": "索引列表 + 分类语境页头",
+      "about": "陈述式单栏",
+      "error": "居中状态",
+      "log": "时间线列表 / 单栏阅读"
+    },
+    "rejected": ["六张等大卡片从头排到尾", "首屏 Hero 口号 + 三卡", "默认三档定价表"]
+  },
+  "uxMustHandle": {
+    "source": "design_query.py --brief §四 + accessibility.md §一",
+    "p0": ["每个输入框可见 label", "键盘可达所有交互", "无整页横向滚动", "网络错误可重试且保留输入", "对比度 >=4.5:1", "去 maximum-scale=1", "去 meta refresh 自动跳转"],
+    "p1": ["图片固定比例占位", "骨架尺寸接近真实内容", "图片懒加载 + 尺寸声明", "返回行为可预期"]
+  },
+  "decisions": [
+    {"id": "D1", "kind": "结构决定", "content": "详情页撤掉 280px 侧栏，正文单列 68ch，标题/元信息/正文共用左沿；侧栏只留在列表/分类/搜索/我的文章/公告页", "reason": "把『读』从『浏览』里分离，文章页不再与侧栏争注意力"},
+    {"id": "D2", "kind": "交互决定", "content": "四类状态收敛为唯一 common/state.ejs，并立硬规则『失败绝不降级成空态』，错误态必须带重试且保留输入", "reason": "实证 sidebar.ejs:20 把 /tags 失败写成『暂无标签』、contentDetail.ejs:35-36 用两种裸文本表达加载与空态；错误被伪装成空数据会导致用户不重试"},
+    {"id": "D3", "kind": "可量修正", "content": "accent #387fdc -> #1d4ed8；warn #a86a12 -> #8a5a0a；新增 border-strong #8b939e / #667080", "reason": "实算 4.01 / 3.84 / 4.01、4.43、1.29 均不达标"},
+    {"id": "D4", "kind": "实证违规修复", "content": "删除 maximum-scale=1、删除 meta refresh、统一唯一 main#main、字重 700->500、字符 glyph->内联 SVG", "reason": "meta.ejs:7/18、header.ejs:68、theme.css:106/207 实读确认"},
+    {"id": "D5", "kind": "刻意偏离", "content": "本项目判为 Read，不套用 design-voice §二 的 100vw 字压场/图压场/一个 CTA 首屏三做法；节间节奏从 96-112px 收敛到 48px（全页一处 72px）", "reason": "营销页节奏用于内容站会显得空；已登记为有意偏离"},
+    {"id": "D6", "kind": "登记更正", "content": "R2 修正 paletteRationale 的事实错误：库基线 #2b67b6 达标而非不达标；typePair 由 geist-geist 更正为 app-type", "reason": "Phase 3 复核时实算 #2b67b6 得 5.65/5.40/5.65，此前凭推断写成『不足 4.5:1』属实，必须更正以免影响 QA 对账"}
+  ],
+  "signatures": {
+    "source": "design-tells.md §二 12 条签名特征自查",
+    "hitCount": 0,
+    "hit": [],
+    "threeQuestions": {
+      "fingerprint": "命中 0 条（无 emoji 图标 / 紫粉渐变 / 渐变文字 / 霓虹发光 / 居中 Hero+三卡 / rounded-2xl 一把梭 / italic serif / 等距留白 / 无意义微动效 / 库存插画 / 三档定价表）",
+      "reasons": ["主色 #1d4ed8 来自『在页面底与按钮白字两个场景都留 >=1.5:1 余量』的实算，不是审美偏好", "圆角 8/12 按『按钮 vs 卡片』角色分档，不是统一 rounded-2xl", "字体沿用项目系统栈并补齐 4 个中文回退，不引入展示字体"],
+      "recognition": "遮住站名，仍可凭『顶栏常驻检索 + 首屏真实文章元数据 + 68ch 正文 + 等宽代码块』认出 NODELOG"
+    }
+  },
+  "implementationReview": {
+    "reviewedBy": "mvp-dev-expert-team-designer",
+    "result": "通过，零数值漂移",
+    "checked": [
+      "public/css/theme.css :root 前 88 行：九槽 / 语义四件套 / 深色全套 / 八档字号 / 间距 / 圆角 / z 七层 / 中文字体栈，逐值与 design-tokens.json 一致",
+      "views/common/state.ejs：DOM 骨架、data-state、role/aria-live、骨架 + .sr-only、内联 SVG 24 viewBox stroke 1.75、.js-state-retry 全部符合 DESIGN.md §5",
+      "views/common/sidebar.ejs：catch 为 error + 重试，失败时 hasRendered 为真则 insertAdjacentHTML 追加错误并保留已渲染 chips，符合『失败时数据不许消失』",
+      "views/common/meta-front.ejs：viewport 已无 maximum-scale、无 meta refresh；前台 3 份 CSS + 编辑页按需加载",
+      "views/error.ejs：404/500 分态、两个可点动作、无自动跳转文案、唯一 h1(sr-only)",
+      "前端 CDP 实测 320/375/390/414/768/834/1024/1280/1440 九宽 scrollWidth==clientWidth，零横向滚动"
+    ]
+  },
+  "waivers": [
+    {
+      "id": "W1",
+      "gate": "design_choice_check",
+      "warn": "CSS 里没找到所选配色的主色 #2b67b6——选了但没用上？",
+      "classification": "门禁机械比对，非实现偏差",
+      "basis": "库 122 套配色无一 primary 等于 #1d4ed8（已全量查证）；库基线 #2b67b6 实测 5.65/5.40/5.65 达标，项目按更大余量落地 #1d4ed8（6.70/6.41/6.70），DESIGN.md §1 / design-tokens.json / theme.css 三方一致。",
+      "action": "保留 WARN 并登记豁免；不得为让门禁绿而把实现改回 #2b67b6（会降低余量且需同步改三份契约文件）。"
+    },
+    {
+      "id": "W2",
+      "gate": "DESIGN.md §5 Toast 宿主",
+      "warn": "#nl-toast-host 保持 BODY 直属但为空，瞬时操作结果反馈走既有 layer 弹层",
+      "classification": "主理人指令下的有意偏离，复用优先",
+      "basis": "不造第二套 Toast 视觉语言；layer 反馈仍须只报完成/失败、不报进行中、失败保留输入。",
+      "action": "接受；QA 按此口径对账。后续若补轻量就地成功提示，宿主已备好，不必新增组件库。"
+    },
+    {
+      "id": "W3",
+      "gate": "DESIGN.md §5 整页加载",
+      "warn": "SSR + 浏览器原生导航下不额外插居中 spinner",
+      "classification": "有意偏离，成立",
+      "basis": "整页进度由浏览器原生指示；局部异步刷新一律骨架屏，符合『一页只有一种加载形态』。",
+      "action": "接受；不要求补 spinner。"
+    },
+    {
+      "id": "W4",
+      "gate": "design_drift_check",
+      "warn": "DR02/DR03/DR04/DR06：171 个色值、17 个字号、6 个圆角、未声明字重",
+      "classification": "门禁扫描范围问题，非实现偏差",
+      "basis": "全部命中第三方遗留 CSS（bootstrap.css / bootstrap-switch.min.css / font-awesome.css / bootstrap-combined.no-icons.min.css）；前台实际只加载 3 份 CSS（meta-front.ejs:18-27），门禁按目录全扫把未加载文件也计入。theme.css 第 100 行之后实测零裸 hex。",
+      "action": "登记豁免；不要求把第三方 CSS token 化。若后续移除遗留文件，这些命中自然消失。"
+    },
+    {
+      "id": "W5",
+      "gate": "design_drift_check",
+      "warn": "DR08：15 个令牌定义但未被 var() 引用（--info-ink / --info-tint / --primary / --primary-weak / --radius-none 等）",
+      "classification": "保留性令牌，非缺陷",
+      "basis": "分别是旧模板兼容别名、语义四件套的完整位、圆角/间距刻度占位。删掉 info 位会导致下次做提示条时前端自创色，正是颜色混乱的起点。",
+      "action": "登记豁免，不得因 DR08 删除；QA 对账按此口径。"
+    },
+    {
+      "id": "W6",
+      "gate": "P0-1 emoji 功能图标 / vditor 编辑器",
+      "warn": "[历史告警字段，R9 标注] public/vendor/vditor 的 41 处 emoji（dist/index.js:14403+ shortcode→unicode 映射）与 images/emoji/*.png；529 个未跟踪文件",
+      "warnResolved": {"status": "已消除，勿按此字段对账", "authoritative": "vendorStatus", "evidence": "git ls-files public/vendor/vditor = 405 tracked；git status --short public/vendor/vditor = 0（目录级）。全局 git status --short 实为 20 M + 4 ??（DESIGN.md / design-choice.json / design-tokens.json / tests/），三份契约未入库属交付动作，不是视觉资产风险。"},
+      "classification": "条件性边界登记，非 P0 豁免；UGC 例外成立，非缺陷",
+      "classificationNote": "W6 登记的是 UGC 边界与三条工程约束，不是对 P0-1 开豁免（waiver 协议禁止豁免 P0）。R6 裁定 emoji 面板落在 P0-1 定义域之外，属『不违规』而非『违规但放行』；因此无需也不得另开 W7。",
+      "conditional": "仅在 vditor 被保留并接入时适用；若用户主动要求移除该编辑器则自动失效",
+      "basis": "映射表用途是把 :rocket: 转成字符插入文章正文，属 P0-1 原文例外『emoji 仅允许出现在用户生成内容中，绝不作为 UI 功能图标』；dist/index.js:5050 的 toolbar.elements.emoji 是 SVG 按钮而非 emoji 字符。实读：editor.ejs:9-19/66-92 已实例化 Vditor，addContent.ejs:14 / editContent.ejs:17 已 include，接线已发生（非前瞻）。design_choice_check 的 CSS 筛选实测 16 个文件且 theme.css 在内，vditor 的 CSS 全在 dist/ 下被过滤，三个设计门禁不受 gates.py 的 src 退化影响。",
+      "conditions": ["toolbar / 面板 / 编辑器内功能图标一律项目锁定内联 SVG（16/20/24px, viewBox 24, stroke 1.75, currentColor），不得用 emoji 当功能图标", "R10 扩范围：editor.ejs:18 的 dist/index.css + Vditor 运行时注入的 content-theme/*.css 必须由 theme.css 令牌覆盖（accent / 圆角 / 字体栈 / focus-visible / 浅深双主题含暗色；实测 theme.css 中 .vditor 规则数 = 0 且暗色仍注 light.css，尚未起步）。单一入口为 §8 R7 登记的目标态，不作放行判据、不算缺陷；放行判据只有 HTML 源码 <link rel=stylesheet> 数 ≤6（§8 R5：≤3 只适用普通前台页且同为源码级计数，当前源码 7 份超 1）", "门禁 exclude:['vendor'] 只跳过第三方源码；editor.ejs / addContent.ejs / editContent.ejs 接线点必须纳入 P0 与可访问性扫描"],
+      "ownership": {"commit": "9865e95", "author": "jiangzixin", "subject": "feat(editor): 用 Vditor 替换手写 textarea 编辑器（所见即所得 + 本地化，存储仍走 Markdown）", "evidence": "git diff --numstat -- views/editor.ejs 为空；任务书 §二.1 明令 editor.ejs 属用户改动不许碰", "implication": "是否启用 vditor 不是待决策项，是用户已做好的决定；候选『回退既有编辑器』不可由团队自主执行"},
+      "decisionScope": "R6 后：vditor 保留（用户 9865e95 已决定）、emoji 面板按 p0Ruling 判不命中 P0-1 且无需改代码、405 个 vendor 文件已全部入库，『未跟踪资产』不再待决；仍可由主理人/用户按产品偏好主动禁用 emoji 面板，但那不是缺陷也不是必须项。R7 后新增且仅剩一个独立决策项：『是否授权改 views/editor.ejs』（见 openDecision），与 emoji 取舍正交，由主理人/用户单独裁。CSS 收口的硬指标（裁 prettify.css）不依赖该授权，可直接由前端改 meta-front.ejs 执行。R8 后该决策项动因从 1 个变 2 个（视觉性能 D1 + 草稿回灌数据丢失 D2，后者 QA 按 P0 报且更严重），默认建议由 A 更正为 B、R11 再更正为 D 分级授权（授权可分零 / 最小 / 完整三档，B 隐含的『全授权或全不授权』假设不成立）；emoji 取舍已裁定完毕、不进决策卡，但功能缺陷不得被 R6 的『不需改码』连带关掉。零禁改冲突的两项（裁 prettify.css、theme.css 补 .vditor 覆盖规则，后者实测 0 条）不必等授权，可并行排期。R10 措辞限定：本段『仅剩一个独立决策项』只指设计契约 / 视觉性能范围；全项目另有 V2 / B2 两个 P0 仍待修（release: no-go 由它们支撑），不得读成全项目只剩这一项且都非 P0。R10 另把令牌覆盖对象扩为 dist/index.css + content-theme/*.css（暗色仍注 light.css），并把源码级计数口径同时适用于普通页（源码 3 / 运行时 4）与编辑页（源码 7 / 运行时 9）。R11 后 openDecision 为四候选 A/B/C/D，默认建议 D 分级授权：最小授权只改 editor.ejs:90 一行修 V2（清掉 V2 这一项 P0 的最短路径；R13 订正：release: no-go 由 V2 + B2 双 P0 支撑，仍需 B2 修复并单独复验后才可解除，见 releaseGate）、零授权两项并行、完整视觉收口留待用户后续意愿；B 的算式已订正为只需裁 prettify.css 一份；§9 关于 about.ejs 文案的『待 PM 决策』已查明为已落地并改为事实陈述。设计侧只补候选，不代用户决定。",
+      "performanceEvidence": {
+        "normalFrontendStylesheets": 3,
+        "editorPageStylesheets": 7,
+        "editorAllowedMax": 6,
+        "breakdown": "meta-front.ejs 合计 6 份 = 公共段 2（:19 bootstrap.css、:20 layer.css）+ needEditor 分支 3（:23 font-awesome.css、:24 index.css、:25 prettify.css）+ 公共段 1（:27 theme.css）；第 7 份为 editor.ejs:18 内联 /vendor/vditor/dist/index.css",
+        "correction": "R5 写的『needEditor 6 份』应读作『meta-front 合计 6 份，其中 needEditor 分支 3 份』",
+        "gap": "超 1 份且样式表入口分裂于 meta-front.ejs 与 editor.ejs 两处；DESIGN.md §8 首条 ≤3 只适用普通前台页",
+        "cssConsumersPath": "waivers[W6].cssConsumers（R9 由本对象提升为 W6 顶层键；前端/QA 按顶层路径对账，勿在 performanceEvidence 下找）"
+      },
+      "cssConsumers": {
+        "prettify.css": {"size": "675 B / gzip 335 B", "consumers": "零：全库 prettyprint 类 0、prettify.js / run_prettify.js 加载 0（footer.ejs:66-72 的 needEditor 分支已换标准链，无 require.js / main.js）；后台 common/meta.ejs:21 为注释", "verdict": "裁它零功能代价，收口到 6 份的首选"},
+        "index.css": {"size": "976 B / gzip 428 B", "consumers": ":3 #editor 命中 editor.ejs:11 隐藏 textarea，Vditor 正常路径不生效；仅 Vditor 未加载的兜底路径需要 height/max-height 250px。:31 div[data-role=editor-toolbar] 只在备份 views/editor.ejs~ 中", "verdict": "裁它风险低但削掉兜底排版，不作首选"},
+        "font-awesome.css": {"size": "15.7 KB / gzip 3.5 KB", "consumers": "唯一真实消费者 editor.ejs:14 的 <i class=icon-info-sign> 提示图标；header.ejs:13-15 的 .icon-bar 来自 bootstrap.css 自带；后台 common/meta.ejs:22 独立 head", "verdict": "不得单独裁掉，否则提示图标消失；属禁改边界问题而非体积问题"}
+      },
+      "singleEntry": {
+        "status": "目标态偏离，不作放行判据，不算缺陷",
+        "reason": "R5 的合取式判据『≤6 且单一入口』不可达：达成单一入口必须删 editor.ejs:18 并把 link 搬进 meta-front.ejs，撞任务书 §二.1 禁改边界与用户 9865e95 提交；即便授权搬运，needEditor 分支变 4 份、meta-front 合计 7 份、源码总仍 7（位置变、数量不变），须裁 1 份才 ≤6。R11 算式订正：这 1 份就是 prettify.css，不是额外第 2 份；原句只在『尚未裁 prettify』前提下成立，与『裁 prettify』并列会重复计数。若还想裁 font-awesome.css 降到 5 份，须先把 editor.ejs:14 的图标字体换内联 SVG（消费者消失后才可裁），属带依赖链的可选优化，不是判据必要动作。不可达条件写进判据等于没有判据。",
+        "hardGate": "HTML 源码中 <link rel=stylesheet> 数 ≤6（R9 可测化；只改 meta-front.ejs 裁 prettify.css，可达、零禁改冲突）。计数不含 JS 运行时注入",
+        "runtimeInjection": {"normalFrontend": {"sourceLinks": 3, "runtimeLinks": 4, "networkRequests": 4, "extra": "/js/need/layer.css（layer.js 自注入，id=layermcss、rel=styleSheet、curl 直连 404、SW 控制下状态 -）", "ruling": "R10：普通页与编辑页同用『源码 <link> 数』判据，运行时注入另登记；§8 首条 ≤3 按源码计达标，按网络请求计不成立"}, "measuredRuntimeLinks": 9, "networkRequests": 9, "effectiveStylesheets": 8, "sourceLinks": 7, "afterPrettifyRemoval": "源码 6 / 运行时仍 8 次", "injected": [{"href": "/js/need/layer.css", "by": "layer.js", "status": "404，控制台 MIME text/html 拒绝应用", "note": "属资源缺陷，由前端/QA 对账，不计入设计契约样式表数", "classification": "R12：P2 资源缺陷、非本次重构回归（git diff --numstat HEAD -- public/js/layer/layer.js 为空；HEAD meta.ejs:26 已链接 /js/layer/need/layer.css）；backlog 单列，不重复报缺陷"}, {"href": "/vendor/vditor/dist/css/content-theme/light.css", "by": "Vditor", "status": "200 / 2560 B", "note": "第三方主题样式，运行时注入单独登记"}], "ruling": "运行时注入不计入 ≤6 判据；QA 按源码 link 数给 PASS/FAIL，运行时注入另列"},
+        "mustDo": "R10 扩范围：dist/index.css + Vditor 运行时注入的 content-theme/*.css 一并令牌覆盖 accent / 圆角 8-12 / 中文字体栈 / focus-visible / 浅深双主题（含暗色背景与文字色），与请求数正交且不需改 editor.ejs；两份都只改 theme.css",
+        "mustDoStatus": {"themeCssVditorRules": 0, "meaning": "实测 theme.css 及 13 份项目自有 CSS 的 vditor 选择器均为 0，令牌覆盖连起步都没有", "severity": "P1", "coverageTargets": ["dist/index.css（editor.ejs:18 内联）", "content-theme/*.css（Vditor 运行时注入，自带配色、不随站点主题切换）"], "runtimeEvidence": "QA 真机实测运行时按钮 border-radius: 0px、字体栈 Helvetica Neue…，与 --radius: 12px / 中文字体栈不一致；是『第二套视觉语言』的实证而非推测", "darkModeEvidence": "R10：localStorage['nl-theme']='dark' 导航编辑页，实测 data-theme=dark 但注入的仍是 content-theme/light.css，.vditor 无 data-theme 属性、背景透明；只覆盖 dist/index.css 会漏掉暗色路径", "contentThemeAssets": {"authority": "R14 定稿：QA / 前端双向校正后，设计侧按字节流独立复算逐格一致；下表为唯一权威标签，R12『13 hex token / 2851 B』与 R13『10/13 去重色值数』均作废", "measurement": "hex 与 rgb() 分别统计出现次数与去重值；字节数按 UTF-8 字节流、字符数按解码后字符", "light.css": {"http": 200, "bytes": 2560, "chars": 2556, "hexOccurrences": 21, "hexDistinct": 11, "hexRgbOccurrences": 24, "hexRgbDistinct": 13, "note": "暗色下仍被注入的就是这一份；13 是 hex+rgb() 去重值，不是 hex-only（后者 11）；24 是 hex+rgb() 出现次数"}, "dark.css": {"http": 200, "bytes": 2855, "chars": 2851, "hexOccurrences": 24, "hexDistinct": 9, "hexRgbOccurrences": 26, "hexRgbDistinct": 10, "note": "vendor 自带且 HTTP 200 却未切换；10 是 hex+rgb() 去重值（不是 hex-only 的 9），26 是出现次数；2851 字符 / 2855 字节指同一文件"}, "ruling": "R12/R13/R14：不是缺文件，是『有文件没用』，更支持在 theme.css 压盖而非改 Vditor 配置；content-theme/*.css 通配写法已覆盖两者，现成暗色资产已登记"}, "implementationRoutes": {"甲": "theme.css 同时压盖 light.css 与 dark.css；不动 Vditor 配置、不碰 editor.ejs，成本最低", "乙": "暗色先切到 vendor dark.css 再由 theme.css 压盖；需改 Vditor 配置或注入逻辑，成本较高但起始色更接近", "owner": "前端 / 主理人排期时定；设计侧只登记资产与成本，不代定", "gateUnchanged": "浅深两套下圆角 8/12、--accent、中文字体栈、focus-visible 2px ring 全部对齐"}, "zeroConflictBundle": ["裁 meta-front.ejs:25 的 prettify.css（达成 ≤6）", "在 theme.css 补 .vditor 覆盖规则（含 content-theme/*.css 的暗色压盖）"], "note": "两项都只改前端自己的交付文件、不碰 editor.ejs，可与授权决策并行排期"},
+        "reviewTrigger": "若用户日后授权改 editor.ejs，须同时搬运 link、把图标字体换内联 SVG、并再裁 1 份 CSS，三层判据才全部达成"
+      },
+      "openDecision": {
+        "question": "是否授权修改 views/editor.ejs（用户 9865e95 提交、任务书 §二.1 明令禁改）；动因已由 1 个变为 2 个",
+        "drivers": [
+          {"id": "D1", "kind": "视觉 / 性能", "item": "CSS 单一入口收口、图标字体换内联 SVG、dist/index.css + content-theme/*.css 令牌覆盖配套（R10 扩范围，含暗色路径）", "severity": "P2"},
+          {"id": "D2", "kind": "数据完整性（R8 新增，更严重）", "item": "草稿回灌后保存提交空内容：editor.ejs:90 的 after 回调 this 绑定错误，隐藏 .js-editor 留空，common.js 保存读空 → 用户文章内容丢失；QA 已按 P0 报", "severity": "QA 按 P0 报，设计侧不裁等级"}
+        ],
+        "orthogonalTo": "与 emoji 面板取舍正交：R6 已裁定完毕，不需决策卡；此题若并入 emoji 那题，裁完仍会发现 CSS 项与功能缺陷都落不了地",
+        "owner": "主理人 / 用户，设计侧不代为决定",
+        "recommended": "D 分级授权（R11 更正：R8 推荐 B 隐含『全授权或全不授权』假设；V2 是卡上线的 P0 之一，与未修的 B2 共同支撑 release: no-go，见 W6.releaseGate，R15 补此口径）。把最小修复从大礼包里拆出来能显著降低授权门槛、也符合最小改动纪律，但只清掉 V2 这一项，no-go 仍被 B2 卡住、须其单独复验后才谈解除。设计侧不代为决定，仅补候选）",
+        "authorizationGranularity": {"splitPossible": true, "basis": "V2 的 1 行 bug 修复与视觉/DOM 三件事（图标字体换 SVG、搬 link、裁 CSS）可以拆；用户明令禁改 editor.ejs，一次授权 4 处含 DOM 比只授权 1 行修复难得多", "tiers": ["零授权：theme.css 令牌覆盖 + 裁 prettify.css，只动前端交付文件", "最小授权：只改 editor.ejs:90 一行修 V2", "完整授权：再加图标字体 / 搬 link / 可选裁 font-awesome.css"]},
+        "options": [
+          {"id": "A", "name": "不授权 + 只裁 prettify.css（『用户完全拒绝授权』时的兜底）", "effect": "编辑页源码 ≤6 达成；单一入口维持目标态偏离；图标字体维持已登记偏离", "cost": "数据完整性缺陷 D2 继续挂着，须转单独立项并明确记录『未修』，release: no-go 不解除；不得因视觉口径关掉；样式表入口仍分裂 2 处；15.7 KB font-awesome.css 保留"},
+          {"id": "B", "name": "完整授权改 editor.ejs（R11 由默认建议降为可选）", "effect": "一次授权解决四件事：修 V2 数据丢失缺陷、图标字体换内联 SVG、搬 link 达成单一入口、裁 prettify.css 达成源码 ≤6。R11 算式订正：只需裁这 1 份（搬 link 后源码总仍 7，裁 1 份即 6），不是 2 份；若已换 SVG 可再裁 font-awesome.css 降到 5 份，属带依赖链的可选优化", "cost": "触碰用户明令禁改的提交，需用户点头；改动面含 1 行 JS + DOM 图标 + link 搬运 + 1 份 CSS，授权面比 D 大得多"},
+          {"id": "C", "name": "7 份全留，登记编辑页上限豁免", "effect": "零改动", "cost": "§8 判据永久挂豁免，dist/index.css + content-theme/*.css 令牌覆盖仍要做，且数据完整性缺陷未修、release: no-go 不解除；不符合『不默默超标』"},
+          {"id": "D", "name": "分级授权（R11 新增，设计侧默认建议）", "effect": "① 最小授权：只改 editor.ejs:90 一行（after: function(){ sync(vd.getValue()); }，window.__vditor 已挂），清掉 V2 这一项 P0，不动 DOM 结构、不碰图标、不搬 link；② 零授权并行：裁 meta-front.ejs:25 的 prettify.css（源码 ≤6）+ theme.css 补 .vditor 覆盖规则（含 content-theme/*.css），只改前端交付文件、不需授权；③ 完整视觉收口（图标字体换 SVG / 搬 link / 可选裁 font-awesome.css）留待用户后续意愿，不捆绑进这次授权", "cost": "① 仍需用户点一次头，但授权面从 4 处（含 DOM）缩到 1 行 bug 修复，是清掉 V2 这一项 P0 的最短路径；② 单一入口维持目标态偏离、图标字体维持已登记偏离、15.7 KB font-awesome.css 保留；③ R13 订正：release: no-go 由 V2 + B2 双 P0 支撑，V2 修复不等于解除 no-go，须 B2 单独复验后才可解除，视觉收口亦不完整；④ 设计侧只补候选，不代用户决定"}
+        ]
+      },
+      "functionalDefect": {
+        "status": "仍在，未被 R6 / R7 裁定，不得连带关掉",
+        "finding": "草稿回灌后保存提交空内容（用户文章内容丢失）",
+        "evidence": "views/editor.ejs:90 after: function(){ sync(this.getValue()) }；public/vendor/vditor/dist/index.js:2528 与 :15840 均为 mergedOptions.after() 直接调用，this 绑到配置对象而非 Vditor 实例，getValue 未定义；:89 的 input: sync(value) 只覆盖输入路径，草稿回灌不走，隐藏 .js-editor（:11）留空，common.js 保存读空；:92 已挂 window.__vditor。R10 触发面：CDP 打开编辑页不写草稿也抛 Uncaught (in promise) TypeError: this.getValue is not a function（栈 Object.after (addPage:223) ← dist/index.min.js），即 after 回调每次加载都失败、不限草稿回灌；QA 在新 footer 脚本链上复现草稿重载后隐藏 textarea 为空 + 2 次 TypeError。R11 双证据源互认：压缩版 index.min.js 为 after&&i.after()，与未压缩版 mergedOptions.after(); 指向同一根因（this 绑到配置对象），仅变量名压缩差异",
+        "classification": "数据完整性 / 功能缺陷，不属设计契约的视觉边界",
+        "designSideRuling": "不裁定 P0 等级（QA 已按 P0 报）、不裁技术修法（前端给的 1 行闭包 vd.getValue() 属实现层）、不因 R6『emoji 不命中 P0-1』把它连带关掉",
+        "r6ScopeLimit": "R6 的 codeChangeRequired=false 与 R7 的『不需要改代码』只覆盖视觉与图标边界（emoji 面板、UGC 例外、CSS 请求数与入口、令牌覆盖口径），不覆盖编辑器功能缺陷",
+        "qaAction": "单列对账，不得标成『已由设计侧裁定为不需改码』；若用户拒绝授权改 editor.ejs，须转单独立项并明确记录未修",
+        "belongsTo": "views/editor.ejs 禁改边界，故归入 openDecision 的动因 D2"
+      },
+      "releaseGate": {"status": "no-go（V2 + B2 两项 P0 共同支撑）", "b2": {"location": "controllers/log.js:76 res.render(view,{title:doc.name,doc:doc})", "state": "未改，git status --short -- controllers/log.js 与 models/Log.js 均为空", "evidence": "此前 3002 实例复现 TypeError + Unhandled 'error' event 打死进程；QA 按已存档证据 + 源码未变认定（未再打共享服务以免打死 3000/3001）", "reproTrigger": "R14 前端无意触发的只读入口：GET /log/detail?view=logDetail（不带有效 id）当场打崩进程；stderr 完整堆栈 TypeError: Cannot read properties of null (reading 'name') at controllers/log.js:76 ← models/Log.js:34，Unhandled 'error' event。设计侧实读两处源码确认 doc 为 null 时取 doc.name 即崩；前端已重启恢复、未改任何代码", "retestConstraint": "复验必须在隔离实例上做，禁止在共享 3000/3001 触发（会打死进程）；这是 v2RetestCriteria 末项『B2 单独复验』的可操作触发条件", "scope": "控制器渲染缺陷，修复归前端/主理人；设计侧不裁等级、不裁修法"}, "ruling": "R13：只修 V2 仅清掉一项 P0，release: no-go 仍被 B2 卡住，须 B2 修复并单独复验后才可解除；R11 中『最小授权是解除 no-go 最短路径』的表述已全部订正。R14 补 B2 只读复现入口与隔离约束，不改判定", "v2RetestCriteria": ["只改 editor.ejs:90 一处", "清空 localStorage 后 Runtime.exceptionThrown=0", "种草稿重载后隐藏 textarea 非空且等于 vd.getValue()", "保存路径读到非空", "全量回归重跑", "B2 单独复验后才谈解除 no-go（R14 触发入口见 releaseGate.b2.reproTrigger，须隔离实例）"]},
+      "openDecisionsOutsideDesign": {"items": [{"id": "QA-A", "item": "更多评论 .fail() 静默", "state": "未落地", "acceptanceCriteria": ["R17 四条判据（统一 fmtCommentTime 并显式判空 / createTime 5 形状兜底 / 独立 data-retry 只重发 page+1 且 data-page 仅成功后前进 / 回归集补 5 形状）", "R20 第 5 条硬判据（QA 报主理人）：5 种 createTime 形状注入均零异常、无假 1970；该页评论含 null 之前的合法条目全部落地；null 场景下 data-page 不前进且 error 态 + 重试出现", "R20 修复顺序：①② 形状兜底先于 ③ 网络失败链；仅验证 .fail() 存在不构成四态达标证据、不得据此把 QA-A 判为已落地", "error 态两条正交失败源：(A) 网络失败 jqXHR reject → .fail()/data-retry；(B) success 回调内数据形状异常 → fmtCommentTime 显式判空/5 形状/try-catch。二者不可互替"]}, {"id": "QA-B", "item": "/comment/all 与 /session 的 cache-first", "state": "未落地"}], "ruling": "R13：decisionScope 的『仅剩一个独立决策项』只指设计契约/视觉性能范围；排期时须把 QA-A / QA-B 单列，不得读成全项目只剩一张卡。设计侧不代为决定"},
+      "iconFontDeviation": {"location": "views/editor.ejs:14", "finding": "<i class=icon-info-sign> 是图标字体，违反 DESIGN.md §5『零图标字体』与 §10 Don't", "p0": "不命中 P0 三条（非 emoji 功能图标 / 非紫粉渐变 / 非 AI 模板味），故不按 P0 处理、不开豁免", "registration": "DESIGN.md §10『已登记的实现偏离』第 4 条", "reviewTrigger": "用户日后自行修改 editor.ejs 时须换内联 SVG（16/20/24px、viewBox 24、stroke 1.75、currentColor）；在此之前 font-awesome.css 不得单独裁掉"},
+      "baselineNote": {"backupFiles": ["views/editor.ejs~", "views/header.ejs~"], "finding": "实测存在但 git status 无输出（未纳入版本控制），非运行时文件；header.ejs~ 残留旧 prettify link，不得当作当前基线证据", "gateImpact": "若落 gates.config.json 且 ext 含 .ejs，~ 后缀不会被扫到，不构成门禁风险", "backendHead": "common/meta.ejs 是后台独立 head，:18 meta refresh 受 <%if(locals.state){%> 包裹且不在前台渲染链；§7『删 meta refresh』只适用前台 meta-front.ejs，QA 不按后台文件对前台账"},
+      "vendorStatus": {"trackedFiles": 405, "vendorDirUntrackedOrModified": 0, "globalGitStatus": "20 M + 4 ??（DESIGN.md / design-choice.json / design-tokens.json / tests/）", "note": "R9 订正：此前写的『untrackedOrModified=0』是 git status --short public/vendor/vditor 的目录级结果，不是全局；三份契约未入库属交付动作，不是视觉资产风险。R4/R5 中『529 个未跟踪文件』的交付风险已消除"},
+      "gateAutomation": {"status": "manual，非可重复门禁", "finding": "真实项目根 gates.py --root 的 files=1（只命中 tests），只有显式 config 才 files=94 且含三个接线点；W6.conditions[2]『接线点必须纳入 P0 与可访问性扫描』目前依赖人工，不是自动化", "requiredConfig": "src 含 views、ext 显式加 .ejs、exclude 含 vendor", "authorization": "落 gates.config.json 属新增项目文件，需主理人授权；前端不擅自创建", "interimRuling": "授权前 QA 按 R6 双轨基线（静态扫描 + 真机展开浮层）人工取证有效，但不得宣称『已由自动化门禁覆盖』"},
+      "editorA11yGaps": {"severity": "P2，登记待修、不重复报缺陷", "coveredBy": "R7 已登记偏离第 4 条只覆盖图标字体，此处补其未覆盖部分", "items": [{"location": "views/editor.ejs:14", "gap": "<i> 无 aria-hidden / aria-label"}, {"location": "Vditor emoji 面板 8 个候选 button", "gap": "无 aria-label / title，可访问名只有该 emoji 字形；按 R6 判据 B 它们是内容样本，理想读屏应为『插入该字符』而非字形名"}, {"location": ".vditor-wysiwyg [contenteditable=true]", "gap": "无 role / aria-label / aria-multiline"}], "reviewTrigger": "三者需改第三方渲染或用户禁改文件；用户日后自行改 editor.ejs 时一并补可访问名与 aria-hidden"},
+      "p0Ruling": {
+        "verdict": "不命中 P0-1，且这不是豁免（P0 不可豁免，无需也不得开 W7）",
+        "qaFinding": "属实、非误报：CDP 在 /content/addPage 展开 emoji 面板后实测 8 个 button 内含 vditor-emojis__icon 候选字符；工具栏 data-type=emoji 入口按钮本身是 SVG",
+        "sourceEvidence": "dist/index.js:12907-12917 遍历 hint.emoji 生成 button，data-value 即插入正文的值，按钮上显示的字符就是候选内容本身；另一分支用 img.vditor-emojis__icon 贴图",
+        "reason": "P0-1 禁止的是 emoji 充当 UI 功能图标（代表操作/状态/导航目标）。此处字符是内容选择器的候选样本，换字符即换插入结果，与颜色选择器色块/字体选择器样本同类；入口按钮为 SVG。R4 单判据不够可操作，R6 细化为 A/B 双判据，属细化不是放宽",
+        "criterionA": "字符代表一个操作/状态/导航目标，换成任意别的字符不改变按钮功能语义 → P0 违规",
+        "criterionB": "字符就是要被插入/选择的内容本身，换字符即换结果，且只出现在明确的内容候选面板内 → 不违规",
+        "hardConstraints": ["此类字符只允许出现在 vditor-emojis 这类明确的内容候选面板内", "面板入口按钮（工具栏 data-type=emoji）必须保持 SVG", "面板不得被复用作导航或操作区"],
+        "reviewTriggers": ["面板外任何位置（导航/工具栏按钮本体/状态提示/标签/Toast/空态/按钮文案）出现 emoji 当图标 → 立即 P0", "入口按钮被换成 emoji 字符 → 立即 P0", "面板被改作操作区 → 立即 P0"],
+        "options": {"1-remove-emoji-toolbar": "不采纳：砍掉用户 9865e95 已决定的所见即所得能力且无必要", "2-waiver": "不采纳该形式（P0 不可豁免），但采纳其写清边界+复审条件的实质", "3-replace-with-svg": "不采纳：候选样本必须显示字符本身，换成语义 SVG 用户无法知道要插入什么，且需改第三方渲染"},
+        "codeChangeRequired": false,
+        "codeChangeScope": "仅指 emoji 面板与 P0-1 视觉边界；不覆盖编辑器功能缺陷（见 W6.functionalDefect）与 §8 R7 的性能收口项。不得外推为『Vditor 链路全部无需改码』",
+        "verification": "P0-1 不能只靠静态 grep：本次静态 G01（补 .ejs 后 94 文件）PASS 但边界现象只在运行时 DOM。验收 = 静态源码扫描（接线点三 EJS 必须纳入、vendor 源码可排除）+ 真机展开所有浮层/下拉/面板检查运行时 DOM，两者都过才算过",
+        "runtimeChecklist": ["分类下拉", "搜索建议", "登录/注册弹层", "评论加载更多", "主题切换", "Vditor 工具栏全部面板（emoji/上传/大纲/帮助）"]
+      },
+      "g18FalsePositive": {"location": "views/header.ejs:58-59", "evidence": "role=searchbox + aria-label=搜索文章 + aria-autocomplete=list + aria-controls=nl-search-suggest，且 ul#nl-search-suggest role=menu aria-label=搜索建议 aria-live=polite 与之对应", "ruling": "符合 WCAG 4.1.2 / 3.3.2，记为 PASS（误报登记）；不删规则、不加全局 ignore"},
+      "action": "裁定不命中 P0-1（非豁免，P0 不可豁免）；W6 的 UGC 边界细化为 A/B 双判据 + 三硬约束 + 复审触发，并写入运行时验证基线。emoji 面板与接线三 EJS 不需要改任何代码。R7 把 R5 不可达的合取判据拆为三层：硬指标 ≤6（裁 prettify.css，只改 meta-front.ejs）、单一入口降为目标态偏离（不算缺陷）、dist/index.css 令牌覆盖必做；实证图标字体为红线偏离但非 P0，登记为 DESIGN.md §10 已登记偏离第 4 条。waivers 仍 6 条，不开 W7。CSS 收口与『是否授权改 editor.ejs』是两件事，后者需主理人/用户单独裁定。R8 补上范围边界：QA 本轮报的是两个 P0，R6 只裁了 emoji 那个；草稿回灌保存空内容的数据完整性缺陷仍在（functionalDefect），不得连带关掉，它是 openDecision 的第二个且更严重的动因；据此把默认建议由 A 更正为 B、R11 再更正为 D 分级授权（新增候选 D，授权可分零 / 最小 / 完整三档；B 算式订正为只需裁 prettify.css 一份，font-awesome.css 须先换 SVG 才可选裁）。R11 另清理 §9 把 about.ejs 文案误列为待 PM 决策的过时陈述（实为任务书 §四.15 已落地）。同时清掉 R7 未清干净的『单一入口』硬要求残留（DESIGN.md §10 条件 2 与 W6.conditions[1] 已改为目标态登记），并登记 theme.css 中 .vditor 覆盖规则数 = 0、令牌覆盖尚未起步。"
+    }
+  ],
+  "evidence": [
+    {"ref": "public/css/theme.css:17", "finding": "--accent #387fdc，实测 4.01:1 / 3.84:1 / 4.01:1 全部 <4.5:1"},
+    {"ref": "public/css/theme.css:21", "finding": "--warn #a86a12 实测 4.43:1 <4.5:1"},
+    {"ref": "public/css/theme.css:14,323", "finding": "--border #e0e3e6 作控件边界仅 1.29:1 <3:1 (WCAG 1.4.11)"},
+    {"ref": "palettes.json ink-blue-light", "finding": "库基线 primary #2b67b6 实测 5.65:1 白底 / 5.40:1 页面底 / 5.65:1 白字，本身达标（R2 更正此前误述）"},
+    {"ref": "views/common/meta.ejs:7", "finding": "viewport 含 maximum-scale=1，禁止用户缩放"},
+    {"ref": "views/common/meta.ejs:18", "finding": "<meta http-equiv=\"refresh\" content=\"5;url=/\"> 自动跳转"},
+    {"ref": "views/error.ejs:4", "finding": "文案『5 秒后自动返回首页』配合自动跳转"},
+    {"ref": "views/common/sidebar.ejs:20", "finding": "fetch('/tags') 的 catch 把失败写成『暂无标签』（错误伪装成空态）"},
+    {"ref": "views/contentDetail.ejs:35-36", "finding": "『暂无评论』alert 与『加载评论…』裸文本两套状态表达"},
+    {"ref": "views/header.ejs:68 + views/index.ejs:8", "finding": "<article> 包裹内又出现 <main>，landmark 结构不唯一"},
+    {"ref": "views/footer.ejs:4", "finding": "require.js + /js/main 编辑器全家桶在前台每页加载"},
+    {"ref": "public/css/theme.css:127", "finding": "侧栏单列断点 900px，834px iPad 竖屏落在双列区会挤"}
+  ],
+  "advisory": [
+    {"item": "R11 已落地订正：about 页『分类与标签体系』文案", "action": "前端按任务书 §四.15 已改为『按分类浏览文章』（views/about.ejs:12），全文『标签』0 命中、git diff 与真机 /about 均可证；不再是待 PM 决策项，QA 勿按旧口径误报。本契约不动内容、不新增标签功能"},
+    {"item": "既有 sidebar 标签卡与 postCard 的 doc.tags 是既有 DOM/数据", "action": "一律保留，仅统一状态呈现并降为次要视觉权重；不新增标签路由/标签页"},
+    {"item": "font-weight:700 / 字符 glyph 图标 / meta-front.ejs 两项违规", "action": "Phase 3 已实现，复核通过，无需再改"},
+    {"item": "P3 建议（不要求本轮改）：layer 模态弹层承载瞬时成功反馈偏重", "action": "若后续要更轻的反馈，用已备好的 BODY 直属宿主做就地轻量提示；不新增依赖、不造第二套语言"},
+    {"item": "需主理人发决策卡的独立项：是否授权修改 views/editor.ejs（用户 9865e95 提交、任务书 §二.1 禁改）", "action": "见 W6.openDecision 四候选 A/B/C/D 与动因 D1/D2；与 emoji 取舍正交，别并成一题。R11 起设计侧默认建议 D 分级授权（最小授权只改 editor.ejs:90 一行修 V2 + 零授权两项并行 + 完整视觉收口留待后续意愿），因 B 隐含全授权假设、门槛过高；零禁改冲突的两项（裁 prettify.css、theme.css 补 .vditor 覆盖规则含 content-theme/*.css）可先执行"},
+    {"item": "QA 本轮第二个 P0：草稿回灌后保存提交空内容（数据完整性）", "action": "设计侧不裁等级与修法，单列对账；不得因 R6『emoji 不命中 P0-1』连带关掉。若用户拒绝授权改 editor.ejs，转单独立项并明确记录未修"},
+    {"item": "门禁自动化：W6.conditions[2] 当前依赖人工，真实项目根 gates.py --root 仅 files=1", "action": "落 gates.config.json（src 含 views / ext 加 .ejs / exclude 含 vendor）需主理人授权新增项目文件；授权前按 R6 双轨基线人工取证有效，但不得宣称已自动化覆盖"},
+    {"item": "编辑器三处 P2 可访问性限制与 dist/index.css + content-theme/*.css 令牌覆盖 P1（实测选择器数 0、运行时圆角 0px、暗色仍注 light.css）", "action": "已登记待修与复审触发，等主理人排期；不重复报缺陷。R10：覆盖对象为两份，只压 dist/index.css 会漏暗色路径"},
+    {"item": "R17：§5 硬规则『失败绝不降级成空态』在『更多评论』异步路径被违反（QA 真机 CDP 证据）", "action": "P1 advisory、归决策 A（QA-A『更多评论 .fail() 静默』），不判 P0、不推翻 verdict: pass、不新开豁免（waivers 仍 W1-W6）。设计侧只在 DESIGN.md §5 补『异步路径四态对账清单』与四条复验判据，不改业务代码、不裁修法。授权落地后须把更多评论这条独立异步路径纳入四态对账，别只验首屏 loadComments() 与 /tags、/category、/search。R19 捕获边界：③『补 .fail() + 独立 data-retry』不能替代 ①②——.fail() 只捕 jqXHR 网络/HTTP 失败，捕不到 success 回调内 createTime.toLocaleString() 同步抛出的 TypeError；必须同时在 handler 内复用 fmtCommentTime、加 5 形状兜底并显式判空，四条判据是一组、缺任一不算通过。R20 正交补正：error 态覆盖两条正交失败源——(A) 网络失败(.fail()/data-retry) 与 (B) success 回调内数据形状异常(fmtCommentTime 显式判空/5 形状/try-catch)；仅验证 .fail() 存在不构成四态达标证据，也不足以把 QA-A 判为已落地。修复与验收顺序 ①② 先于 ③：先形状兜底再网络链，倒过来会在只补 .fail() 的中间态被误判成 QA-A 已关闭。QA 追加实测：html+= 在 $.each 内、append(html) 在循环外，null 放第 3 条时连其之前的合法条目也一起不落地(items 仍 1，对照全合法 items=6)；jQuery 1.10.2 的 Deferred.done(抛异常).fail() → failCalled=false，且只挂 .fail() 的模拟仍 failHandlerCalled=false，是 QA-A 假绿直接证据"},
+    {"item": "R18：design_drift_check 把 .design/cdp7-profile 的 Chrome 扩展 CSS 扫入，报 [P0] DR07 未定义令牌 63 个假红", "action": "非缺陷、不提单、不开豁免。SKIP 不含 .design 属扫描范围问题；处置为交付前清理 .design/*-profile，若长期免打扰需把 .design 加入门禁 exclude（主理人授权动作，设计侧与 QA 均不擅改）。与 R17 的 design_choice_check FileNotFoundError 同污染源同类竞态，以稳定态连续采样为准"}
+  ],
+  "blocking": [],
+  "deliverables": ["DESIGN.md", "design-tokens.json", "design-choice.json"],
+  "handoff": "前端按 design-tokens.json 取 token 实现；QA 按 DESIGN.md §1/§5/§7/§10 逐条对账；design-choice.json 为三层唯一交汇点，waivers 段为已登记豁免，勿重复报缺陷"
+}
