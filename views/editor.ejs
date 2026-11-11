@@ -68,6 +68,7 @@
     mode: 'wysiwyg',
     lang: 'zh_CN',
     value: initial,
+    height: 540,
     cache: { enable: false },          // 容器 id 固定，禁用内置缓存，改用按文章 id 的草稿
     outline: { enable: true, position: 'left' },
     toolbarConfig: { pin: true },
@@ -86,9 +87,18 @@
         });
       }
     },
-    input: function (value) { sync(value); },
-    after: function () { sync(vd.getValue()); }
+    input: function (value) { try { sync(value); } catch (e) {} },
+    after: function () { try { sync(this.getValue()); } catch (e) {} }
   });
   window.__vditor = vd;
+
+  // 双保险：保存按钮（.js-save-content）在冒泡阶段读取 .js-editor 的值，
+  // 这里用捕获阶段在它之前把 Vditor 最新内容强制同步进隐藏文本域，避免 input 回调漏触发导致丢稿。
+  document.addEventListener('click', function (e) {
+    var t = e.target;
+    if (t && t.closest && t.closest('.js-save-content')) {
+      try { if (window.__vditor) $src.value = window.__vditor.getValue() || ''; } catch (_) {}
+    }
+  }, true);
 })();
 </script>
