@@ -239,3 +239,45 @@
   .nl-overlay, .nl-toast, .nl-spinner { animation: none; }
   .nl-spinner { border-top-color: var(--accent); }
 }
+
+/* ---- 可搜索分类选择器（替代原生 <select>）---- */
+.category-picker { position: relative; }
+.category-picker__menu {
+  position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 50;
+  margin: 0; padding: 4px; list-style: none;
+  background: var(--surface, #fff); border: 1px solid var(--border, #e0e3e6);
+  border-radius: var(--radius-sm, 8px); box-shadow: 0 8px 24px rgba(0,0,0,.12);
+  max-height: 240px; overflow-y: auto; display: none;
+}
+.category-picker__menu.is-open { display: block; }
+.category-picker__item {
+  padding: 8px 10px; border-radius: 6px; cursor: pointer;
+  font-size: 14px; color: var(--text, #1b1f26);
+}
+.category-picker__item:hover { background: var(--surface-2, #f2f4f7); }
+.category-picker__item.is-selected {
+  background: var(--accent-weak, #eef2ff); color: var(--accent, #3b5bff); font-weight: 600;
+}
+.category-picker__empty { padding: 10px; color: #9aa0a6; font-size: 13px; }
+
+/* ---- 标签输入 + 预览 ---- */
+.tag-field { display: flex; gap: 8px; align-items: stretch; }
+.tag-field .js-tags-value { flex: 1 1 auto; }
+.btn-ghost {
+  flex: 0 0 auto; padding: 0 14px; border: 1px solid var(--border, #e0e3e6);
+  background: var(--surface, #fff); color: var(--accent, #3b5bff);
+  border-radius: var(--radius-sm, 8px); font-size: 13px; cursor: pointer; white-space: nowrap;
+}
+.btn-ghost:hover { background: var(--accent-weak, #eef2ff); }
+.tag-preview { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.tag-preview__chip {
+  display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px;
+  background: var(--accent-weak, #eef2ff); color: var(--accent, #3b5bff);
+  border-radius: 999px; font-size: 12.5px; line-height: 1.6;
+}
+.tag-preview__chip-remove {
+  border: 0; background: transparent; color: inherit; cursor: pointer;
+  font-size: 14px; line-height: 1; padding: 0 2px; opacity: .55;
+}
+.tag-preview__chip-remove:hover { opacity: 1; }
+.tag-hint { margin: 6px 0 0; font-size: 12.5px; color: #9aa0a6; min-height: 0; }

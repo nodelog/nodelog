@@ -2,10 +2,10 @@
 // 原则：**服务端渲染的动态 HTML 页面绝不缓存**（登录态、文章列表、公告数都是实时数据），
 // 一律网络优先；只有静态资源（css/js/图片）才缓存优先。
 // v1 曾把首页 HTML 预缓存并 cache-first，导致强刷拿到旧快照、退出登录不生效、部署后白屏。
-// v6：去框架化后，前台/后台不再加载 jQuery / Bootstrap / layer，改为
+// v7：去框架化后，前台/后台不再加载 jQuery / Bootstrap / layer，改为
 // theme.css + app.css（零依赖结构层）+ ui.js（原生弹层/Toast）+ common.js（原生 DOM/fetch）。
-// 必须升版本，否则已安装 SW 的用户仍会按 v5 预缓存已下线的 bootstrap/jQuery/layer 资源。
-var CACHE = 'nodelog-v6';
+// 必须升版本，否则已安装 SW 的用户仍会按旧版本预缓存已下线的资源或把 /tags 等接口缓存成旧响应。
+var CACHE = 'nodelog-v7';
 var PRECACHE = [
   '/css/theme.css',
   '/css/app.css',
@@ -47,13 +47,23 @@ function isHtmlRequest(req) {
 // 动态请求一律网络优先且不写缓存。
 // /open/* 是并发落地的微信扫码登录/开放平台接口：/open/status 是轮询接口，
 // Accept 不是 text/html，若走静态资源 cache-first 会被缓存成旧响应，扫码登录会卡在「等待扫码」。
-function isDynamicRequest(req, url) {
+// 注意：之前 /tags 这类「应用数据接口」被当成静态资源走 cache-first，首屏拿到空结果后永远缓存，
+// 导致标签云强刷才出现、普通刷新又消失 —— 所以凡是非静态资源的应用请求都归为动态。
+function isStaticAsset(url) {
   var p = url.pathname;
+  return p.indexOf('/css/') === 0 ||
+    p.indexOf('/js/') === 0 ||
+    p.indexOf('/images/') === 0 ||
+    p.indexOf('/uploads/') === 0 ||
+    p.indexOf('/vendor/') === 0 ||
+    p.indexOf('/fonts/') === 0;
+}
+function isDynamicRequest(req, url) {
   return isHtmlRequest(req) ||
-    p.indexOf('/api/') === 0 ||
-    p.indexOf('/open/') === 0 ||
-    p === '/comment/all' ||
-    p.indexOf('/session') === 0;
+    !isStaticAsset(url) ||
+    url.pathname.indexOf('/open/') === 0 ||
+    url.pathname === '/comment/all' ||
+    url.pathname.indexOf('/session') === 0;
 }
 
 self.addEventListener('fetch', function (e) {

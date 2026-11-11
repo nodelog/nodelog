@@ -20,44 +20,22 @@
     </div>
     <div class="form-group">
         <label for="mgrContentCategory">分类</label>
-        <input type="text" id="mgrContentCategoryFilter" class="form-control js-category-filter" placeholder="输入关键字筛选分类" style="margin-bottom:6px;"/>
-        <select id="mgrContentCategory" class="form-control js-category-value l-select"></select>
+        <div class="category-picker js-category-picker">
+            <input type="text" id="mgrContentCategory" class="form-control js-category-input" placeholder="搜索或选择分类" autocomplete="off"/>
+            <input type="hidden" class="js-category-value" value="<%= doc.category || '' %>"/>
+            <ul class="category-picker__menu js-category-menu-list" role="listbox"></ul>
+        </div>
     </div>
     <div class="form-group">
-        <label for="mgrContentTags">标签 <span class="text-muted">（逗号分隔，可留空；点「自动生成」从标题/正文提取）</span></label>
-        <div class="input-group">
+        <label for="mgrContentTags">标签 <span class="text-muted">（逗号分隔，留空则保存时自动提取）</span></label>
+        <div class="tag-field">
             <input type="text" id="mgrContentTags" class="form-control js-tags-value" value="<%= (doc.tags||[]).join(', ') %>" placeholder="如：Node.js, 运维, 教程"/>
-            <span class="input-group-btn">
-                <button type="button" class="btn btn-default js-auto-tags">自动生成</button>
-            </span>
+            <button type="button" class="btn-ghost js-auto-tags" title="根据标题/正文自动提取标签">✨ 自动</button>
         </div>
+        <div class="tag-preview js-tag-preview" aria-live="polite"></div>
+        <p class="tag-hint js-tag-hint"></p>
     </div>
     <button type="submit" class="btn btn-primary js-save-content">保存修改</button>
 </form>
 
 <%- include('footer') %>
-<script>
-    // 分类下拉取 JSON 接口（原先误指向渲染 HTML 的 /content/addPage，导致下拉永远为空）
-    $(function () {
-        var docs = [];
-        function renderCat(v) {
-            v = (v || '').trim().toLowerCase();
-            var cur = $('#mgrContentCategory').val();
-            var html = '';
-            $.each(docs, function (i, c) {
-                if (v === '' || (c.name || '').toLowerCase().indexOf(v) !== -1) {
-                    var sel = (c._id == cur || (cur === '' && c._id == '<%=doc.category%>')) ? ' selected' : '';
-                    html += '<option value="' + c._id + '"' + sel + '>' + c.name + '</option>';
-                }
-            });
-            if (html === '') html = '<option value="">（无匹配分类）</option>';
-            $('#mgrContentCategory').html(html);
-        }
-        $.get("/category/all", function (data) {
-            docs = data.docs || [];
-            renderCat('');
-        }, "json");
-        // 分类快速筛选
-        $('#mgrContentCategoryFilter').on('input', function () { renderCat(this.value); });
-    });
-</script>

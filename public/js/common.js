@@ -91,6 +91,7 @@
     });
 
     if (url.indexOf('/manager') === -1) loadCategoryMenu();
+    ensureCategories(initCategoryPickers); // 写/编页 + 管理端编辑页的可搜索分类选择器
 
     /* 主导航：移动端折叠 + 分类下拉（替代 Bootstrap JS） */
     on(document, 'click', '.navbar-toggle', function () {
@@ -244,7 +245,8 @@
       var content = val(qs('.js-editor'));
       var category = val(qs('.js-category-value'));
       var original = val(qs('input[name="original"]')).trim();
-      var tags = val(qs('.js-tags-value')).trim();
+      var rawTags = val(qs('.js-tags-value')).trim();
+      var tags = rawTags || extractTags(name, content).join(', '); // 标签留空则发布/保存时自动提取
       var contentType = val(qs('.js-content-type')) || 'markdown';
       if (name === '') { myMsg('标题不能为空'); return; }
       if (content.trim() === '') { myMsg('内容不能为空'); return; }
@@ -265,6 +267,7 @@
 
     /* 自动生成标签（标题 + 正文关键词提取） */
     on(document, 'click', '.js-auto-tags', function () { autoGenerateTags(); });
+    bindTagFields(); // 标签预览 chips + 懒人自动填充
 
     /* 删除文章 */
     on(document, 'click', '.js-content-delete', function () {
@@ -475,31 +478,67 @@
   }
 
   /* ---------------- 分类菜单 ---------------- */
-  // 缓存全量分类，供写/编页面「输入快速筛选」复用（避免每次敲字符都请求接口）
+  // 缓存全量分类，供导航菜单与写/编页「可搜索分类选择器」复用
   var allCategories = [];
-  var categoryFilterBound = false;
 
-  // 依据筛选词重绘 <select class="js-category-value"> 的 <option>；
-  // selectedId 用于敲筛选词后保留当前已选分类（_id）。
-  function renderCategoryOptions(selectEl, filterText, selectedId) {
-    if (!selectEl) return;
-    var f = (filterText || '').trim().toLowerCase();
-    var html = '';
-    allCategories.forEach(function (c) {
-      if (f !== '' && (c.name || '').toLowerCase().indexOf(f) === -1) return;
-      var sel = (selectedId != null && String(c._id) === String(selectedId)) ? ' selected' : '';
-      html += '<option value="' + c._id + '"' + sel + '>' + c.name + '</option>';
-    });
-    if (html === '') html = '<option value="">（无匹配分类）</option>';
-    selectEl.innerHTML = html;
+  // 懒加载分类（loadCategoryMenu 也会填充；管理端页面不跑 loadCategoryMenu，这里兜底）
+  function ensureCategories(cb) {
+    if (allCategories.length) { cb(allCategories); return; }
+    getJSON('/category/all', {}).then(function (data) {
+      allCategories = (data && data.docs) || [];
+      cb(allCategories);
+    }).catch(function () { cb([]); });
   }
-  function bindCategoryFilter() {
-    var filterEl = qs('.js-category-filter');
-    if (!filterEl || categoryFilterBound) return; // 仅绑定一次
-    categoryFilterBound = true;
-    filterEl.addEventListener('input', function () {
-      var selectEl = qs('.js-category-value');
-      renderCategoryOptions(selectEl, this.value, selectEl ? selectEl.value : '');
+
+  // 可搜索分类选择器（替代原生 <select>）：输入框即筛选，下拉点选，选中值写入隐藏 .js-category-value
+  function initCategoryPickers() {
+    qsa('.js-category-picker').forEach(function (root) {
+      if (root.__pickInit) return; root.__pickInit = true;
+      var input = qs('.js-category-input', root);
+      var hidden = qs('.js-category-value', root);
+      var menu = qs('.js-category-menu-list', root);
+      if (!input || !hidden || !menu) return;
+      function render(filter) {
+        var f = (filter || '').trim().toLowerCase();
+        var cur = hidden.value;
+        var html = '';
+        allCategories.forEach(function (c) {
+          if (f !== '' && (c.name || '').toLowerCase().indexOf(f) === -1) return;
+          var sel = (String(c._id) === String(cur)) ? ' is-selected' : '';
+          html += '<li class="category-picker__item' + sel + '" data-id="' + c._id + '" data-name="' + c.name + '">' + c.name + '</li>';
+        });
+        if (!html) html = '<li class="category-picker__empty">无匹配分类</li>';
+        menu.innerHTML = html;
+      }
+      function open() { render(input.value); menu.classList.add('is-open'); }
+      function close() { menu.classList.remove('is-open'); }
+      function choose(li) {
+        if (!li || !li.getAttribute('data-id')) return;
+        hidden.value = li.getAttribute('data-id');
+        input.value = li.getAttribute('data-name');
+        close();
+      }
+      input.addEventListener('focus', open);
+      input.addEventListener('input', function () { render(this.value); menu.classList.add('is-open'); });
+      input.addEventListener('keydown', function (e) {
+        var items = qsa('.category-picker__item', menu);
+        if (!items.length) return;
+        if (e.key === 'Enter') { e.preventDefault(); choose(items[0]); }
+        else if (e.key === 'Escape') { close(); }
+      });
+      menu.addEventListener('click', function (e) {
+        var li = e.target.closest ? e.target.closest('.category-picker__item') : null;
+        choose(li);
+      });
+      document.addEventListener('click', function (e) { if (!root.contains(e.target)) close(); });
+      // 编辑页回填已选分类名称
+      var pre = hidden.value;
+      if (pre) {
+        var found = null;
+        allCategories.forEach(function (c) { if (String(c._id) === String(pre)) found = c; });
+        if (found) input.value = found.name;
+      }
+      render('');
     });
   }
 
@@ -536,14 +575,10 @@
         });
       }
       if (url.indexOf('content/addPage') !== -1) {
-        var cv = qs('.js-category-value'); if (cv) cv.innerHTML = _addHtml;
-        bindCategoryFilter();
         if (sessionUser == null && qs('.js-login-btn')) qs('.js-login-btn').click();
         window.addEventListener('beforeunload', beforeUnloadHandler);
       }
       if (url.indexOf('view=editContent') !== -1) {
-        var cv2 = qs('.js-category-value'); if (cv2) cv2.innerHTML = _editHtml;
-        bindCategoryFilter();
         if (sessionUser == null && qs('.js-login-btn')) qs('.js-login-btn').click();
         window.addEventListener('beforeunload', beforeUnloadHandler);
       }
@@ -607,7 +642,23 @@
     result.forEach(function (t) { var key = t.toLowerCase(); if (!seen[key]) { seen[key] = 1; out.push(t); } });
     return out.slice(0, 6);
   }
+  function renderTagPreview(input) {
+    var box = qs('.js-tag-preview');
+    if (!box || !input) return;
+    var tags = input.value.split(',').map(function (t) { return t.trim(); }).filter(Boolean);
+    if (!tags.length) { box.innerHTML = ''; return; }
+    box.innerHTML = tags.map(function (t) {
+      return '<span class="tag-preview__chip" data-tag="' + t.replace(/"/g, '&quot;') + '">' + t +
+        '<button type="button" class="tag-preview__chip-remove" aria-label="移除">×</button></span>';
+    }).join('');
+  }
+  function setTagHint(msg) {
+    var hint = qs('.js-tag-hint');
+    if (hint) hint.textContent = msg || '';
+  }
   function autoGenerateTags() {
+    var input = qs('.js-tags-value');
+    if (!input) return;
     var title = val(qs('.js-add-content-name')) || '';
     var content = '';
     if (window.__vditor && typeof window.__vditor.getValue === 'function') {
@@ -615,14 +666,51 @@
     } else {
       content = val(qs('.js-editor')) || '';
     }
-    if (!title.trim() && !content.trim()) { myMsg('请先填写标题或正文'); return; }
+    if (!title.trim() && !content.trim()) { setTagHint('请先填写标题或正文'); return; }
     var tags = extractTags(title, content);
-    var input = qs('.js-tags-value');
-    if (!input) return;
     var existing = input.value.split(',').map(function (t) { return t.trim(); }).filter(Boolean);
     tags.forEach(function (t) { if (existing.indexOf(t) === -1) existing.push(t); });
     input.value = existing.slice(0, 8).join(', ');
-    myMsg(tags.length ? ('已提取 ' + tags.length + ' 个候选标签，可手动增删') : '未提取到明显标签，请手动填写');
+    renderTagPreview(input);
+    setTagHint(tags.length ? ('已提取 ' + tags.length + ' 个候选标签，可手动增删') : '未提取到明显标签，请手动填写');
+  }
+  function bindTagFields() {
+    qsa('.js-tags-value').forEach(function (input) {
+      if (input.__tagBound) return; input.__tagBound = true;
+      renderTagPreview(input);
+      input.addEventListener('input', function () { renderTagPreview(input); setTagHint(''); });
+      var box = qs('.js-tag-preview');
+      if (box) {
+        box.addEventListener('click', function (e) {
+          var rm = e.target.closest ? e.target.closest('.tag-preview__chip-remove') : null;
+          if (!rm) return;
+          var tag = rm.parentNode.getAttribute('data-tag');
+          var arr = input.value.split(',').map(function (t) { return t.trim(); }).filter(Boolean)
+            .filter(function (t) { return t !== tag; });
+          input.value = arr.join(', ');
+          renderTagPreview(input);
+        });
+      }
+    });
+    // 懒人模式：标题写够字后，标签仍为空则自动填充候选（不覆盖手动输入）
+    var titleEl = qs('.js-add-content-name');
+    if (titleEl && !titleEl.__autoBound) {
+      titleEl.__autoBound = true;
+      var tmr;
+      titleEl.addEventListener('input', function () {
+        clearTimeout(tmr);
+        tmr = setTimeout(function () {
+          var input = qs('.js-tags-value');
+          if (!input || input.value.trim() !== '') return;
+          var content = '';
+          if (window.__vditor && typeof window.__vditor.getValue === 'function') {
+            try { content = window.__vditor.getValue() || ''; } catch (e) {}
+          } else { content = val(qs('.js-editor')) || ''; }
+          var tags = extractTags(val(titleEl), content);
+          if (tags.length) { input.value = tags.join(', '); renderTagPreview(input); }
+        }, 800);
+      });
+    }
   }
 
   /* ---------------- 评论加载更多 + 首屏 ---------------- */

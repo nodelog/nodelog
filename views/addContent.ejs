@@ -14,18 +14,21 @@
             <%- include('editor') %>
         </div>
         <div class="form-group">
-            <label for="contentCategory">分类 <span class="text-muted">（输入可快速筛选）</span></label>
-            <input type="text" id="contentCategoryFilter" class="form-control js-category-filter" placeholder="输入关键字筛选分类" style="margin-bottom:6px;"/>
-            <select id="contentCategory" class="form-control js-category-value l-select"></select>
+            <label for="contentCategory">分类 <span class="text-muted">（输入即可搜索，下拉里点选）</span></label>
+            <div class="category-picker js-category-picker">
+                <input type="text" id="contentCategory" class="form-control js-category-input" placeholder="搜索或选择分类" autocomplete="off"/>
+                <input type="hidden" class="js-category-value"/>
+                <ul class="category-picker__menu js-category-menu-list" role="listbox"></ul>
+            </div>
         </div>
         <div class="form-group">
-            <label for="contentTags">标签 <span class="text-muted">（逗号分隔，可留空；点「自动生成」从标题/正文提取）</span></label>
-            <div class="input-group">
+            <label for="contentTags">标签 <span class="text-muted">（逗号分隔，留空则发布时自动提取）</span></label>
+            <div class="tag-field">
                 <input type="text" id="contentTags" class="form-control js-tags-value" placeholder="如：Node.js, 运维, 教程"/>
-                <span class="input-group-btn">
-                    <button type="button" class="btn btn-default js-auto-tags">自动生成</button>
-                </span>
+                <button type="button" class="btn-ghost js-auto-tags" title="根据标题/正文自动提取标签">✨ 自动</button>
             </div>
+            <div class="tag-preview js-tag-preview" aria-live="polite"></div>
+            <p class="tag-hint js-tag-hint"></p>
         </div>
         <div class="form-group">
             <label for="contentOriginal">原文 <span class="text-muted">（留空视为原创）</span></label>
