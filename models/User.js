@@ -95,6 +95,7 @@ UserDAO.prototype.update = function (obj, callback) {
             'status': obj.status,
             'role': obj.role,
             'email': obj.email || "",
+            'phone': obj.phone || "",
             'modifyTime': new Date()}
         },
         function (err) {
@@ -108,6 +109,26 @@ UserDAO.prototype.findByOpenUserId = function (openUserId, callback) {
         function (err, obj) {
             callback(err, obj);
         });
+};
+// 按手机号查本地账号（供微信扫码登录按手机号绑定预置用户；只取未删除的，status < 2）
+// phone 为空时直接回调 null，避免对空串做全表匹配。
+UserDAO.prototype.findByPhone = function (phone, callback) {
+    if (!phone) return callback(null, null);
+    UserModel.findOne(
+        {"phone": phone, "status": {$lt: constants.USER_DELETE_STATUS}},
+        function (err, obj) {
+            callback(err, obj);
+        });
+};
+// 微信扫码命中「手机号预置账号」时，把本次微信身份(openUserId)挂到该账号，
+// 之后即可用 openUserId 稳定复用；同时把微信侧手机号同步进库（若本地缺失）。
+// 只改这 3 个字段，不触碰 role/status/password，避免影响后台既有任命与密码。
+UserDAO.prototype.linkOpenId = function (id, openUserId, phone, callback) {
+    var set = {openUserId: openUserId, modifyTime: new Date()};
+    if (phone) set.phone = phone;
+    UserModel.update({'_id': id}, {$set: set}, function (err) {
+        callback(err);
+    });
 };
 // 创建开放平台用户；回调必须返回保存后的文档（含 _id），供调用方写入 session
 UserDAO.prototype.createOpenUser = function (obj, callback) {

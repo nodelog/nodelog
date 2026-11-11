@@ -72,10 +72,14 @@ npm start
   → 本站轮询拿到 status=confirmed + JWT
   → 用 AppSecret 做 HS256 验签（常量时间比较 + exp 校验）
   → 按 payload.userId 找/建本地 user（openUserId 唯一键）
+      · openUserId 命中 → 复用既有账号
+      · 未命中但 payload.phone 命中后台预置账号 → 把 openUserId 挂到该账号并复用（按手机号绑定）
+      · 都未命中 → 新建微信账号
   → 写 req.session.user + httpOnly cookie nl_open_jwt（30 天）
   → 前端 location.reload()
 ```
 
+- **按手机号绑定**：后台可在「用户管理」给任意用户填手机号；该用户用微信扫码登录时，即便其 openUserId 从未建档，系统也会按 JWT 里的 `phone` 命中预置账号并自动并入，而不是新建一个微信账号（命中后把 `openUserId` 挂到该账号，`linkOpenId` 只改 `openUserId/phone/modifyTime` 三字段，不触碰 `role/status/password`）。
 - 新用户：`wx_{userId}` 为用户名，昵称取脱敏手机号，密码为随机串的 bcrypt 哈希（仅满足旧 Schema 的 required 约束，不可用于登录），`role` 由 `OPEN_ADMIN_PHONES` 决定。
 - 免登录：`app.js` 的 `restoreUser` 中间件在无 session 但 cookie 有效时自动恢复登录态；退出登录同时清 session 与 cookie。
 - **账号密码登录 / 注册入口已移除**：前台 `views/footer.ejs` 的 `.js-login-panel`（账号密码）与 `.js-register-panel`（注册）表单删除，导航去「注册」链接；后端 `/user/login`、`/user/reg` 早已 `暂停开放登录/注册`。扫码是唯一入口，首登自动建档（`openUserId` 为唯一键），无需注册。
@@ -113,7 +117,7 @@ npm start
 
 **新增**：`services/openPlatform.js`（上游 3 接口封装，内置 https，无新依赖）、`services/openJwt.js`（HS256 验签）、`controllers/openAuth.js`（4 个 handler + 免登录中间件）、`public/js/wechat-share.js`、`public/js/qr-login.js`、`public/js/jweixin-1.6.0.js`、`public/images/share-cover.png`、`docs/open-platform.md`。
 
-**修改**：`models/User.js`（openUserId/phone/loginType + 两个 DAO 方法）、`controllers/user.js`（logout 清免登录 cookie）、`routes/index.js`（挂载 `/open/*` 并限流）、`app.js`（免登录恢复 + 分享元数据）、`settings.js` / `settings.example.js`、`views/common/meta.ejs`、`views/header.ejs`、`views/footer.ejs`、`views/manager/footer.ejs`。
+**修改**：`models/User.js`（openUserId/phone/loginType + `findByOpenUserId`/`findByPhone`/`linkOpenId`/`update` 含 phone）、`controllers/openAuth.js`（finishLogin 按 openUserId→phone→新建 三级落库）、`controllers/user.js`（logout 清免登录 cookie；update 接受并持久化 phone，管理员可改任意用户）、`views/manager/user.ejs`（新增「手机号」列、编辑表单加手机号输入、每个用户行均可编辑、colspan 修正为 10）、`public/js/common.js`（编辑面板按 `data-*` 回填、保存按目标用户 id 提交并带上 phone）、`routes/index.js`（挂载 `/open/*` 并限流）、`app.js`（免登录恢复 + 分享元数据）、`settings.js` / `settings.example.js`、`views/common/meta.ejs`、`views/header.ejs`、`views/footer.ejs`、`views/manager/footer.ejs`。
 
 ---
 
@@ -191,6 +195,7 @@ node scripts/verify-open-platform.js
 1. **登录统一为微信扫码**，移除账号密码登录与注册入口（前台 `.js-login-panel` / `.js-register-panel` 表单与导航「注册」删除，后端 `/user/login`、`/user/reg` 早已 `暂停开放`），扫码首登自动建档，无需注册；
 2. **分享封面按「链付收银博客」文字制作**（`public/images/share-cover.png`，深青底 + 绿强调色 + ¥ 品牌标记）；
 3. **后台管理端不注入微信分享**（移除 `common/meta.ejs` 的 OG / `jweixin` / `wechat-share.js` 块），前台 `meta-front.ejs` 保持不变；
-4. 支付接口按首版要求排除，未对接。
+4. 支付接口按首版要求排除，未对接；
+5. **用户管理新增「手机号」列与手机号编辑**，微信扫码登录按手机号绑定本地账号（`controllers/openAuth.js` 三级落库：openUserId → phone → 新建）；管理员可对**所有**用户执行编辑（此前其他用户行仅有删除入口，无编辑入口）。
 
 **仍需上线前补验（环境限制）**：真浏览器渲染截图、微信 iOS/Android 真机扫码与分享验证；`createToken` → confirmed 真实链路需商家后台真实 AppID + 小程序授权。

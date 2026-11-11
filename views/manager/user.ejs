@@ -11,6 +11,7 @@
         <th>用户名</th>
         <th>姓名</th>
         <th>邮箱</th>
+        <th>手机号</th>
         <th>注册时间</th>
         <th>修改时间</th>
         <th>状态</th>
@@ -20,17 +21,19 @@
     </thead>
     <tbody>
     <tr class="success js-user-edit-panel" style="display: none;">
-        <td colspan="8">
+        <td colspan="10">
             <form action="javascript:;" class="form-horizontal" role="form">
                 <div class="input-group" style="width: 100%;">
                     <span class="input-group-addon"><i class="glyphicon glyphicon-user"></i></span>
                     <input type="text" class="form-control js-userName" name="userName" placeholder="用户名" value="<%=session.user.userName%>" maxlength="20"/>
                     <span class="input-group-addon"><i class="glyphicon glyphicon-user"></i></span>
                     <input type="text" class="form-control js-realName" name="realName" placeholder="姓名" value="<%= session.user.realName?session.user.realName:session.user.userName %>"  maxlength="20"/>
-                    <span class="input-group-addon"><i class="glyphicon glyphicon-user"></i></span>
+                    <span class="input-group-addon"><i class="glyphicon glyphicon-envelope"></i></span>
                     <input type="mail" class="form-control js-email" name="email" placeholder="邮箱" value="<%= session.user.email || '' %>"  maxlength="50"/>
+                    <span class="input-group-addon"><i class="glyphicon glyphicon-phone"></i></span>
+                    <input type="text" class="form-control js-phone" name="phone" placeholder="手机号（用于微信扫码绑定）" value="<%= session.user.phone || '' %>"  maxlength="20"/>
                     <span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
-                    <input type="password" class="form-control js-password" name="password" placeholder="新密码" maxlength="20"/>
+                    <input type="password" class="form-control js-password" name="password" placeholder="新密码（留空不修改）" maxlength="20"/>
                     <span class="input-group-addon"><i class="glyphicon glyphicon-hand-right"></i></span>
                     <button type="submit" class="btn btn-primary col-sm-12 col-xs-12 js-user-edit-save">保存</button>
                     <span class="input-group-addon"></span>
@@ -44,6 +47,7 @@
         <td><%= session.user.userName %></td>
         <td><%= session.user.realName?session.user.realName:session.user.userName%></td>
         <td><%= session.user.email || '未设置' %></td>
+        <td><%= session.user.phone || '未设置' %></td>
         <td><%= format(session.user.createTime) %></td>
         <td><%= format(session.user.modifyTime) %></td>
         <td>
@@ -53,7 +57,11 @@
             <input type="checkbox" data-id="<%= session.user._id %>" data-type="<%= session.user.role %>"
                    class="js-user-role"disabled="disabled" /></td>
         <td>
-            <a href="javascript:;" class="js-user-edit" data-id="<%= session.user._id %>">
+            <a href="javascript:;" class="js-user-edit" data-id="<%= session.user._id %>"
+               data-user-name="<%= session.user.userName %>"
+               data-real-name="<%= session.user.realName?session.user.realName:session.user.userName %>"
+               data-email="<%= session.user.email || '' %>"
+               data-phone="<%= session.user.phone || '' %>">
                 编辑
             </a>
         </td>
@@ -70,6 +78,7 @@
         <td><%= docs[i].userName %></td>
         <td><%= docs[i].realName?docs[i].realName:docs[i].userName%></td>
         <td><%= docs[i].email || '未设置' %></td>
+        <td><%= docs[i].phone || '未设置' %></td>
         <td><%= format(docs[i].createTime) %></td>
         <td><%= format(docs[i].modifyTime) %></td>
         <td>
@@ -79,6 +88,13 @@
             <input type="checkbox" data-id="<%= docs[i]._id %>" data-type="<%= docs[i].role %>"
                    class="js-user-role" /></td>
         <td>
+                <a href="javascript:;" class="js-user-edit" data-id="<%= docs[i]._id %>"
+                   data-user-name="<%= docs[i].userName %>"
+                   data-real-name="<%= docs[i].realName?docs[i].realName:docs[i].userName %>"
+                   data-email="<%= docs[i].email || '' %>"
+                   data-phone="<%= docs[i].phone || '' %>">
+                    编辑
+                </a>
                 <a href="javascript:;" class="js-user-delete" data-id="<%= docs[i]._id %>">
                     <%=docs[i].role==1?"删除":"--"%>
                 </a>

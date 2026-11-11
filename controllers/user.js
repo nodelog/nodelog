@@ -50,6 +50,7 @@ exports.update = function (req, res) {
         var userName = req.body.userName;
         var realName = req.body.realName;
         var email = req.body.email;
+        var phone = req.body.phone;
         var password = req.body.password;
         // 仅管理员可变更角色 / 状态，杜绝普通用户自我提权为管理员
         if (isAdmin) {
@@ -71,6 +72,11 @@ exports.update = function (req, res) {
         }
         if (cmsUtils.isNotBlank(email)) {
             obj.email = email;
+        }
+        // 手机号：本人可填（用于微信扫码按手机号绑定），管理员可改任意用户。
+        // 仅当显式提交非空手机号时才写入，留空不覆盖既有值。
+        if (cmsUtils.isNotBlank(phone)) {
+            obj.phone = String(phone).trim();
         }
         if (cmsUtils.isNotBlank(password)) {
             obj.password = encryption(password);

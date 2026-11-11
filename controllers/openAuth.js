@@ -171,28 +171,52 @@ function finishLogin(req, res, cfg, payload, jwt) {
     }
 
     try {
-        User.findByOpenUserId(openUserId, function (err, existing) {
+        User.findByOpenUserId(openUserId, function (err, byOpenId) {
             if (err) return onUser(err, null);
             // 已存在：不覆盖 role（管理员任命只能由后台显式修改），也不强制改手机号
-            if (existing) return onUser(null, existing);
+            if (byOpenId) return onUser(null, byOpenId);
 
-            var isAdmin = cfg.adminPhones.indexOf(phone) !== -1;
-            var obj = {
-                userName: 'wx_' + openUserId,
-                realName: maskPhone(phone),
-                // Schema 的 password 是 required；开放平台用户没有本地密码，写一次性随机 bcrypt 哈希
-                password: bcrypt.hashSync(crypto.randomBytes(16).toString('hex'), 10),
-                role: isAdmin ? 0 : 1,
-                status: 0,
-                phone: phone,
-                loginType: 'wechat',
-                openUserId: openUserId
-            };
-            try {
-                User.createOpenUser(obj, onUser);
-            } catch (e) {
-                onUser(e, null);
+            // 按手机号绑定：后台可预置用户并填手机号，对应用户扫码时即并入该账号，
+            // 而不是新建一个微信账号。命中后把微信身份(openUserId)挂到该账号，稳定复用。
+            function createNewOpenUser() {
+                var isAdmin = cfg.adminPhones.indexOf(phone) !== -1;
+                var obj = {
+                    userName: 'wx_' + openUserId,
+                    realName: maskPhone(phone),
+                    // Schema 的 password 是 required；开放平台用户没有本地密码，写一次性随机 bcrypt 哈希
+                    password: bcrypt.hashSync(crypto.randomBytes(16).toString('hex'), 10),
+                    role: isAdmin ? 0 : 1,
+                    status: 0,
+                    phone: phone,
+                    loginType: 'wechat',
+                    openUserId: openUserId
+                };
+                try {
+                    User.createOpenUser(obj, onUser);
+                } catch (e) {
+                    onUser(e, null);
+                }
             }
+
+            if (!phone) {
+                // JWT 未携带手机号：无法按手机号绑定，直接新建
+                return createNewOpenUser();
+            }
+            User.findByPhone(phone, function (err2, byPhone) {
+                if (err2) return onUser(err2, null);
+                if (byPhone) {
+                    // 命中手机号预置账号：挂上 openUserId，之后用 openUserId 稳定复用；
+                    // 本地手机号若缺失则补上微信侧手机号。
+                    byPhone.openUserId = openUserId;
+                    if (!byPhone.phone) byPhone.phone = phone;
+                    User.linkOpenId(byPhone._id, openUserId, phone, function (linkErr) {
+                        if (linkErr) return onUser(linkErr, null);
+                        onUser(null, byPhone);
+                    });
+                    return;
+                }
+                createNewOpenUser();
+            });
         });
     } catch (e) {
         onUser(e, null);

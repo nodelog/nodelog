@@ -106,7 +106,8 @@ $(function () {
     getSessionUser();
     //是否后台路径判断
     if (url.indexOf("/manager") == -1) {
-        //加载所有分类
+        //加载所有分类（失败不静默空白：显示统一 error 态并提供重试）
+        function loadCategoryMenu() {
         $.get("/category/all",
             function (data) {
                 var docs = data.docs;
@@ -165,7 +166,18 @@ $(function () {
                         return '您输入的内容尚未保存，确定离开此页面吗？';
                     });
                 }
-            }, "json");
+            }, "json").fail(function () {
+                $('.js-category-menu').html('<li>' + window.NL.state('error', {
+                    title: '分类没加载出来', text: '稍后重试，或回首页浏览文章', retry: 'categories'
+                }) + '</li>');
+            });
+        }
+        loadCategoryMenu();
+        $('.js-category-menu').on('click', '.js-state-retry', function () {
+            if ($(this).attr('data-retry') !== 'categories') return;
+            $('.js-category-menu').html('<li>' + window.NL.state('loading') + '</li>');
+            loadCategoryMenu();
+        });
     }
     //分类菜单自动筛选
     $('.js-category-menu').delegate('.js-category-auto', 'keyup focus click change', function (e) {
@@ -526,6 +538,14 @@ $(function () {
             }, "json");
         }
     });
+    // 评论时间格式化：null/undefined/空/非日期一律返回 ''（绝不假 1970、绝不抛）。
+    // 主渲染 loadComments() 与「加载更多」共用同一套，避免两套精度/行为漂移。
+    function fmtCommentTime(v) {
+        if (v == null || v === '') return '';
+        var d = new Date(v);
+        if (isNaN(d.getTime())) return '';
+        return (typeof d.format === 'function') ? d.format('yyyy-MM-dd hh:mm:ss') : d.toLocaleString();
+    }
     //更多评论
     $('.js-more-comment-btn').click(function () {
         var $this = $(this);
@@ -540,23 +560,37 @@ $(function () {
             cententId: contentId,
             page: page + 1
         }, function (data) {
-            var docs = data.docs;
+            var docs = data.docs || [];
             var html = "";
-            page = data.page;
-            totalPage = data.totalPage;
-            var total = data.total;
+            var nextPage = data.page;
+            var nextTotalPage = data.totalPage;
             $.each(docs, function (i, val) {
-                html += '<a class="list-group-item"><label>' + val.userName + ':&nbsp;</label>';
-                html += '<span class="color-gray">' + new Date(val.createTime.toLocaleString()).format() + '</span>';
-                html += '<div>' + val.comment + '</div></a>';
+                // 与主渲染 loadComments() 同一套转义与同一套 .comment-item 结构：
+                // userName 来自 User.realName（入库只 trim），comment 只净化正文，管不到用户名，
+                // 裸拼 .html() 会让 <img onerror> 真执行。三个字段一律过 window.NL.esc。
+                // 时间走 fmtCommentTime()：null/空/非法一律返回 ''，坏条目只少一个时间戳，
+                // 绝不中断循环、绝不丢前面已拼好的合法条目。
+                html += '<div class="comment-item"><div class="comment-item-head">';
+                html += '<span class="comment-author">' + window.NL.esc(val.userName) + '</span>';
+                html += '<time class="color-gray">' + window.NL.esc(fmtCommentTime(val.createTime)) + '</time>';
+                html += '</div><div class="comment-item-body">' + window.NL.esc(val.comment) + '</div></div>';
             });
-            if (totalPage > page) {
-                $this.attr("data-page", page);
+            // 成功后才推进 data-page；无更多页时隐藏「更多评论」
+            if (nextTotalPage > nextPage) {
+                $this.attr("data-page", nextPage);
             } else {
                 $('.js-more-comment').addClass("hide");
             }
-            $('.js-comment-panel').html($('.js-comment-panel').html() + html);
-        }, "json");
+            // append 而非 .html(existing + html)：避免每次翻页把已渲染内容重新解析一遍
+            $('.js-comment-panel').append(html);
+        }, "json").fail(function () {
+            // 仅在评论面板内渲染统一 error 态，独立 data-retry=more-comments：
+            // 只重发当前 page+1（绝不调 loadComments(1)），失败不推进 data-page，保留已渲染评论
+            var err = window.NL.state('error', {
+                size: 'inline', title: '更多评论没读出来', text: '点此重试，文章内容不受影响', retry: 'more-comments'
+            });
+            $('.js-comment-panel').append(err);
+        });
     });
     //评论触发登录
     $('.js-comment-input').focus(function () {
@@ -566,42 +600,70 @@ $(function () {
         }
     });
     //日志详情页面加载评论列表
-    if (url.indexOf("view=contentDetail") != -1) {
+    // 文章卡片链接形如 /content/detail?id=xxx（不带 view=contentDetail），
+    // 因此同时以 .js-doc-id 判定详情页，否则评论区会永久停在骨架。
+    if (url.indexOf("view=contentDetail") != -1 || $('.js-doc-id').length) {
         var docId = $('.js-doc-id').val();
         if (sessionUser != null && sessionUser._id != docId) {
             $('.js-post-comment-btn').prop("disabled", false);
             $('.js-comment-input').attr("placeholder", "请输入评论");
         }
-        $.get("/comment/all", {
-            cententId: docId,
-            page: 1
-        }, function (data) {
-            var docs = data.docs;
-            if (docs != null) {
-                var html = "";
-                var page = data.page;
-                var totalPage = data.totalPage;
-                var total = data.total;
-                $.each(docs, function (i, val) {
-                    html += '<a class="list-group-item"><label>' + val.userName + ':&nbsp;</label>';
-                    html += '<span class="color-gray">' + new Date(val.createTime.toLocaleString()).format() + '</span>';
-                    html += '<div>' + val.comment + '</div></a>';
-                });
-                var d = new Date();
-                var n = d.toLocaleDateString();
-                $('.js-comment-title').html($('.js-comment-title').html() + " (" + total + ")");
-                if (totalPage > 1) {
-                    $('.js-more-comment').removeClass("hide");
-                    $('.js-more-comment-btn').attr("data-page", page);
-                    $('.js-more-comment-btn').attr("data-totalPage", totalPage);
-                    $('.js-more-comment-btn').attr("data-id", docId);
+        // 统一状态：骨架（模板里已放）→ 评论 / 空态 / 失败带重试；失败保留标题与已渲染内容
+        function loadComments(reqPage) {
+            $.get("/comment/all", {
+                cententId: docId,
+                page: reqPage
+            }, function (data) {
+                var docs = data.docs;
+                if (docs != null && docs.length > 0) {
+                    var html = "";
+                    var page = data.page;
+                    var totalPage = data.totalPage;
+                    var total = data.total;
+                    $.each(docs, function (i, val) {
+                        html += '<div class="comment-item"><div class="comment-item-head">';
+                        html += '<span class="comment-author">' + window.NL.esc(val.userName) + '</span>';
+                        html += '<time class="color-gray">' + window.NL.esc(fmtCommentTime(val.createTime)) + '</time>';
+                        html += '</div><div class="comment-item-body">' + window.NL.esc(val.comment) + '</div></div>';
+                    });
+                    var $title = $('.js-comment-title');
+                    var baseTitle = $title.text().replace(/\s*\(\d+\)\s*$/, '');
+                    $title.text(baseTitle + ' (' + total + ')');
+                    if (totalPage > 1) {
+                        $('.js-more-comment').removeClass("hide");
+                        $('.js-more-comment-btn').attr("data-page", page);
+                        $('.js-more-comment-btn').attr("data-totalPage", totalPage);
+                        $('.js-more-comment-btn').attr("data-id", docId);
+                    }
+                    $('.js-comment-panel').html(html);
+                } else {
+                    // 空态交给统一组件，不再显示第二套「暂无评论」alert
+                    $('.js-comment-panel').html(window.NL.state('empty', {
+                        size: 'block', title: '还没有评论', text: '来写第一条'
+                    }));
                 }
-                $('.js-comment-panel').html(html);
-            } else {
-                $('.js-all-comment').removeClass("hide");
-                $('.js-comment-panel').html("");
+            }, "json").fail(function () {
+                var err = window.NL.state('error', {
+                    size: 'block', title: '评论没读出来', text: '稍后重试，文章内容不受影响', retry: 'comments'
+                });
+                if ($('.js-comment-panel').find('.comment-item').length) {
+                    $('.js-comment-panel').append(err);
+                } else {
+                    $('.js-comment-panel').html(err);
+                }
+            });
+        }
+        loadComments(1);
+        $('.js-comment-panel').on('click', '.js-state-retry', function () {
+            var retry = $(this).attr('data-retry');
+            if (retry === 'comments') {
+                $('.js-comment-panel').html(window.NL.state('loading', { size: 'block' }));
+                loadComments(1);
+            } else if (retry === 'more-comments') {
+                // 只重发当前已记录的下一页，绝不回到第一页；失败不推进 data-page
+                $('.js-more-comment-btn').trigger('click');
             }
-        }, "json");
+        });
 
         //自适应内容宽度，宽度超过屏幕宽度-60设置为此宽度
         var maxWidth = window.screen.width - 60;
@@ -662,27 +724,47 @@ $(function () {
             loading("开始搜索 \"" + _word + "\" 相关日志...");
             location.href = _searchUrl + "?word=" + _word + "&page=1";
         } else {
-            var _html = '<li style="padding: 5px;"><input type="text" class="form-control js-search-auto" placeholder="精确定位" x-webkit-speech /></li>';
-            if (_word != "") {
-                $.post(_searchUrl, {"word": _word}, function (data) {
-                    var docs = data.docs;
-                    var _id, _name, _url;
-                    if (docs.length > 0) {
-                        $.each(docs, function (i, tempDoc) {
-                            _id = tempDoc._id, _name = tempDoc.name;
-                            _url = "/content/detail?id=" + _id + "&view=contentDetail";
-                            _html += '<li><a href="' + _url + '"  class="l-option" target="_blank">' + _name + '</a></li>';
-                        });
-                    } else {
-                        _html = '<li style="padding: 5px;"><input type="text" class="form-control js-search-auto" value="没有要找的日志" /></li>';
-                    }
-                    $('.js-search-panel').html(_html).removeClass("hide");
-                    $('.js-search-bar').addClass("open");
-                }, "json");
-            } else {
+            if (_word == "") {
                 $('.js-search-panel').html("").addClass("hide");
+                $('.js-search-bar').removeClass("open");
+                return;
             }
+            suggest(_word, _searchUrl);
         }
+    });
+    // 搜索建议四态：骨架 / 结果 / 空态 / 失败带重试；回车跳转与 target="_blank" 保持不变
+    function suggest(word, searchUrl) {
+        var filterLi = '<li style="padding: 5px;"><input type="text" class="form-control js-search-auto" placeholder="精确定位" x-webkit-speech /></li>';
+        $('.js-search-panel').html('<li>' + window.NL.state('loading') + '</li>').removeClass("hide");
+        $('.js-search-bar').addClass("open");
+        $.post(searchUrl, {"word": word}, function (data) {
+            var docs = data.docs || [];
+            var html = filterLi;
+            var _id, _name, _url;
+            if (docs.length > 0) {
+                $.each(docs, function (i, tempDoc) {
+                    _id = tempDoc._id, _name = tempDoc.name;
+                    _url = "/content/detail?id=" + _id + "&view=contentDetail";
+                    html += '<li><a href="' + _url + '"  class="l-option" target="_blank">' + window.NL.esc(_name) + '</a></li>';
+                });
+            } else {
+                html += '<li>' + window.NL.state('empty', {
+                    title: '没找到「' + word + '」', text: '换个词或按分类浏览',
+                    actionHref: '/', actionText: '按分类浏览'
+                }) + '</li>';
+            }
+            $('.js-search-panel').html(html).removeClass("hide");
+            $('.js-search-bar').addClass("open");
+        }, "json").fail(function () {
+            $('.js-search-panel').html('<li>' + window.NL.state('error', {
+                title: '搜索建议没加载出来', text: '按回车仍可直接搜索', retry: 'search'
+            }) + '</li>').removeClass("hide");
+            $('.js-search-bar').addClass("open");
+        });
+    }
+    $('.js-search-panel').on('click', '.js-state-retry', function () {
+        if ($(this).attr('data-retry') !== 'search') return;
+        suggest($.trim($('.js-search').val()), "/content/search");
     });
     function searchState() {
         if ($.trim($('.js-search').val()) != "") {
@@ -788,34 +870,55 @@ $(function () {
         }, "json");
     });
     function switchUserEditPanel() {
-        $('.js-current-user').fadeToggle();
+        // 只切换编辑表单行：现在任意用户行都可点编辑，不再联动隐藏“当前用户”行
         $('.js-user-edit-panel').fadeToggle();
     }
 
+    // 正在编辑的目标用户 id（默认当前用户；点其他用户的“编辑”时会被覆盖）
+    var editingUserId = null;
+
+    function fillUserEditForm(u) {
+        $('input[name=userName]').val(u.userName || '');
+        $('input[name=realName]').val(u.realName || '');
+        $('input[name=email]').val(u.email || '');
+        $('input[name=phone]').val(u.phone || '');
+        $('input[name=password]').val('');// 密码框每次打开留空，避免误提交旧值
+    }
+
     $('.js-user-edit').click(function () {
+        editingUserId = $(this).attr('data-id');
+        // 从所点链接的 data-* 上取源数据回填表单，避免依赖列顺序
+        fillUserEditForm({
+            userName: $(this).attr('data-user-name') || '',
+            realName: $(this).attr('data-real-name') || '',
+            email: $(this).attr('data-email') || '',
+            phone: $(this).attr('data-phone') || ''
+        });
         switchUserEditPanel();
     });
     $('.js-user-edit-cancel').click(function () {
         switchUserEditPanel();
     });
     $('.js-user-edit-save').click(function () {
-        var id = sessionUser._id;
+        var id = editingUserId || sessionUser._id;
         var userName = $('input[name=userName]').val().trim();
         var realName = $('input[name=realName]').val().trim();
         var password = $('input[name=password]').val().trim();
         var email = $('input[name=email]').val().trim();
+        var phone = $('input[name=phone]').val().trim();
         $.post("/manager/user/update", {
             id: id,
             userName: userName,
             realName: realName,
             password: password,
             email: email,
+            phone: phone
         }, function (data) {
             if (data.result == true) {
 //                switchUserEditPanel();
                 location.reload();
             } else {
-                myMsg(data.result);
+                myMsg(data.msg || data.result);
             }
         }, "json");
     });
