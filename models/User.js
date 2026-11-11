@@ -78,15 +78,16 @@ UserDAO.prototype.getCount = function (callback) {
         });
 };
 // 管理员可删除任意用户（含其他管理员、含自己）：不做 role 限制。
-// 回调返回 (err, ok)，ok=true 表示确实有记录被置为删除态，避免「删管理员却误报成功」。
+// 用 findOneAndUpdate 并以返回值文档是否存在判定成功，避免依赖驱动版本相关的
+// 返回字段（mongodb 驱动 4.x 是 matchedCount，旧版是 n，直接读 n 会恒为 undefined）。
 UserDAO.prototype.delete = function (id, callback) {
-    UserModel.update(
+    UserModel.findOneAndUpdate(
         {"_id": id},
         {$set: {'status': constants.USER_DELETE_STATUS}},
-        function (err, raw) {
+        {new: false},
+        function (err, doc) {
             if (err) return callback(err);
-            var matched = raw && (typeof raw.n === 'number' ? raw.n : (raw.result && raw.result.n));
-            callback(null, matched > 0);
+            callback(null, !!doc);
         });
 };
 UserDAO.prototype.update = function (obj, callback) {
