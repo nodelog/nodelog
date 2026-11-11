@@ -81,14 +81,59 @@
     upload: {
       accept: 'image/*',
       handler: function (files) {
+        // 自定义 handler 模式下，Vditor 只等待返回值，不会像内置上传那样
+        // 保存光标 + 调 genUploadedLabel 插图（见 vendor/vditor/dist/index.js 的 uploadFiles）。
+        // 所以这里自己：① 上传前记下光标 ② 成功后恢复光标并插入 <img>。
+        var curMode = vd.vditor && vd.vditor.currentMode;
+        var modeObj = vd.vditor && vd.vditor[curMode];
+        var savedRange = null;
+        try {
+          var sel = window.getSelection();
+          if (modeObj && modeObj.element && sel && sel.rangeCount > 0) {
+            var r = sel.getRangeAt(0);
+            if (modeObj.element === r.startContainer || modeObj.element.contains(r.startContainer)) {
+              savedRange = r.cloneRange();
+            }
+          }
+          // 焦点已离开编辑器（点工具栏按钮 / 拖拽）时，退回 Vditor 自己缓存的光标
+          if (!savedRange && modeObj && modeObj.range) savedRange = modeObj.range.cloneRange();
+        } catch (e) {}
+
         var tasks = [];
         for (var i = 0; i < files.length; i++) tasks.push(uploadOne(files[i]));
         return Promise.all(tasks).then(function (results) {
-          var succMap = {}, errFiles = [];
+          var imgHTML = '', errFiles = [], succMap = {}, okCount = 0;
           results.forEach(function (r) {
-            if (r.url) succMap[r.name] = r.url;
-            else if (r.name) errFiles.push(r.name);
+            if (r.url) {
+              // alt 来自文件名，转义掉会破坏标签的字符
+              var name = String(r.name || 'image').replace(/[&<>"']/g, '');
+              imgHTML += '<img alt="' + name + '" src="' + r.url + '">\n';
+              succMap[r.name] = r.url;
+              okCount++;
+            } else if (r.name) {
+              errFiles.push(r.name);
+            }
           });
+
+          if (imgHTML) {
+            // 先把 selection 恢复成上传前的光标，insertValue 内部据此定位插入点；
+            // insertValue(..., true) 会触发 Vditor 输入渲染，令 getValue() 产出 ![](...) 并同步草稿。
+            try {
+              if (savedRange) {
+                var s = window.getSelection();
+                s.removeAllRanges();
+                s.addRange(savedRange);
+              }
+            } catch (e) {}
+            try {
+              vd.insertValue(imgHTML, true);
+              sync(vd.getValue()); // 兜底：保证保存前隐藏域一定是最新内容
+            } catch (e) {}
+          }
+          if (errFiles.length) vd.tip((okCount ? '已插入 ' + okCount + ' 张；' : '') + '上传失败：' + errFiles.join('、'));
+          else if (okCount) vd.tip('图片已插入', 2000);
+
+          // 仍按 handler 契约返回（Vditor 不消费它插图，仅用于错误提示判断）
           return { code: errFiles.length ? 1 : 0, msg: '', data: { errFiles: errFiles, succMap: succMap } };
         });
       }
