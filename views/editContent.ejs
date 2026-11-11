@@ -17,8 +17,18 @@
             <%- include('editor') %>
         </div>
         <div class="form-group">
-            <label for="contentCategory">分类</label>
+            <label for="contentCategory">分类 <span class="text-muted">（输入可快速筛选）</span></label>
+            <input type="text" id="contentCategoryFilter" class="form-control js-category-filter" placeholder="输入关键字筛选分类" style="margin-bottom:6px;"/>
             <select id="contentCategory" class="form-control js-category-value l-select"></select>
+        </div>
+        <div class="form-group">
+            <label for="contentTags">标签 <span class="text-muted">（逗号分隔，可留空；点「自动生成」从标题/正文提取）</span></label>
+            <div class="input-group">
+                <input type="text" id="contentTags" class="form-control js-tags-value" value="<%= (doc.tags||[]).join(', ') %>" placeholder="如：Node.js, 运维, 教程"/>
+                <span class="input-group-btn">
+                    <button type="button" class="btn btn-default js-auto-tags">自动生成</button>
+                </span>
+            </div>
         </div>
         <div class="form-group">
             <label for="contentOriginal">原文 <span class="text-muted">（留空视为原创）</span></label>

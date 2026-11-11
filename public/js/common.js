@@ -244,13 +244,14 @@
       var content = val(qs('.js-editor'));
       var category = val(qs('.js-category-value'));
       var original = val(qs('input[name="original"]')).trim();
+      var tags = val(qs('.js-tags-value')).trim();
       var contentType = val(qs('.js-content-type')) || 'markdown';
       if (name === '') { myMsg('标题不能为空'); return; }
       if (content.trim() === '') { myMsg('内容不能为空'); return; }
       loading();
       postForm('/content/add', {
         id: id, name: name, content: content, contentType: contentType,
-        category: category, oldName: oldName, original: original
+        category: category, oldName: oldName, original: original, tags: tags
       }).then(function (data) {
         closeLayer();
         myMsg(data.msg);
@@ -261,6 +262,9 @@
         }
       });
     });
+
+    /* 自动生成标签（标题 + 正文关键词提取） */
+    on(document, 'click', '.js-auto-tags', function () { autoGenerateTags(); });
 
     /* 删除文章 */
     on(document, 'click', '.js-content-delete', function () {
@@ -471,9 +475,38 @@
   }
 
   /* ---------------- 分类菜单 ---------------- */
+  // 缓存全量分类，供写/编页面「输入快速筛选」复用（避免每次敲字符都请求接口）
+  var allCategories = [];
+  var categoryFilterBound = false;
+
+  // 依据筛选词重绘 <select class="js-category-value"> 的 <option>；
+  // selectedId 用于敲筛选词后保留当前已选分类（_id）。
+  function renderCategoryOptions(selectEl, filterText, selectedId) {
+    if (!selectEl) return;
+    var f = (filterText || '').trim().toLowerCase();
+    var html = '';
+    allCategories.forEach(function (c) {
+      if (f !== '' && (c.name || '').toLowerCase().indexOf(f) === -1) return;
+      var sel = (selectedId != null && String(c._id) === String(selectedId)) ? ' selected' : '';
+      html += '<option value="' + c._id + '"' + sel + '>' + c.name + '</option>';
+    });
+    if (html === '') html = '<option value="">（无匹配分类）</option>';
+    selectEl.innerHTML = html;
+  }
+  function bindCategoryFilter() {
+    var filterEl = qs('.js-category-filter');
+    if (!filterEl || categoryFilterBound) return; // 仅绑定一次
+    categoryFilterBound = true;
+    filterEl.addEventListener('input', function () {
+      var selectEl = qs('.js-category-value');
+      renderCategoryOptions(selectEl, this.value, selectEl ? selectEl.value : '');
+    });
+  }
+
   function loadCategoryMenu() {
     getJSON('/category/all', {}).then(function (data) {
       var docs = (data && data.docs) || [];
+      allCategories = docs;
       var html = '<li style="padding: 5px;"><input type="text" class="form-control js-category-auto" placeholder="输入" autofocus x-webkit-speech></li>';
       var _url = '', _addHtml = '', _editHtml = '';
       var _categoryId = val(qs('.js-edit-content-category'));
@@ -504,11 +537,13 @@
       }
       if (url.indexOf('content/addPage') !== -1) {
         var cv = qs('.js-category-value'); if (cv) cv.innerHTML = _addHtml;
+        bindCategoryFilter();
         if (sessionUser == null && qs('.js-login-btn')) qs('.js-login-btn').click();
         window.addEventListener('beforeunload', beforeUnloadHandler);
       }
       if (url.indexOf('view=editContent') !== -1) {
         var cv2 = qs('.js-category-value'); if (cv2) cv2.innerHTML = _editHtml;
+        bindCategoryFilter();
         if (sessionUser == null && qs('.js-login-btn')) qs('.js-login-btn').click();
         window.addEventListener('beforeunload', beforeUnloadHandler);
       }
@@ -523,6 +558,71 @@
       if (menu) menu.innerHTML = '<li>' + NL.state('loading') + '</li>';
       loadCategoryMenu();
     });
+  }
+
+  /* ---------------- 标签：客户端自动提取（零依赖，离线可用）---------------- */
+  var STOP_EN = ('the and for with this that content div span class http https www com net org var function return null true false node code html body script style import export from use using new not are was were been have has had will would can could should may might must do does did a an as at by in of on or to is it if else while let const app via per using get set type number string boolean').split(' ');
+  var STOP_ZH = '的了是在和与等你我他她它这那有个不也都就而及或对于把被让给从到上下中内外前后已将又很更最再比因为由经但却若如着过才么什被并且其也们得能会要被比被';
+  function zhHasStop(g) {
+    for (var i = 0; i < g.length; i++) { if (STOP_ZH.indexOf(g.charAt(i)) !== -1) return true; }
+    return false;
+  }
+  // 从标题+正文提取候选标签：英文/技术词 + 中文 2~3 字 n-gram，过滤停用词
+  function extractTags(title, content) {
+    var text = (title || '') + '\n' + (content || '');
+    text = text.replace(/```[\s\S]*?```/g, ' ').replace(/`[^`]*`/g, ' '); // 去代码块/行内代码
+    text = text.replace(/<[^>]+>/g, ' ');                                  // 去 HTML
+    text = text.replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1');                 // 链接/图片保留文字
+    text = text.replace(/[#>*_~=\-]+/g, ' ');                              // 去 markdown 符号
+    // 英文 / 技术词
+    var enTerms = {};
+    var enRe = /[A-Za-z][A-Za-z0-9]*(?:\.[A-Za-z0-9]+)*/g, m;
+    while ((m = enRe.exec(text)) !== null) {
+      var w = m[0]; if (w.length < 2) continue;
+      var low = w.toLowerCase();
+      if (STOP_EN.indexOf(low) !== -1) continue;
+      enTerms[low] = (enTerms[low] || 0) + 1;
+    }
+    var specials = text.match(/(?:C\+\+|C#|F#|Objective\-C)/g) || [];
+    specials.forEach(function (s) { var k = s.replace(/\+/g, 'p').replace(/#/g, 's'); enTerms[k] = (enTerms[k] || 0) + 1; });
+    // 中文 n-gram（标题加权：重复一次提升权重）
+    var titleZh = (title || '').replace(/[^\u4e00-\u9fa5]/g, '');
+    var zhText = (content || '').replace(/[^\u4e00-\u9fa5]/g, ' ') + ' ' + titleZh + ' ' + titleZh;
+    var zhScores = {};
+    zhText.split(/\s+/).filter(Boolean).forEach(function (run) {
+      for (var n = 2; n <= 3; n++) {
+        for (var i = 0; i + n <= run.length; i++) {
+          var g = run.substr(i, n);
+          if (zhHasStop(g)) continue;
+          zhScores[g] = (zhScores[g] || 0) + (n === 3 ? 1.2 : 1);
+        }
+      }
+    });
+    var enList = Object.keys(enTerms).map(function (k) { return { t: k, s: enTerms[k] }; })
+      .sort(function (a, b) { return b.s - a.s; }).slice(0, 4).map(function (x) { return x.t; });
+    var zhList = Object.keys(zhScores).map(function (k) { return { t: k, s: zhScores[k] }; })
+      .filter(function (x) { return x.s >= 2; })        // 至少加权出现两次才入选
+      .sort(function (a, b) { return b.s - a.s; }).slice(0, 4).map(function (x) { return x.t; });
+    var result = enList.concat(zhList), seen = {}, out = [];
+    result.forEach(function (t) { var key = t.toLowerCase(); if (!seen[key]) { seen[key] = 1; out.push(t); } });
+    return out.slice(0, 6);
+  }
+  function autoGenerateTags() {
+    var title = val(qs('.js-add-content-name')) || '';
+    var content = '';
+    if (window.__vditor && typeof window.__vditor.getValue === 'function') {
+      try { content = window.__vditor.getValue() || ''; } catch (e) { content = ''; }
+    } else {
+      content = val(qs('.js-editor')) || '';
+    }
+    if (!title.trim() && !content.trim()) { myMsg('请先填写标题或正文'); return; }
+    var tags = extractTags(title, content);
+    var input = qs('.js-tags-value');
+    if (!input) return;
+    var existing = input.value.split(',').map(function (t) { return t.trim(); }).filter(Boolean);
+    tags.forEach(function (t) { if (existing.indexOf(t) === -1) existing.push(t); });
+    input.value = existing.slice(0, 8).join(', ');
+    myMsg(tags.length ? ('已提取 ' + tags.length + ' 个候选标签，可手动增删') : '未提取到明显标签，请手动填写');
   }
 
   /* ---------------- 评论加载更多 + 首屏 ---------------- */
