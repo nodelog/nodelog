@@ -367,3 +367,7 @@ function escapeRegExp(s) {
 
 //把DAO接口开放出去给controller调用
 module.exports = new ContentDAO();
+// enrichDocs 为模块内私有函数，但 controllers/content.js 的 findByUser 会跨模块调用，
+// 必须挂到导出实例上，否则 Content.enrichDocs === undefined → TypeError。
+// 注：此前同名修复因历史重写丢失，此处重新补回。
+module.exports.enrichDocs = enrichDocs;
