@@ -2,10 +2,9 @@
 // 原则：**服务端渲染的动态 HTML 页面绝不缓存**（登录态、文章列表、公告数都是实时数据），
 // 一律网络优先；只有静态资源（css/js/图片）才缓存优先。
 // v1 曾把首页 HTML 预缓存并 cache-first，导致强刷拿到旧快照、退出登录不生效、部署后白屏。
-// v4：本次改了 /js/common.js（用户管理编辑面板按 data-* 回填，取代原先硬编码当前用户），
-// 必须升版本，否则 cache-first 会让已安装 SW 的用户永远跑旧的 common.js，
-// 表现为「点任何用户的编辑都只显示当前登录用户」。
-var CACHE = 'nodelog-v4';
+// v5：本次又改了 /js/common.js（退出后整页刷新以反映服务端登出态），必须再升版本，
+// 否则 cache-first 会让已安装 SW 的用户永远跑旧的 common.js。
+var CACHE = 'nodelog-v5';
 var PRECACHE = [
   '/css/theme.css',
   '/css/bootstrap.css',

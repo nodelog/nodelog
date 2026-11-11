@@ -275,10 +275,14 @@ $(function () {
             $.get("/user/logout", {}, function (data) {
                 sessionUser = null;
                 $('.js-login-toggle a').toggle();
-                layer.closeAll();
                 $(window).unbind('beforeunload');
+                layer.closeAll();
                 if (url.indexOf("/manager") != -1) {
                     location.href = "/";
+                } else {
+                    // 退出后整页刷新，让服务端按已清空的会话重新渲染登录态，
+                    // 避免依赖前端局部 toggle 而 restoreUser 又凭残留 cookie 恢复登录。
+                    location.reload();
                 }
             }, "json");
         })

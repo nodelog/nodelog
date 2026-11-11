@@ -210,8 +210,15 @@ exports.logout = function (req, res) {
     req.session.user = null;
     // 同时清掉微信扫码登录写入的 30 天凭证 cookie，
     // 否则本地账号登出后 restoreUser 中间件仍会据该 cookie 把登录态恢复回来。
-    // 返回体保留旧拼写 sucess（前端 common.js 只判断回调，不改）。
-    res.clearCookie('nl_open_jwt', {path: '/'});
+    // 关键：clearCookie 的选项必须与设置时完全一致（path/httpOnly/sameSite/secure），
+    // 否则生产环境（HTTPS + NODE_ENV=production，cookie 为 Secure）浏览器会忽略清除指令，
+    // cookie 残留 → 下次请求被 restoreUser 重新登录 → 表现为「退出没用」。
+    res.clearCookie('nl_open_jwt', {
+        path: '/',
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production'
+    });
     res.json({sucess: true});
 };
 

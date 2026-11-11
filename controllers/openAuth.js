@@ -246,7 +246,14 @@ exports.jsConfig = function (req, res) {
 // ---------------------------------------------------------------------------
 exports.logout = function (req, res) {
     req.session.user = null;
-    res.clearCookie(JWT_COOKIE, {path: '/'});
+    // 清除选项必须与设置时一致（path/httpOnly/sameSite/secure），否则生产环境
+    // Secure cookie 不会被真正清除，restoreUser 会据此重新登录。
+    res.clearCookie(JWT_COOKIE, {
+        path: '/',
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production'
+    });
     res.json({success: true});
 };
 
