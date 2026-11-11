@@ -212,12 +212,18 @@ ContentDAO.prototype.findByUser = function (page, author, callback) {
         callback(err, docs);
     });
 };
+// 标签名匹配：转义正则元字符 + 大小写不敏感，避免 "Webhook" 与 "webhook"、
+// "node.js" 与 "nodeXjs" 因大小写/点号而无法命中（穿透「代码看起来对」的精确匹配陷阱）
+function escapeRegex(s) {
+    return String(s == null ? '' : s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 ContentDAO.prototype.findByTag = function (page, tag, currentUser, callback) {
+    var tagTerm = {"$regex": "^" + escapeRegex(tag) + "$", "$options": "i"};
     var term;
     if (currentUser == null) {
-        term = {"tags": tag, "status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}};
+        term = {"tags": tagTerm, "status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}};
     } else {
-        term = {"tags": tag, $or: [
+        term = {"tags": tagTerm, $or: [
             {"status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}},
             {"author": currentUser._id, "status": {$ne: constants.CONTENT_UNABLE_STATUS}}
         ]};
@@ -233,11 +239,12 @@ ContentDAO.prototype.findByTag = function (page, tag, currentUser, callback) {
     });
 };
 ContentDAO.prototype.getCountByTag = function (tag, currentUser, callback) {
+    var tagTerm = {"$regex": "^" + escapeRegex(tag) + "$", "$options": "i"};
     var term;
     if (currentUser == null) {
-        term = {"tags": tag, "status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}};
+        term = {"tags": tagTerm, "status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}};
     } else {
-        term = {"tags": tag, $or: [
+        term = {"tags": tagTerm, $or: [
             {"status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}},
             {"author": currentUser._id, "status": {$ne: constants.CONTENT_UNABLE_STATUS}}
         ]};

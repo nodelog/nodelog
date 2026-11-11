@@ -36,6 +36,10 @@ TagDAO.prototype.findAll = function (callback) {
     TagModel.find({}).sort({count: -1, name: 1}).exec(function (err, docs) { callback(err, docs); });
 };
 // 同步文章标签：保证每个标签存在并刷新计数
+// 修复点：
+//  1) 用 $set 而非 $setOnInsert 写 name —— 否则 name 只在首次插入时写入、之后被冻结，
+//     导致 Tag.name 与 Content.tags 大小写/写法漂移后无法再对齐。
+//  2) count 不再盲目 $inc（每次保存 +1、永不递减，会严重失真），改为按 Content 真实匹配重算。
 TagDAO.prototype.syncTags = function (tagNames, callback) {
     tagNames = (tagNames || []).filter(function (t) { return t && t.trim(); }).map(function (t) { return t.trim(); });
     if (!tagNames.length) return callback(null);
@@ -44,9 +48,17 @@ TagDAO.prototype.syncTags = function (tagNames, callback) {
         var slug = slugify(name);
         TagModel.findOneAndUpdate(
             {"slug": slug},
-            {$setOnInsert: {name: name, slug: slug}, $inc: {count: 1}},
+            {$set: {name: name, slug: slug}, $setOnInsert: {count: 0}},
             {upsert: true, new: true},
-            function (err) { cb(err); }
+            function (err, doc) {
+                if (err || !doc) return cb(err);
+                // 用与查询一致的大小写不敏感匹配，从 Content 真实统计文章数
+                var Content = require('./Content');
+                Content.getCountByTag(name, null, function (e2, total) {
+                    if (e2) return cb(e2);
+                    TagModel.updateOne({_id: doc._id}, {$set: {count: total || 0}}).exec(function (e3) { cb(e3); });
+                });
+            }
         );
     }, function (err) { callback(err); });
 };
