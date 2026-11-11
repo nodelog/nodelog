@@ -195,7 +195,7 @@
 
 /* ---- 7. 原生弹层 / Toast（供 ui.js 使用）----------------------------- */
 .nl-overlay {
-  position: fixed; inset: 0; z-index: 2147483000;
+  position: fixed; inset: 0; z-index: var(--z-overlay);
   display: flex; align-items: center; justify-content: center;
   padding: var(--space-4); background: rgba(17, 27, 33, .5);
   animation: nl-fade .15s ease;
@@ -204,7 +204,7 @@
   width: 100%; max-width: 360px; max-height: 86vh; overflow: auto;
   background: var(--surface); color: var(--ink);
   border: 1px solid var(--border); border-radius: var(--radius);
-  box-shadow: var(--shadow); font-family: var(--font);
+  box-shadow: var(--elev); font-family: var(--font);
 }
 .nl-modal-head {
   padding: var(--space-4); border-bottom: 1px solid var(--border);
@@ -216,7 +216,7 @@
 .nl-loading {
   display: inline-flex; align-items: center; gap: var(--space-3);
   padding: var(--space-4) var(--space-6); background: var(--surface);
-  color: var(--ink); border-radius: var(--radius); box-shadow: var(--shadow); font-family: var(--font);
+  color: var(--ink); border-radius: var(--radius); box-shadow: var(--elev); font-family: var(--font);
 }
 .nl-spinner {
   width: 20px; height: 20px; border-radius: 50%;
@@ -226,11 +226,11 @@
 @keyframes nl-spin { to { transform: rotate(360deg); } }
 @keyframes nl-fade { from { opacity: 0; } to { opacity: 1; } }
 
-.toast-host { position: fixed; left: 50%; bottom: var(--space-8); transform: translateX(-50%); z-index: 2147483001; display: flex; flex-direction: column; gap: var(--space-2); pointer-events: none; }
+.toast-host { position: fixed; left: 50%; bottom: var(--space-8); transform: translateX(-50%); z-index: var(--z-toast); display: flex; flex-direction: column; gap: var(--space-2); pointer-events: none; }
 .nl-toast {
   pointer-events: auto; background: var(--ink); color: #fff;
   padding: var(--space-3) var(--space-5); border-radius: var(--radius-sm);
-  font-size: var(--fs-body-sm); line-height: 1.5; box-shadow: var(--shadow);
+  font-size: var(--fs-body-sm); line-height: 1.5; box-shadow: var(--elev);
   max-width: 90vw; text-align: center; animation: nl-toast-in .2s ease;
 }
 @keyframes nl-toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
@@ -281,3 +281,40 @@
 }
 .tag-preview__chip-remove:hover { opacity: 1; }
 .tag-hint { margin: 6px 0 0; font-size: 12.5px; color: #9aa0a6; min-height: 0; }
+
+/* ---- 后台管理增强：工具条 / 批量 / 状态 / 表单（唯一 SVG 图标集 + 令牌）---- */
+.nl-icon-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+.nl-icon { width: 1.1em; height: 1.1em; flex: 0 0 auto; vertical-align: -0.15em; }
+.admin-toolbar { margin-bottom: var(--space-4); padding: var(--space-3); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.admin-filter-form { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: flex-end; }
+.admin-filter-item { display: flex; flex-direction: column; gap: var(--space-1); min-width: 132px; }
+.admin-filter-item label { font-size: var(--fs-small); color: var(--muted); }
+.admin-filter-item .form-control { min-height: 36px; }
+.admin-filter-item--actions { flex-direction: row; gap: var(--space-2); }
+.admin-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3); }
+.admin-batch { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--border); }
+.admin-batch label { display: inline-flex; gap: var(--space-1); align-items: center; font-size: var(--fs-small); color: var(--muted); }
+.admin-batch .js-batch-status-value { min-height: 36px; width: auto; }
+.admin-batch-count { font-size: var(--fs-small); color: var(--muted); font-variant-numeric: tabular-nums; }
+.admin-list .table { margin-bottom: var(--space-4); }
+.admin-col-check, .admin-col-status, .admin-col-actions { width: 1%; white-space: nowrap; }
+.admin-col-status { min-width: 116px; }
+.admin-status-toggle { display: inline-flex; align-items: center; gap: var(--space-2); min-height: 44px; cursor: pointer; }
+.admin-status-toggle input { width: 18px; height: 18px; flex: 0 0 auto; }
+.admin-status-toggle .js-status-label { font-size: var(--fs-small); }
+.admin-row-actions { display: inline-flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.admin-row-actions a, .admin-row-actions button { min-height: 44px; padding: var(--space-2) var(--space-3); }
+.admin-row-actions button { border: 0; background: transparent; color: var(--accent); cursor: pointer; font: inherit; }
+.admin-row-actions button:hover { text-decoration: underline; }
+.admin-row--error { background: var(--danger-tint); }
+.admin-row-error-tag { color: var(--danger-ink); font-size: var(--fs-small); font-weight: 600; }
+.admin-form { display: flex; flex-direction: column; gap: var(--space-3); }
+.admin-form label { display: flex; flex-direction: column; gap: var(--space-1); font-size: var(--fs-small); color: var(--muted); }
+.admin-form .form-control { min-height: 44px; }
+.admin-form-error { margin: 0; color: var(--danger-ink); font-size: var(--fs-small); }
+.admin-form-actions { display: flex; gap: var(--space-2); justify-content: flex-end; margin-top: var(--space-2); }
+@media (max-width: 640px) {
+  .admin-filter-item { flex: 1 1 140px; }
+  .admin-filter-item--actions { flex: 1 1 100%; }
+  .admin-row-actions { gap: var(--space-1); }
+}

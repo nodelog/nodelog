@@ -102,7 +102,8 @@ var ContentDAO = function () {
 ContentDAO.prototype.save = function (obj, callback) {
     var ContentEntity = new ContentModel(obj);
     ContentEntity.save(function (err) {
-        callback(err);
+        // 追加返回新建文档（含 _id）供导入/审计定位；旧调用方只取第 1 个 err，不受影响。
+        callback(err, err ? null : ContentEntity);
     });
 };
 ContentDAO.prototype.findByName = function (name, callback) {
@@ -319,26 +320,35 @@ ContentDAO.prototype.delete = function (id, currentUser, callback) {
     } else {
         term = {"_id": id, "author": currentUser._id};
     }
-    ContentModel.update(term, {$set: {"status": constants.COMMENT_UNABLE_STATUS }}, function (err) {
+    ContentModel.update(term, {$set: {"status": constants.CONTENT_UNABLE_STATUS }}, function (err) {
         callback(err);
     });
 };
-ContentDAO.prototype.share = function (id, status, callback) {
+// 越权点 3 修法（§2.3）：归属写进 Mongo 查询条件，不「查出来再判断」。
+// scope = {_id, status:oldStatus} + (普通用户 ? {author: session._id} : {})；管理员豁免。
+ContentDAO.prototype.share = function (id, status, currentUser, callback) {
     var oldStatus = constants.CONTENT_ENABLE_STATUS;
-    if (status == constants.COMMENT_UNABLE_STATUS) {
-        callback(null);
+    // status=1 为非法值，零写入（控制器另做早拒绝）。用内容领域常量，勿用 COMMENT_UNABLE_STATUS。
+    if (status == constants.CONTENT_UNABLE_STATUS) {
+        callback(null); // 保持原 share 语义：status=1 为非法值，零写入（控制器另做早拒绝）
     } else {
         if (status == constants.CONTENT_ENABLE_STATUS) {
             oldStatus = constants.CONTENT_SELF_STATUS;
         } else if (status == constants.CONTENT_SELF_STATUS) {
             oldStatus = constants.CONTENT_ENABLE_STATUS;
         }
-        ContentModel.update({"_id": id, "status": oldStatus}, {$set: {"status": status, "modifyTime": new Date()}}, function (err) {
+        var scope = {"_id": id, "status": oldStatus};
+        if (!currentUser || currentUser.role !== 0) {
+            scope.author = (currentUser && currentUser._id) ? currentUser._id : new ObjectId();
+        }
+        ContentModel.update(scope, {$set: {"status": status, "modifyTime": new Date()}}, function (err) {
             callback(err);
         });
     }
 };
-ContentDAO.prototype.update = function (obj, callback) {
+// 越权点 2 修法（§2.3）：改签名为 update(obj, currentUser, callback)，归属进 where。
+// 保留 htmlBackup / contentType 迁移逻辑，enrichDocs 不动。
+ContentDAO.prototype.update = function (obj, currentUser, callback) {
     var set = {
         "name": obj.name,
         "content": obj.content,
@@ -354,13 +364,23 @@ ContentDAO.prototype.update = function (obj, callback) {
     if (obj.draft !== undefined) set.draft = obj.draft;
     if (obj.readingTime !== undefined) set.readingTime = obj.readingTime;
     if (obj.contentType !== undefined) set.contentType = obj.contentType;
+    // D6 纵深防御(L3)：仅管理员可改归属；普通用户即便直接调用 DAO 传 author 也静默忽略，
+    // 防止将来别的调用方绕过 controller 的 D6 早拒绝。管理员豁免严格 role === 0。
+    if (obj.author !== undefined && currentUser && currentUser.role === 0) {
+        set.author = obj.author;
+    }
     // 首次把历史富文本文章保存为 Markdown 时，自动留档原始 HTML（可回滚）。
     // 以数据库当前值判定，不信任前端传参；已迁移过的文章不会覆盖既有备份。
     ContentModel.findById(obj.id, function (findErr, oldDoc) {
         if (!findErr && oldDoc && oldDoc.contentType !== 'markdown' && obj.contentType === 'markdown') {
             set.htmlBackup = oldDoc.content;
         }
-        ContentModel.update({"_id": obj.id}, {$set: set}, function (err) {
+        // L3 权威：管理员按 _id 改任意；普通用户必须命中 author=session._id。
+        var where = {"_id": obj.id};
+        if (!currentUser || currentUser.role !== 0) {
+            where.author = (currentUser && currentUser._id) ? currentUser._id : new ObjectId();
+        }
+        ContentModel.update(where, {$set: set}, function (err) {
             callback(err);
         });
     });
@@ -375,6 +395,9 @@ ContentDAO.prototype.addView = function (obj, callback) {
 function escapeRegExp(s) {
     return String(s == null ? '' : s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
+
+// 通用后台 DAO 方法（adminList/adminFindById/adminUpdate/adminSoftDelete），软删 status=1。
+require('./_adminDao').attach(ContentDAO, ContentModel, {softStatus: constants.CONTENT_UNABLE_STATUS});
 
 //把DAO接口开放出去给controller调用
 module.exports = new ContentDAO();

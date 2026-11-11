@@ -10,9 +10,13 @@ exports.isNotBlank = function(str) {
     return str && str.trim()!="";
 }
 exports.page= function (page, total) {
+    // 反序列化边界：page 来自 req.query（字符串/空/对象），必须 parseInt 后再比较，
+    // 否则 page='abc' 会变成 NaN 一路传进 skip(NaN)，触发 500（C01/E01）。
+    page = parseInt(page, 10);
+    if (isNaN(page)) page = 1;
     var totalPage = Math.ceil(total / constants.PER_PAGE_COUNT);
-    page = ((page < 1) ? 1 : ((page == undefined) ? 1 : page));
-    page = ((page > totalPage) ? totalPage : page);
+    page = ((page < 1) ? 1 : page);
+    if (totalPage > 0 && page > totalPage) page = totalPage; // 超末页回退末页；total=0 时保持 1
     return {"page":page, "totalPage": totalPage};
 }
 

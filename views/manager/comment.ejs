@@ -1,0 +1,65 @@
+<%- include('header') %>
+<ol class="breadcrumb">
+    <li><a href="/manager">后台首页</a></li>
+    <li class="active">评论管理</li>
+</ol>
+<h3>评论管理</h3>
+
+<div class="admin-list">
+  <%- include('../common/adminToolbar', { bar: {
+      res: 'comment', base: '/manager/comment', keyword: true,
+      status: [{v:'0',t:'正常'},{v:'1',t:'禁用'}],
+      sort: [{v:'createTime',t:'时间'}],
+      batch: true, batchStatuses: [{v:'0',t:'正常'},{v:'1',t:'禁用'}],
+      io: true
+  } }) %>
+  <div class="bg-white jumbotron clear-margin">
+    <% var _docs = locals.docs || []; %>
+    <% if (_docs.length > 0) { %>
+    <table class="table table-hover">
+        <thead>
+        <tr>
+            <th class="admin-col-check" aria-label="选择"></th>
+            <th>编号</th>
+            <th>评论者</th>
+            <th>所属文章</th>
+            <th>评论内容</th>
+            <th class="admin-col-status">状态</th>
+            <th>时间</th>
+            <th class="admin-col-actions">操作</th>
+        </tr>
+        </thead>
+        <tbody>
+        <% _docs.forEach(function (d, i) { %>
+        <% var _id = String(d._id == null ? '' : d._id); %>
+        <% var _who = d.userName || d.commenter || '—'; %>
+        <% var _st = (d.status === 1 || String(d.status) === '1') ? '1' : '0'; %>
+        <% var _body = String(d.comment == null ? '' : d.comment); %>
+        <tr data-id="<%= _id %>" data-status="<%= _st %>">
+            <td><input type="checkbox" class="js-batch-check" value="<%= _id %>" aria-label="选择第 <%= i + 1 %> 条评论"></td>
+            <td><%= i + 1 %></td>
+            <td><%= _who %></td>
+            <td><%= d.contentName || '—' %></td>
+            <td><%= _body.length > 80 ? (_body.slice(0, 80) + '…') : _body %></td>
+            <td><label class="admin-status-toggle">
+                <input type="checkbox" class="js-admin-status" data-id="<%= _id %>" data-status="<%= _st %>" <%= _st === '0' ? 'checked' : '' %>>
+                <span class="sr-only">第 <%= i + 1 %> 条评论：</span><span class="js-status-label"><%= _st === '0' ? '正常' : '禁用' %></span>
+            </label></td>
+            <td><%= locals.format ? format(d.createTime) : (d.createTime || '') %></td>
+            <td><span class="admin-row-actions">
+                <a href="/manager/comment/detail?id=<%= _id %>">详情</a>
+                <button type="button" class="js-admin-delete" data-id="<%= _id %>">删除</button>
+            </span></td>
+        </tr>
+        <% }); %>
+        </tbody>
+    </table>
+    <% } else { %>
+    <%- include('../common/state', { kind:'empty', size:'inline', title: (locals.keyword || locals.status) ? '没有符合条件的评论' : '暂无评论', text: (locals.keyword || locals.status) ? '试试调整筛选条件或重置' : '' }) %>
+    <% } %>
+    <% if (locals.url && locals.page != null && locals.totalPage != null && Number(locals.totalPage) > 1) { %>
+    <%- include('../common/adminPager', { url: url, page: page, totalPage: totalPage }) %>
+    <% } %>
+  </div>
+</div>
+<%- include('footer') %>

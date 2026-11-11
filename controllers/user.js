@@ -2,6 +2,7 @@ var bcrypt = require('bcryptjs');
 var User = require('./../models/User.js');
 var constants = require('./../models/constants.js');
 var cmsUtils = require('./cmsUtils.js');
+var kit = require('./adminKit');
 var getCount = function (callback) {
     User.getCount(function (err, total) {
         callback(err, total);
@@ -52,59 +53,55 @@ exports.update = function (req, res) {
         var email = req.body.email;
         var phone = req.body.phone;
         var password = req.body.password;
-        // 仅管理员可变更角色 / 状态，杜绝普通用户自我提权为管理员
+        var changed = [];
+        // 仅管理员可变更角色 / 状态，杜绝普通用户自我提权为管理员。
+        // 枚举校验：role 0/1；status 0/1（2=软删，只能走 delete，防止 update 绕过软删语义）。
         if (isAdmin) {
-            if (status) {
-                if (status != constants.USER_ENABLE_STATUS && status != constants.USER_UNABLE_STATUS) {
-                    status = constants.USER_ENABLE_STATUS;// 设置默认为可用。
-                }
-                obj.status = status;
+            if (status !== undefined && status !== null && status !== '') {
+                var st = kit.intInRange(status, constants.USER_ENABLE_STATUS, constants.USER_UNABLE_STATUS, null);
+                if (st === null) return res.json({"result": false, "msg": "状态参数错误"});
+                obj.status = st; changed.push('status');
             }
             if (role !== undefined && role !== null && role !== '') {
-                obj.role = role;
+                var rl = kit.intInRange(role, 0, 1, null);
+                if (rl === null) return res.json({"result": false, "msg": "角色参数错误"});
+                obj.role = rl; changed.push('role');
             }
         }
-        if (cmsUtils.isNotBlank(userName)) {
-            obj.userName = userName;
-        }
-        if (cmsUtils.isNotBlank(realName)) {
-            obj.realName = realName;
-        }
-        if (cmsUtils.isNotBlank(email)) {
-            obj.email = email;
-        }
+        if (cmsUtils.isNotBlank(userName)) { obj.userName = userName; changed.push('userName'); }
+        if (cmsUtils.isNotBlank(realName)) { obj.realName = realName; changed.push('realName'); }
+        if (cmsUtils.isNotBlank(email)) { obj.email = email; changed.push('email'); }
         // 手机号：本人可填（用于微信扫码按手机号绑定），管理员可改任意用户。
         // 仅当显式提交非空手机号时才写入，留空不覆盖既有值。
-        if (cmsUtils.isNotBlank(phone)) {
-            obj.phone = String(phone).trim();
-        }
-        if (cmsUtils.isNotBlank(password)) {
-            obj.password = encryption(password);
-        }
+        if (cmsUtils.isNotBlank(phone)) { obj.phone = String(phone).trim(); changed.push('phone'); }
+        if (cmsUtils.isNotBlank(password)) { obj.password = encryption(password); changed.push('password'); }
         User.update(obj, function (err) {
-            if (err) {
-                console.log(err.message + "\n update user failure");
-                res.json({"result": false});
-            } else {
-                console.log("update success");
-                if (String(obj._id) === String(current._id)) {
-                    req.session.user = obj;
-                }
-                res.json({"result": true});
-            }
+            var ok = !err;
+            if (!ok) console.log(err.message + "\n update user failure");
+            else console.log("update success");
+            if (ok && String(obj._id) === String(current._id)) req.session.user = obj;
+            kit.audit(req, {action: 'update', target: 'user', objectId: [String(obj._id)],
+                detail: 'changed:' + (changed.length ? changed.join(',') : 'none'), result: ok}, function () {
+                // 兼容红线：成功/失败均为 {result} 单键，绝不补 msg（team-lead 硬约束）。
+                res.json(ok ? {"result": true} : {"result": false});
+            });
         });
     });
 }
 exports.delete = function (req, res) {
-    var id = req.body.id;
-    User.delete(id, function (err, ok) {
-        if (!err && ok) {
-            res.json({'success': true, 'msg': "删除成功"});
-        } else {
-            res.json({'success': false, 'msg': err ? "删除失败" : "用户不存在或已删除"});
-        }
+    var chk = kit.requireId(req.body.id);
+    if (!chk.ok) return res.status(400).json({'success': false, 'msg': '参数错误'});
+    User.delete(chk.id, function (err, ok) {
+        var success = !err && ok;
+        kit.audit(req, {action: 'delete', target: 'user', objectId: [chk.id],
+            detail: 'changed:status', result: success}, function () {
+            if (success) res.json({'success': true, 'msg': "删除成功"});
+            else res.json({'success': false, 'msg': err ? "删除失败" : "用户不存在或已删除"});
+        });
     });
 }
+// 后台新增能力（add/detail/status/batch/import/export）合并导出，对外仍是 user.xxx。
+Object.assign(exports, require('./userAdmin'));
 
 var findUserByName = function (userName, callback) {
     User.findByName(userName, function (err, obj) {

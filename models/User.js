@@ -30,7 +30,8 @@ var UserDAO = function () {
 UserDAO.prototype.save = function (obj, callback) {
     var userEntity = new UserModel(obj);
     userEntity.save(function (err) {
-        callback(err);
+        // 追加返回新建文档（含 _id）供导入/审计定位；旧调用方只取第 1 个 err，不受影响。
+        callback(err, err ? null : userEntity);
     });
 };
 UserDAO.prototype.findByName = function (name, callback) {
@@ -162,4 +163,7 @@ UserDAO.prototype.updatePassword = function (callback) {
         callback(err);
     });
 };
+// 通用后台 DAO 方法（软删 status=2，与其余资源 status=1 不同 —— I-10）。
+require('./_adminDao').attach(UserDAO, UserModel, {softStatus: constants.USER_DELETE_STATUS});
+
 module.exports = new UserDAO();

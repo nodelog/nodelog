@@ -3,34 +3,35 @@
     <li><a href="/manager">后台首页</a></li>
     <li class="active">链接管理</li>
 </ol>
-<h3> 链接管理
-    <button type="button" class="btn btn-default pull-right js-add-link">
-        <i class="glyphicon glyphicon-plus"></i>&nbsp; 添加链接
-    </button>
+<h3>链接管理
+    <button type="button" id="js-add-link-trigger" class="btn btn-default pull-right js-add-link"
+            aria-expanded="false" aria-controls="js-add-link-panel">添加链接</button>
 </h3>
 
 <div class="clearfix"></div>
-<div style="display: none" class=" js-add-link-panel">
+<div id="js-add-link-panel" class="js-add-link-panel" style="display: none">
     <form name="linkForm" role="form" action="javascript:;">
         <input type="hidden" name="id">
         <div class="form-group">
-            <label for="">链接名称</label>
-            <input type="text" class="form-control" name="name">
+            <label for="link-name">链接名称</label>
+            <input type="text" id="link-name" class="form-control" name="name" maxlength="60" required>
         </div>
         <div class="form-group">
-            <label for="">链接地址</label><span>（站内链接以“/”开头）</span>
-            <input type="text" class="form-control" name="url" value="http://">
+            <label for="link-url">链接地址</label><span>（只接受 http(s):// 或以“/”开头的站内路径）</span>
+            <input type="text" id="link-url" class="form-control" name="url" value="http://" required>
         </div>
-
         <div class="form-group">
-            <label for="">是否新窗口打开</label>
-            <input type="checkbox" class="" name="blank" value="0" checked>
+            <label for="link-blank">
+                <input type="checkbox" id="link-blank" name="blank" value="0" checked>
+                新窗口打开
+            </label>
         </div>
-
-        <button type="button" class="btn btn-default js-link-save pull-right">保存</button>
+        <button type="button" class="btn btn-default js-link-save">保存</button>
+        <button type="button" class="btn js-link-cancel">取消</button>
     </form>
 </div>
 
+<p class="js-link-status" role="status" aria-live="polite" aria-atomic="true" style="margin: 8px 0"></p>
 
 <table class="table table-hover">
     <thead>
@@ -41,71 +42,328 @@
         <th>操作</th>
     </tr>
     </thead>
-    <tbody class="js-link-panel">
-
-    </tbody>
+    <tbody class="js-link-panel"></tbody>
 </table>
+<div class="js-link-pager"></div>
 
 <%- include('footer') %>
 <script>
-    $(function () {
-        //保存链接
-        $('.js-link-save').click(function () {
-            var data = $('form[name=linkForm]').serializeArray();
-            loading();
-            $.post("/manager/link/save", data, function (data) {
-                if (data.success) {
-                    myMsg(data.msg);
-                    location.reload();
-                } else {
-                    myMsg(data.msg);
-                }
-            }, "json");
-        });
+/* 去框架化：原生 DOM + fetch + 事件委托，零 jQuery，用户字段一律 DOM 接口渲染。
+   本页脚本自带极小工具函数（common.js 的 on/qs/postForm 在 IIFE 内不可见），
+   并在 DOMContentLoaded 时启动，确保 defer 的 ui.js/common.js 已就绪（NL.toast/alert 可用）。 */
+(function () {
+  'use strict';
 
-        $.post("/link/list", {}, function (data) {
-            if (data.success) {
-                var _html = '';
-                $.each(data.data, function (i, val) {
-                    _html +='<tr>';
-                    _html += '<td>' + (i + 1) + '</td>';
-                    _html += '<td>' + val.name + '</td>';
-                    _html += '<td><a href="' + val.url + '" target="_blank">' + val.url + '</a></td>';
-                    _html += '<td data-id="'+val._id+'" data-blank="'+val.blank+'"><a class="js-link-update" href="javascript:;">修改</a>&nbsp;<a href="javascript:;" class="js-link-delete">删除</a></td>';
-                    _html +='</tr>';
-                });
-                $(".js-link-panel").html(_html);
-            }
-        }, "json");
+  function qs(sel, root) { return (root || document).querySelector(sel); }
 
-        $("body").delegate('.js-link-delete','click',function () {
-            var $this = $(this);
-            myAlert("删除后无法恢复，您确定要删除吗？", function () {
-                $.post("/manager/link/delete", {id: $this.parent().attr("data-id")}, function (data) {
-                    if (data.success) {
-                        $this.parents('tr').fadeOut();
-                    } else {
-                        myMsg(data.msg);
-                    }
-                }, "json");
-            });
-        });
-        $("body").delegate('.js-link-update','click',function () {
-            var $this = $(this);
-            $('input[name="id"]').val($this.parent().attr('data-id'));
-            $('input[name="name"]').val($this.parents('tr').find('td:eq(1)').text());
-            $('input[name="url"]').val($this.parents('tr').find('td:eq(2)').text());
-            if($this.parent().attr('data-blank') == 0){
-                $('input[name="blank"]').prop('checked', true);
-            } else {
-                $('input[name="blank"]').prop('checked', false);
-            }
-            $('.js-add-link-panel').slideDown();
+  // URL 协议白名单：仅 https?:// 或单个 / 开头的站内路径。拒绝 javascript:/data://evil。
+  function safeUrl(u) {
+    u = String(u == null ? '' : u).trim();
+    if (/^https?:\/\//i.test(u)) return u;
+    if (/^\/(?!\/)/.test(u)) return u;
+    return null;
+  }
 
-        });
-
-        $('.js-add-link').click(function () {
-            $('.js-add-link-panel').slideToggle();
-        });
+  function post(url, data) {
+    return fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(data || {}).toString()
+    }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
     });
+  }
+
+  function toast(msg) { if (window.NL && typeof NL.toast === 'function') NL.toast(msg); }
+  function confirmBox(msg, cb) {
+    if (window.NL && typeof NL.alert === 'function') NL.alert(msg, { onConfirm: cb });
+    else if (window.confirm(msg)) cb();
+  }
+
+  var panel = qs('.js-link-panel');
+  var form = qs('form[name=linkForm]');
+  var addPanel = qs('.js-add-link-panel');
+  var addBtn = qs('.js-add-link');
+  var statusEl = qs('.js-link-status');
+  var pagerEl = qs('.js-link-pager');
+  var COLS = 4;
+  var PAGE_SIZE = 100;
+  var currentPage = 1;
+  var totalPage = 1;
+
+  function announce(msg) { if (statusEl) statusEl.textContent = msg; }
+
+  function cell(tr, text) {
+    var td = document.createElement('td');
+    td.textContent = (text == null ? '' : String(text));
+    tr.appendChild(td);
+    return td;
+  }
+
+  // 用户字段一律 createElement + textContent + setAttribute，禁止字符串拼 HTML。
+  function makeRow(item, index) {
+    var tr = document.createElement('tr');
+    var id = item._id == null ? '' : String(item._id);
+    tr.setAttribute('data-id', id);
+    tr.setAttribute('data-blank', item.blank == null ? '1' : String(item.blank));
+    tr.setAttribute('data-name', item.name == null ? '' : String(item.name));
+    tr.setAttribute('data-url', item.url == null ? '' : String(item.url));
+
+    cell(tr, index + 1);      // 编号
+    cell(tr, item.name);      // 名称
+
+    // 地址：safeUrl 通过后才 setAttribute('href', ...)
+    var urlTd = document.createElement('td');
+    var raw = item.url == null ? '' : String(item.url);
+    var safe = safeUrl(raw);
+    if (safe) {
+      var a = document.createElement('a');
+      a.textContent = raw;
+      a.setAttribute('href', safe);
+      a.setAttribute('target', '_blank');
+      a.setAttribute('rel', 'noopener noreferrer');
+      urlTd.appendChild(a);
+    } else {
+      var bad = document.createElement('span');
+      bad.textContent = raw + '（无效地址，未生成链接）';
+      urlTd.appendChild(bad);
+    }
+    tr.appendChild(urlTd);
+
+    // 操作：详情 / 修改 / 删除
+    var op = document.createElement('td');
+    var detail = document.createElement('a');
+    detail.href = '/manager/link/detail?id=' + encodeURIComponent(id);
+    detail.textContent = '详情';
+    op.appendChild(detail);
+    op.appendChild(document.createTextNode('  '));
+    var edit = document.createElement('a');
+    edit.href = 'javascript:;';
+    edit.className = 'js-link-update';
+    edit.textContent = '修改';
+    op.appendChild(edit);
+    op.appendChild(document.createTextNode('  '));
+    var del = document.createElement('a');
+    del.href = 'javascript:;';
+    del.className = 'js-link-delete';
+    del.textContent = '删除';
+    op.appendChild(del);
+    tr.appendChild(op);
+
+    return tr;
+  }
+
+  // 失败绝不降级为“暂无链接”：error 态带重试按钮，保留已渲染内容之外的清晰错误提示。
+  function showState(kind, text) {
+    if (!panel) return;
+    panel.textContent = '';
+    var tr = document.createElement('tr');
+    var td = document.createElement('td');
+    td.colSpan = COLS;
+    td.className = 'empty';
+    td.setAttribute('role', kind === 'error' ? 'alert' : 'status');
+    if (kind === 'error') {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-sm js-link-retry';
+      btn.textContent = '重试';
+      td.appendChild(btn);
+      td.appendChild(document.createTextNode('  ' + (text || '链接加载失败，请重试')));
+    } else {
+      td.textContent = text || '暂无链接';
+    }
+    tr.appendChild(td);
+    panel.appendChild(tr);
+  }
+
+  function renderPager() {
+    if (!pagerEl) return;
+    pagerEl.textContent = '';
+    if (!totalPage || totalPage <= 1) return;
+    var p = new URLSearchParams(location.search);
+    p.delete('page');
+    var s = p.toString();
+    var base = '/manager/link?' + (s ? s + '&' : '');
+
+    var ul = document.createElement('ul');
+    ul.className = 'pager';
+
+    var prevLi = document.createElement('li');
+    prevLi.className = 'previous';
+    var prev = document.createElement('a');
+    prev.href = 'javascript:;';
+    prev.className = 'js-pre-page';
+    prev.setAttribute('data-url', base);
+    prev.setAttribute('data-page', String(currentPage));
+    prev.setAttribute('data-total', String(totalPage));
+    prev.textContent = '← 上页';
+    prevLi.appendChild(prev);
+    ul.appendChild(prevLi);
+
+    var numLi = document.createElement('li');
+    numLi.textContent = currentPage + '/' + totalPage;
+    ul.appendChild(numLi);
+
+    var nextLi = document.createElement('li');
+    nextLi.className = 'next';
+    var next = document.createElement('a');
+    next.href = 'javascript:;';
+    next.className = 'js-next-page';
+    next.setAttribute('data-url', base);
+    next.setAttribute('data-page', String(currentPage));
+    next.setAttribute('data-total', String(totalPage));
+    next.textContent = '下页 →';
+    nextLi.appendChild(next);
+    ul.appendChild(nextLi);
+
+    pagerEl.appendChild(ul);
+  }
+
+  function loadList(page) {
+    currentPage = page || 1;
+    if (!panel) return;
+    showState('loading', '正在加载链接…');
+    // 后台分页列表：POST /manager/link/list（与公开 /link/list 并存，互不混用）
+    post('/manager/link/list', { page: currentPage, pageSize: PAGE_SIZE })
+      .then(function (data) {
+        if (!data || data.success === false) {
+          showState('error', (data && data.msg) || '链接加载失败，请重试');
+          announce('链接加载失败');
+          return;
+        }
+        var docs = data.data || [];
+        totalPage = parseInt(data.totalPage, 10) || 1;
+        panel.textContent = '';
+        if (!docs.length) {
+          showState('empty', '暂无链接');
+          announce('暂无链接');
+        } else {
+          docs.forEach(function (item, i) { panel.appendChild(makeRow(item, i)); });
+          announce('已加载 ' + docs.length + ' 条链接');
+        }
+        renderPager();
+      })
+      .catch(function () {
+        showState('error', '链接加载失败，请重试');
+        announce('链接加载失败，请重试');
+      });
+  }
+
+  function togglePanel(forceOpen) {
+    if (!addPanel) return;
+    var willShow = (typeof forceOpen === 'boolean')
+      ? forceOpen
+      : (addPanel.style.display === 'none' || addPanel.style.display === '');
+    addPanel.style.display = willShow ? 'block' : 'none';
+    if (addBtn) addBtn.setAttribute('aria-expanded', willShow ? 'true' : 'false');
+    if (willShow) { var n = qs('#link-name'); if (n) n.focus(); }
+  }
+
+  function resetForm() {
+    if (!form) return;
+    form.reset();
+    var idEl = qs('input[name=id]', form); if (idEl) idEl.value = '';
+    var urlEl = qs('input[name=url]', form); if (urlEl) urlEl.value = 'http://';
+    var blankEl = qs('input[name=blank]', form); if (blankEl) blankEl.checked = true;
+  }
+
+  function boot() {
+    if (!panel || !form) return;
+    var params = new URLSearchParams(location.search);
+    loadList(parseInt(params.get('page'), 10) || 1);
+
+    // 事件委托：一个 document 级 click 覆盖新增/保存/修改/删除/重试五个按钮。
+    document.addEventListener('click', function (e) {
+      var t = e.target && e.target.closest ? e.target.closest('a, button') : null;
+      if (!t) return;
+
+      if (t.classList.contains('js-add-link')) { e.preventDefault(); togglePanel(); return; }
+      if (t.classList.contains('js-link-cancel')) { e.preventDefault(); togglePanel(false); resetForm(); return; }
+      if (t.classList.contains('js-link-retry')) { e.preventDefault(); loadList(currentPage); return; }
+
+      if (t.classList.contains('js-link-update')) {
+        e.preventDefault();
+        var row = t.closest('tr');
+        if (!row) return;
+        var idEl = qs('input[name=id]', form);
+        var nameEl = qs('input[name=name]', form);
+        var urlEl = qs('input[name=url]', form);
+        var blankEl = qs('input[name=blank]', form);
+        if (idEl) idEl.value = row.getAttribute('data-id') || '';
+        if (nameEl) nameEl.value = row.getAttribute('data-name') || '';
+        if (urlEl) urlEl.value = row.getAttribute('data-url') || '';
+        if (blankEl) blankEl.checked = (row.getAttribute('data-blank') === '0');
+        togglePanel(true);
+        return;
+      }
+
+      if (t.classList.contains('js-link-delete')) {
+        e.preventDefault();
+        var tr = t.closest('tr');
+        if (!tr) return;
+        var did = tr.getAttribute('data-id');
+        confirmBox('删除后无法恢复，您确定要删除吗？', function () {
+          post('/manager/link/delete', { id: did })
+            .then(function (data) {
+              if (data && data.success) {
+                if (tr.parentNode) tr.parentNode.removeChild(tr);
+                toast(data.msg || '已删除');
+                announce('链接已删除');
+              } else {
+                toast((data && data.msg) || '删除失败');
+              }
+            })
+            .catch(function () { toast('网络错误，删除未生效'); });
+        });
+        return;
+      }
+
+      if (t.classList.contains('js-link-save')) {
+        e.preventDefault();
+        var nameEl2 = qs('input[name=name]', form);
+        var urlEl2 = qs('input[name=url]', form);
+        var blankEl2 = qs('input[name=blank]', form);
+        var idEl2 = qs('input[name=id]', form);
+        var name = (nameEl2 ? nameEl2.value : '').trim();
+        var rawUrl = (urlEl2 ? urlEl2.value : '').trim();
+        var safe = safeUrl(rawUrl);
+        if (!name) { toast('链接名称不能为空'); return; }
+        if (!safe) { toast('链接地址须为 http(s):// 或“/”开头的站内路径'); return; }
+        var payload = {
+          id: idEl2 ? idEl2.value : '',
+          name: name,
+          url: safe,
+          blank: blankEl2 && blankEl2.checked ? '0' : '1'
+        };
+        post('/manager/link/save', payload)
+          .then(function (data) {
+            if (data && data.success) {
+              toast(data.msg || '已保存');
+              togglePanel(false);
+              resetForm();
+              loadList(1);
+            } else {
+              toast((data && data.msg) || '保存失败');
+            }
+          })
+          .catch(function () { toast('网络错误，保存未生效'); });
+        return;
+      }
+    });
+  }
+
+  // defer 脚本（ui.js/common.js）在 DOMContentLoaded 之前执行完；此处再启动以拿到 NL。
+  function whenReady(fn) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', fn, { once: true });
+    } else if (window.NL && typeof window.NL.toast === 'function') {
+      fn();
+    } else {
+      document.addEventListener('DOMContentLoaded', fn, { once: true });
+    }
+  }
+  whenReady(boot);
+})();
 </script>

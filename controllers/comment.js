@@ -4,6 +4,7 @@ var Comment = require('./../models/Comment.js');
 var Content = require('./../models/Content.js');
 var User = require('./../models/User.js');
 var cmsUtils = require('./cmsUtils.js');
+var kit = require('./adminKit'); // 后台 delete/audit 统一工具（DEF-001：原缺失导致 /manager/comment/delete 500）
 var settings = require('./../settings');
 
 var mailer        = require('nodemailer');
@@ -90,16 +91,20 @@ exports.findByPageAndContent = function (req, res) {
 
 
 exports.delete = function (req, res) {
-    var id = req.body.id;
-    Comment.delete(id, function (err) {
-        if (!err) {
-            res.json({'success': true, 'msg': "删除成功"});
-        } else {
-            res.json({'success': false, 'msg': "删除失败"});
-        }
+    var chk = kit.requireId(req.body.id);
+    if (!chk.ok) return res.status(400).json({'success': false, 'msg': '参数错误'});
+    Comment.delete(chk.id, function (err) {
+        var ok = !err;
+        kit.audit(req, {action: 'delete', target: 'comment', objectId: [chk.id],
+            detail: 'changed:status', result: ok}, function () {
+            if (ok) res.json({'success': true, 'msg': "删除成功"});
+            else res.json({'success': false, 'msg': "删除失败"});
+        });
     });
 };
 
+// 字段错位修复（B13/F01）：schema 是 comment/commenter/content，不是 name/author/category；
+// 原代码还 require 了一个不存在的 Category → 详情必 500。改为转 POJO 后查评论人与所属文章标题。
 exports.findById = function (req, res) {
     var id = req.query.id;
     var view = req.query.view;
@@ -110,52 +115,29 @@ exports.findById = function (req, res) {
     async.auto({
         getComment: function (callback, results) {
             Comment.findById(id, function (err, obj) {
-                if (!err) {
-                    doc = obj;
-                } else {
-                    console.log("data err");
-                }
+                if (!err && obj) doc = (obj.toObject ? obj.toObject() : obj);
                 callback(null);
             });
         },
         initUser: ["getComment", function (callback, results) {
-            if (doc != null) {
-                User.findById(doc.author, function (err, obj) {
-                    if (obj != null) {
-                        doc.userName = obj.userName;
-                    } else {
-                        console.log(doc.name + "'s user not found");
-                        doc.userName = "未知";//
-                    }
+            if (doc != null && doc.commenter) {
+                User.findById(doc.commenter, function (err, obj) {
+                    doc.userName = obj ? (obj.realName || obj.userName) : "未知";
                     callback(null);
                 });
-            } else {
-                callback(null);
-            }
+            } else { if (doc) doc.userName = doc.userName || "未知"; callback(null); }
         }],
-        initCategory: ["initUser", function (callback, results) {
-            if (doc != null) {
-                Category.findById(doc.category, function (err, obj) {
-                    if (obj != null) {
-                        doc.categoryName = obj.name;
-                    } else {
-                        console.log(doc.name + "'s user not found");
-                        doc.categoryName = "未知";//
-                    }
+        initContent: ["initUser", function (callback, results) {
+            if (doc != null && doc.content) {
+                Content.findById(doc.content, function (err, obj) {
+                    doc.contentName = (obj && obj.name) || "未知";
                     callback(null);
                 });
-            } else {
-                callback(null);
-            }
+            } else { if (doc) doc.contentName = "未知"; callback(null); }
         }]
     }, function (err, results) {
-        res.render(view, {doc: doc, title: doc != null ? doc.name : "Comment not found"});
-    });
-};
-
-var findByName = function (name, callback) {
-    Comment.findByName(name, function (err, obj) {
-        callback(err, obj);
+        if (doc == null) { res.redirect('/error'); return; }
+        res.render(view, {doc: doc, title: doc.comment ? String(doc.comment).slice(0, 40) : "评论详情"});
     });
 };
 //add
@@ -244,36 +226,7 @@ exports.add = function (req, res) {
         res.json({'success': success, 'msg': msg});
     }
 };
-//update
-exports.update = function (req, res) {
-    var id = req.body.id;
-    var name = req.body.name.trim();
-    var msg = "";
-    var success = false;
-    var flag = false;//是否已发起回调
-    if (name == "") {
-        msg = "Comment Name is empty";
-    } else {
-        flag = true;
-        findByName(name, function (err, obj) {
-            if (obj != null) {
-                msg = "Comment Name is exists";
-                res.json({'success': success, 'msg': msg});
-            } else {
-                Comment.update(id, name, function (err) {
-                    if (!err) {
-                        success = true;
-                        msg = "Modify Comment is success";
-                    } else {
-                        console.log(err.message);
-                        msg = "Modify Comment is failure";
-                    }
-                    res.json({'success': success, 'msg': msg});
-                });
-            }
-        });
-    }//end else
-    if (!flag) {// no callback
-        res.json({'success': success, 'msg': msg});
-    }
-};
+// 后台新增能力（adminList/detail/modify/status/batch/import/export）合并导出。
+// 死代码 exports.update 与 findByName（ Comment.update(id,name,cb) 签名不符、findByName 查不存在的 name 字段）已删除，
+// 后台编辑统一走 commentAdmin.modify → Comment.update({id,comment},cb)。
+Object.assign(exports, require('./commentAdmin'));

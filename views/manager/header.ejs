@@ -4,6 +4,7 @@
     <%- include('../common/meta') %>
 </head>
 <body class="bg-gray js-body manager">
+<%- include('../common/icons') %>
 <nav class="navbar nav-bg navbar-fixed-top bottom-border" role="navigation">
     <div class="navbar-header">
         <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#example-navbar-collapse">
@@ -24,6 +25,9 @@
             <li><a href="/manager/category?page=1" class="color-white <%if(locals.currentMenu&&currentMenu=="category"){%>current-menu<%}%>">分类</a></li>
             <li><a href="/manager/log?view=manager/log&page=1" class="color-white <%if(locals.currentMenu&&currentMenu=="log"){%>current-menu<%}%>">公告</a></li>
             <li><a href="/manager/link" class="color-white <%if(locals.currentMenu&&currentMenu=="link"){%>current-menu<%}%>">链接</a></li>
+            <li><a href="/manager/tag?page=1" class="color-white <%if(locals.currentMenu&&currentMenu=="tag"){%>current-menu<%}%>">标签</a></li>
+            <li><a href="/manager/comment?page=1" class="color-white <%if(locals.currentMenu&&currentMenu=="comment"){%>current-menu<%}%>">评论</a></li>
+            <li><a href="/manager/audit/page" class="color-white <%if(locals.currentMenu&&currentMenu=="audit"){%>current-menu<%}%>">操作日志</a></li>
             <% } %>
             <li><a href="javascript:;" class="color-white js-logout-btn" title="退出登录">退出</a></li>
             <% } %>

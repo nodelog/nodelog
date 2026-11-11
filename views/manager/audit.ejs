@@ -1,0 +1,49 @@
+<%- include('header') %>
+<ol class="breadcrumb">
+    <li><a href="/manager">后台首页</a></li>
+    <li class="active">操作日志</li>
+</ol>
+<h3>操作日志</h3>
+
+<div class="admin-list">
+  <% /* 审计页只读：仅筛选 + 分页，无批量 / 新增 / 编辑 / 删除 / 导入导出入口。 */ %>
+  <%- include('../common/adminToolbar', { bar: {
+      res: 'audit', base: '/manager/audit/page', extra: 'audit',
+      sort: [{v:'time',t:'时间'},{v:'action',t:'动作'},{v:'target',t:'资源'},{v:'actorName',t:'操作者'}]
+  } }) %>
+  <div class="bg-white jumbotron clear-margin">
+    <% var _docs = locals.docs || []; %>
+    <% if (_docs.length > 0) { %>
+    <table class="table table-hover">
+        <thead>
+        <tr>
+            <th>时间</th>
+            <th>操作者</th>
+            <th>动作</th>
+            <th>对象</th>
+            <th>结果</th>
+            <th>详情</th>
+        </tr>
+        </thead>
+        <tbody>
+        <% _docs.forEach(function (d) { %>
+        <tr>
+            <td><%= locals.format ? format(d.time) : (d.time || '') %></td>
+            <td><%= d.actorName || '' %></td>
+            <td><%= d.action || '' %></td>
+            <td><%= d.target || '' %></td>
+            <td><%= d.result === false ? '失败' : '成功' %></td>
+            <td><%= d.detail || '' %></td>
+        </tr>
+        <% }); %>
+        </tbody>
+    </table>
+    <% } else { %>
+    <%- include('../common/state', { kind:'empty', size:'inline', title:'暂无日志记录', text: (locals.action || locals.actor || locals.target || locals.result || locals.from || locals.to) ? '试试调整筛选条件或重置' : '' }) %>
+    <% } %>
+    <% if (locals.url && locals.page != null && locals.totalPage != null && Number(locals.totalPage) > 1) { %>
+    <%- include('../common/adminPager', { url: url, page: page, totalPage: totalPage }) %>
+    <% } %>
+  </div>
+</div>
+<%- include('footer') %>

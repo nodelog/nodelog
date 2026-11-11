@@ -1,12 +1,13 @@
-var async = require("async");//异步回调组件
-var utils = require("util");//工具组件
-var Content = require('./../models/Content.js');//Content DAO接口和Model等
+// Content 控制器主文件：写操作（新增/编辑/删除/分享/历史重命名）+ 归属越权修复（越权点 2、3）。
+// 前台查询接口位移到 contentQuery.js、后台治理能力位移到 contentAdmin.js，均为纯代码位移、行为零改动；
+// 末尾 Object.assign 合并导出，老 URL 与路由引用（content.findByPage 等）全部不变。
+var async = require("async");
+var Content = require('./../models/Content.js');
 var User = require('./../models/User.js');
 var Category = require('./../models/Category.js');
-var cmsUtils = require('./cmsUtils.js');//自定义util工具
-var markdown = require('./markdown.js');
-var html2md = require('./html2md.js');
+var cmsUtils = require('./cmsUtils.js');
 var Tag = require('./../models/Tag.js');
+var kit = require('./adminKit');
 
 function buildFields(req) {
     var name = (req.body.name || '').trim();
@@ -21,7 +22,7 @@ function buildFields(req) {
     var tags = Array.isArray(req.body.tags)
         ? req.body.tags
         : String(req.body.tags || '').split(',');
-    // 归一化：去首尾空格、合并中间连续空白，防止「看不见的空格」让标签匹配失效
+    // 归一化：去首尾空格、合并中间连续空白，防止「看不见的空格」让标签匹配失效（上游 8f68829 修复，不得回退）
     tags = tags.map(function (t) { return String(t == null ? '' : t).trim().replace(/\s+/g, ' '); }).filter(Boolean);
     var seo = {
         title: req.body['seo[title]'] || req.body.seoTitle || '',
@@ -36,288 +37,156 @@ function buildFields(req) {
     };
 }
 
-exports.findByPage = function (req, res) {
-    var total = 0, page = 0, totalPage = 0, docs = {};
+// 审计收尾：主写/重算完成后才回响应，审计失败只 warn 不改响应键集合（§3.6）。
+function finish(req, res, meta, body) {
+    kit.audit(req, meta, function () { res.json(body); });
+}
+function contentMeta(action, id, detail, result) {
+    return {action: action, target: 'content', objectId: id ? [String(id)] : [], detail: detail || 'changed:name,content,tags', result: result !== false};
+}
+function reconcileTags(oldTags, newTags, note, cb) {
+    Tag.reconcileForContent(oldTags, newTags, function (err) {
+        if (err) console.warn('[content] tag reconcile failed (' + note + '): ' + err.message);
+        cb(null); // 重算失败不回滚正文（§3.7），由 tag-reconcile 维护入口自愈
+    });
+}
+
+// 删除：保留 {success,msg}；删前读旧 tags（带归属作用域），删后重算，审计。
+exports.delete = function (req, res) {
+    var chk = kit.requireId(req.body.id);
     var sessionUser = req.session.user;
-    async.auto({
-        totalCount: function (callback) {
-            Content.getCount(sessionUser, function (err, count) { total = count; callback(null); });
-        },
-        pageDocs: ["totalCount", function (callback) {
-            var pageObj = cmsUtils.page(req.query.page, total);
-            page = pageObj.page; totalPage = pageObj.totalPage;
-            if (totalPage > 0) {
-                Content.findByPage(page, sessionUser, function (err, objects) { docs = objects; callback(null); });
-            } else { callback(null); }
-        }]
-    }, function (err) {
-        var login = req.query.login === "true";
-        var view = "index";
-        var url = "/index?";
-        var title = req.session.site.name;
-        var currentMenu = "home";
-        if (req.query.manager === "true") {
-            view = "manager/content"; url = "/manager/content?manager=true&"; title = "文章管理"; currentMenu = "content";
+    if (!chk.ok) return res.status(400).json({success: false, msg: '参数错误'});
+    var where = kit.scopeTerm(sessionUser, 'author', {});
+    Content.adminFindById(chk.id, where, function (err, doc) {
+        if (err) {
+            var n = kit.normalizeDaoError(err, 'content.delete');
+            return res.status(n.status).json({success: false, msg: n.msg});
         }
-        res.render(view, {docs: docs, title: title, login: login, page: page, totalPage: totalPage, total: total, url: url, currentMenu: currentMenu});
+        if (!doc) return res.json({success: false, msg: '文章不存在或无权删除'});
+        Content.delete(chk.id, sessionUser, function (err2) {
+            var success = !err2;
+            var respond = function () {
+                finish(req, res, contentMeta('delete', chk.id, 'changed:status', success),
+                    {success: success, msg: success ? '删除成功' : '删除失败'});
+            };
+            if (!success) return respond();
+            reconcileTags(doc.tags || [], [], 'delete', respond);
+        });
     });
 };
 
-exports.delete = function (req, res) {
-    var id = req.body.id;
-    var sessionUser = req.session.user;
-    Content.delete(id, sessionUser, function (err) {
-        if (!err) res.json({'success': true, 'msg': "删除成功"});
-        else res.json({'success': false, 'msg': "删除失败"});
-    });
-};
+// 状态/分享（越权点 3）：归属早拒绝 + DAO where 带 author + 写后重算 + 审计；{success,msg} 不变。
 exports.share = function (req, res) {
-    var id = req.body.id;
-    var status = req.body.status;
-    Content.share(id, status, function (err) {
-        if (!err) res.json({'success': true, 'msg': "成功"});
-        else res.json({'success': false, 'msg': "失败"});
-    });
-};
-exports.findById = function (req, res) {
-    var id = req.query.id;
-    var view = req.query.view;
-    if (!view) {
-        if (req.path === '/content/edit') view = 'editContent';
-        else if (req.path.indexOf('/manager') === 0) view = 'manager/contentDetail';
-        else view = 'contentDetail';
+    var chk = kit.requireId(req.body.id);
+    var status = kit.intInRange(req.body.status, 0, 2, null);
+    if (!chk.ok || status === null || status === 1) {
+        return res.status(400).json({success: false, msg: '参数错误'});
     }
-    var doc = null;
-    async.auto({
-        getContent: function (callback) {
-            Content.findById(id, function (err, obj) { if (!err) doc = obj; else console.log("data err"); callback(null); });
-        },
-        render: ["getContent", function (callback) {
-            if (!doc) return callback(null);
-            if (doc.contentType === 'markdown') {
-                doc.renderedContent = markdown.render(doc.content);
-                if (!doc.excerpt) doc.excerpt = markdown.excerpt(doc.content, 120);
-            } else {
-                doc.renderedContent = doc.content;
-                if (!doc.excerpt) doc.excerpt = markdown.excerpt(doc.content ? doc.content.replace(/<[^>]*>/g, '') : '', 120);
-            }
-            // 编辑页：历史富文本文章即时转成 Markdown 显示，解决「打开全是 HTML 标签」。
-            // 只改内存中的 doc，不写库；用户点保存后才真正落为 markdown，
-            // 原始 HTML 由 ContentDAO.update 自动存入 htmlBackup，可回滚。
-            if (String(view).indexOf('editContent') !== -1 &&
-                doc.contentType !== 'markdown' && html2md.isHtml(doc.content)) {
-                doc.htmlBackup = doc.content;              // 仅内存留档，不写库
-                doc.content = html2md.convert(doc.content);
-                doc.contentType = 'markdown';
-                // 仅内存标志：本次打开是「历史富文本 → 临时转 Markdown 预览」，尚未点保存迁移。
-                // 编辑页提示只认这个标志。不能用 htmlBackup 判断：文章保存迁移后该字段会
-                // 永久留在库中（ContentDAO.update 写入供回滚），会让已转成 Markdown 的文章
-                // 每次打开编辑页都误报「旧版富文本」。
-                doc.legacyHtmlPending = true;
-            }
-            callback(null);
-        }]
-    }, function (err) {
-        if (doc == null) { res.redirect("/error"); return; }
-        if (view == "editContent") {
-            if (req.session.user._id != doc.author) { res.redirect("/"); return; }
-        }
-        if (view == "contentDetail") {
-            Content.addView(doc, function (err) {
-                if (err) console.log("add view failure"); else doc.view = (doc.view + 1);
-                res.render(view, {"doc": doc, "title": doc != null ? doc.name : "文章没有找到"});
-            });
-        } else {
-            res.render(view, {"doc": doc, "title": doc != null ? doc.name : "文章没有找到"});
-        }
-    });
-};
-exports.findByCategory = function (req, res) {
-    var category = {}, categoryId, total = 0, page = 0, totalPage = 0, docs = {};
     var sessionUser = req.session.user;
-    async.auto({
-        getCategoryById: function (callback) {
-            categoryId = req.query.categoryId;
-            Category.findById(categoryId, function (err, obj) {
-                if (err || obj == null) { res.redirect('error'); return; }
-                category = obj; callback(null);
-            });
-        },
-        totalCount: ["getCategoryById", function (callback) {
-            Content.getCountByCategory(category._id, sessionUser, function (err, count) { total = count; callback(null); });
-        }],
-        getContentByPage: ["totalCount", function (callback) {
-            var pageObj = cmsUtils.page(req.query.page, total);
-            page = pageObj.page; totalPage = pageObj.totalPage;
-            if (totalPage > 0) {
-                Content.findByCategory(page, category._id, sessionUser, function (err, objects) { docs = objects; callback(null); });
-            } else { callback(null); }
-        }]
-    }, function (err) {
-        if (docs.length == 0) { res.redirect('error'); return; }
-        res.render("categoryContent", {
-            docs: docs, category: category, title: category.name + " 相关文章",
-            page: page, totalPage: totalPage, total: total, url: "/content/category?categoryId=" + categoryId + "&",
-            currentMenu: "category"
+    var where = kit.scopeTerm(sessionUser, 'author', {status: {$ne: 1}});
+    Content.adminFindById(chk.id, where, function (err, doc) {
+        if (err) {
+            var n = kit.normalizeDaoError(err, 'content.share');
+            return res.status(n.status).json({success: false, msg: n.msg});
+        }
+        if (!doc) return res.json({success: false, msg: '无权操作或文章不存在'});
+        Content.share(chk.id, status, sessionUser, function (err2) {
+            var success = !err2;
+            var respond = function () {
+                finish(req, res, contentMeta('status', chk.id, 'changed:status', success),
+                    {success: success, msg: success ? '成功' : '失败'});
+            };
+            if (!success) return respond();
+            reconcileTags(doc.tags || [], [], 'share', respond);
         });
-    });
-};
-exports.findByUser = function (req, res) {
-    var user = null, total = 0, page = 0, totalPage = 0, docs = {};
-    async.auto({
-        getUserById: function (callback) {
-            var userId = req.query.userId;
-            var session = req.session;
-            // session 对象存在不代表 session.user 存在（session 过期/重建/异常登录态）。
-            // 原来直接取 session.user._id 会在异步回调里抛 TypeError，前端表现为 502。
-            if (userId == null && session != null && session.user != null) userId = session.user._id;
-            if (userId != null) {
-                User.findById(userId, function (err, obj) {
-                    if (!err && obj) user = obj;
-                    callback(null);
-                });
-            } else { callback(null); }
-        },
-        totalCount: ["getUserById", function (callback) {
-            if (user != null) Content.getCountByUser(user._id, function (err, count) { total = count; callback(null); });
-            else callback(null);
-        }],
-        getContentByPage: ["totalCount", function (callback) {
-            var pageObj = cmsUtils.page(req.query.page, total);
-            page = pageObj.page; totalPage = pageObj.totalPage;
-            if (totalPage > 0) {
-                Content.findByUser(page, user._id, function (err, objects) { docs = objects; callback(null); });
-            } else { callback(null); }
-        }],
-        // 复用与列表一致的批量补全（作者/分类/标签），消除 N+1 并补齐 categoryName
-        enrich: ["getContentByPage", function (callback) {
-            Content.enrichDocs(docs, callback);
-        }]
-    }, function (err) {
-        var view = "myContent", title = "我的文章", currentMenu = "mycontent";
-        if (req.query.manager === "true") { view = "manager/content"; title = "文章管理"; currentMenu = "content"; }
-        res.render(view, {docs: docs, title: title, page: page, totalPage: totalPage, total: total, url: "/content/user?", currentMenu: currentMenu});
-    });
-};
-exports.findByWord = function (req, res) {
-    var word = null, total = 0, page = 0, totalPage = 0, docs = {};
-    var sessionUser = req.session.user;
-    async.auto({
-        totalCount: function (callback) {
-            word = req.query.word;
-            if (word != null) Content.getCountByWord(word, sessionUser, function (err, count) { total = count; callback(null); });
-            else callback(null);
-        },
-        getContentByPage: ["totalCount", function (callback) {
-            var pageObj = cmsUtils.page(req.query.page, total);
-            page = pageObj.page; totalPage = pageObj.totalPage;
-            if (totalPage > 0) {
-                Content.findByWord(page, word, sessionUser, function (err, objects) { docs = objects; callback(null); });
-            } else { callback(null); }
-        }]
-    }, function (err) {
-        if (req.query.type != "json") {
-            res.render("search", {docs: docs, title: "标题包含 \"" + word + "\" 的文章搜索结果", key: word, page: page, totalPage: totalPage, total: total});
-        } else {
-            res.json({docs: docs});
-        }
-    });
-};
-// P1 全文检索结果页（基于 MongoDB $text 索引）
-exports.searchFull = function (req, res) {
-    var word = (req.query.word || '').trim();
-    var page = parseInt(req.query.page, 10) || 1;
-    var sessionUser = req.session.user;
-    if (!word) { res.redirect('/'); return; }
-    async.auto({
-        totalCount: function (cb) {
-            Content.getCountByText(word, sessionUser, function (err, total) { cb(null, total || 0); });
-        },
-        pageDocs: ["totalCount", function (cb, results) {
-            var total = results.totalCount;
-            var pageObj = cmsUtils.page(page, total);
-            if (pageObj.totalPage > 0) {
-                Content.searchText(pageObj.page, word, sessionUser, function (err, docs) {
-                    cb(null, {docs: docs || [], page: pageObj.page, totalPage: pageObj.totalPage, total: total});
-                });
-            } else {
-                cb(null, {docs: [], page: 1, totalPage: 0, total: 0});
-            }
-        }]
-    }, function (err, results) {
-        var r = results.pageDocs;
-        res.render("search", {
-            docs: r.docs, title: "全文搜索：" + word, key: word,
-            page: r.page, totalPage: r.totalPage, total: r.total,
-            url: "/content/search?word=" + encodeURIComponent(word) + "&"
-        });
-    });
-};
-exports.findByWordJson = function (req, res) {
-    var sessionUser = req.session.user;
-    Content.findAllByWord(req.body.word, sessionUser, function (err, docs) {
-        res.json({docs: docs});
     });
 };
 
 var findByName = function (name, callback) {
     Content.findByName(name, function (err, obj) { callback(err, obj); });
 };
-//add
+
+// add（/content/add 新增 + 带 id 编辑兼容分支不可移除；/manager/content/modify 复用本 handler）
+// 越权点 2：调用写操作【之前】早拒绝，越权零副作用；DAO 侧 update 再带 author 条件（L3）。
 exports.add = function (req, res) {
     var id = req.body.id;
     var oldName = req.body.oldName;
     var f = buildFields(req);
-    var msg = "", success = false, flag = false;
-    if (f.name === "") msg = "标题不能为空";
-    else if (f.content === "") msg = "内容不能为空";
-    else {
-        flag = true;
-        findByName(f.name, function (err, obj) {
-            if (id == null) {//add
-                if (obj !== null) { msg = "文章已经存在"; res.json({'success': success, 'msg': msg}); }
-                else {
-                    var session = req.session;
-                    f.author = session.user._id;
-                    Tag.syncTags(f.tags, function () {});
-                    Content.save(f, function (err) {
-                        if (!err) { success = true; msg = "发表文章成功"; } else { console.log(err.message); msg = "发表文章失败"; }
-                        res.json({'success': success, 'msg': msg});
-                    });
-                }
-            } else {//update
-                if (obj !== null && obj.name != oldName) { msg = "文章已经存在"; res.json({'success': success, 'msg': msg}); }
-                else {
-                    f.id = id;
-                    Tag.syncTags(f.tags, function () {});
-                    Content.update(f, function (err) {
-                        if (!err) { success = true; msg = "编辑文章成功"; console.log("success"); } else { console.log(err.message); msg = "编辑文章失败"; }
-                        res.json({'success': success, 'msg': msg, 'id': f.id});
-                    });
-                }
-            }
-        });
+    var isModifyRoute = req.path === '/manager/content/modify';
+    var meta = contentMeta('create', null, 'changed:name,content,tags', true);
+
+    function finishBody(body, ok, objectId) {
+        meta.result = !!ok;
+        if (objectId) meta.objectId = [String(objectId)];
+        kit.audit(req, meta, function () { res.json(body); });
     }
-    if (!flag) { res.json({'success': success, 'msg': msg}); }
-};
-//update（按名称重命名，历史接口保留）
-exports.update = function (req, res) {
-    var id = req.body.id;
-    var name = (req.body.name || '').trim();
-    var msg = "", success = false, flag = false;
-    if (name == "") { msg = "Content Name is empty"; }
-    else {
-        flag = true;
-        findByName(name, function (err, obj) {
-            if (obj != null) { msg = "Content Name is exists"; res.json({'success': success, 'msg': msg}); }
-            else {
-                Content.update(id, name, function (err) {
-                    if (!err) { success = true; msg = "Modify Content is success"; }
-                    else { console.log(err.message); msg = "Modify Content is failure"; }
-                    res.json({'success': success, 'msg': msg});
+
+    if (f.name === "") return finishBody({success: false, msg: "标题不能为空"}, false);
+    if (f.content === "") return finishBody({success: false, msg: "内容不能为空"}, false);
+    if (isModifyRoute && !kit.requireId(id).ok) return finishBody({success: false, msg: "参数错误"}, false);
+
+    findByName(f.name, function (err, obj) {
+        if (id == null) {//add
+            if (obj !== null) return finishBody({success: false, msg: "文章已经存在"}, false);
+            f.author = req.session.user._id;
+            Content.save(f, function (err, saved) {
+                if (err) {
+                    console.error('[content.add] save failed: ' + err.message);
+                    return finishBody({success: false, msg: "发表文章失败"}, false);
+                }
+                reconcileTags([], f.tags, 'add', function () {
+                    finishBody({success: true, msg: "发表文章成功"}, true, saved && saved._id);
                 });
-            }
-        });
-    }
-    if (!flag) { res.json({'success': success, 'msg': msg}); }
+            });
+        } else {//update（兼容分支不可移除）
+            var chk = kit.requireId(id);
+            if (!chk.ok) return finishBody({success: false, msg: "参数错误"}, false);
+            if (obj !== null && obj.name != oldName) return finishBody({success: false, msg: "文章已经存在"}, false);
+            var current = req.session.user;
+            var isAdmin = current && current.role === 0;
+            // L2 早拒绝：先按 id 取正文做归属比对（管理员豁免，D6），零副作用。
+            Content.findById(id, function (err2, doc) {
+                if (err2 || !doc) return finishBody({success: false, msg: "文章不存在"}, false);
+                if (!isAdmin && String(doc.author) !== String(current._id)) {
+                    return finishBody({success: false, msg: "无权编辑他人文章"}, false);
+                }
+                var oldTags = doc.tags || [];
+                f.id = id;
+                meta.action = 'update';
+                // D6：管理员改 author 记审计（只记字段名，不记归属值）
+                if (isAdmin && req.body.author && kit.isObjectId(req.body.author) &&
+                    String(req.body.author) !== String(doc.author)) {
+                    f.author = req.body.author;
+                    meta.detail = 'changed:name,content,tags,author';
+                }
+                Content.update(f, current, function (err3) {
+                    if (err3) {
+                        console.error('[content.add] update failed: ' + err3.message);
+                        meta.detail = 'changed:none';
+                        return finishBody({success: false, msg: "编辑文章失败"}, false, id);
+                    }
+                    reconcileTags(oldTags, f.tags, 'edit', function () {
+                        finishBody({success: true, msg: "编辑文章成功", id: id}, true, id);
+                    });
+                });
+            });
+        }
+    });
 };
+// 历史按名称重命名接口（无路由挂载）：保留导出，改用新 DAO 签名避免 TypeError。
+exports.update = function (req, res) {
+    var chk = kit.requireId(req.body.id);
+    var name = (req.body.name || '').trim();
+    if (!chk.ok) return res.json({success: false, msg: '参数错误'});
+    if (!name) return res.json({success: false, msg: '标题不能为空'});
+    var where = kit.scopeTerm(req.session.user, 'author', {});
+    Content.adminUpdate(chk.id, where, {name: name}, function (err, changed) {
+        var ok = !err && changed > 0;
+        kit.audit(req, contentMeta('update', chk.id, 'changed:name', ok), function () {
+            res.json({success: ok, msg: ok ? '修改成功' : '修改失败'});
+        });
+    });
+};
+
+// 前台查询接口 + 后台治理能力合并导出（纯代码位移，行为零改动，老 URL 全保留）。
+Object.assign(exports, require('./contentQuery'), require('./contentAdmin'));

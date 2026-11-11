@@ -13,6 +13,7 @@ var analytics = require('./../controllers/analytics');
 var rateLimit = require('./../controllers/rateLimit');
 var markdown = require('./../controllers/markdown');
 var openAuth = require('./../controllers/openAuth');
+var audit = require('./../controllers/audit');
 var route = function (app) {
     // ===== LINK ONE 开放平台：扫码登录 + 公众号 JS-SDK 签名（按需求排除支付）=====
     // 上游 AppID / AppSecret 只在服务端使用，前端永远拿不到
@@ -100,10 +101,82 @@ var route = function (app) {
     // P2 运营统计
     app.get('/manager/analytics', filter.authorizeAdmin, analytics.overview);
     // 日志相关路由见上方 log.* （已清理重复的 /log 调试路由 filter.log）
-    app.get('/manager/link', function(req, res){res.render('manager/link',{currentMenu:"link",title:"链接管理"});});
+    // 越权点 1 修复：后台友链页必须登录 + 管理员（D2/R1）。公开 /link/list 在下方保持无鉴权。
+    app.get('/manager/link', filter.authorize, filter.authorizeAdmin, function(req, res){res.render('manager/link',{currentMenu:"link",title:"链接管理"});});
     app.post('/manager/link/save', filter.authorizeAdmin, link.save);
     app.post('/link/list', link.findAll);
     app.post('/manager/link/delete', filter.authorizeAdmin, link.delete);
+
+    // ==================== 后台管理模块增强 · 新增路由（SPEC §5.3）====================
+    // 全部走新增 /manager/* 路由；前台共享接口（/tags /category/all /link/list /comment/all
+    // /log /log/detail /log/count /content/detail /content/search /tag/:slug）绝不加鉴权。
+    // 权限：A = authorize + authorizeAdmin；L = authorize（归属在 controller/DAO 内部按 session 判定）。
+    function A(req, res, next) { return filter.authorize(req, res, function () { return filter.authorizeAdmin(req, res, next); }); }
+    var L = filter.authorize;
+
+    // ---- Content（modify/status 为 L+归属；batch/import/export 为 A）----
+    app.post('/manager/content/modify', L, content.modify);
+    app.post('/manager/content/status', L, content.status);
+    app.post('/manager/content/batch', A, content.batch);
+    app.post('/manager/content/import', A, content['import']);
+    app.get('/manager/content/export', A, content['export']);
+    // ---- Category（全部 A）----
+    app.get('/manager/category/detail', A, category.detail);
+    app.post('/manager/category/status', A, category.status);
+    app.post('/manager/category/batch', A, category.batch);
+    app.post('/manager/category/import', A, category['import']);
+    app.get('/manager/category/export', A, category['export']);
+    // ---- Tag（全部 A；列表页与详情）----
+    app.get('/manager/tag', A, tag.adminList);
+    app.get('/manager/tag/detail', A, tag.detail);
+    app.post('/manager/tag/add', A, tag.add);
+    app.post('/manager/tag/modify', A, tag.modify);
+    app.post('/manager/tag/delete', A, tag.delete);
+    app.post('/manager/tag/status', A, tag.status);
+    app.post('/manager/tag/batch', A, tag.batch);
+    app.post('/manager/tag/import', A, tag['import']);
+    app.get('/manager/tag/export', A, tag['export']);
+    // ---- Link（写沿用 /manager/link/save、/manager/link/delete；以下为新增）----
+    app.get('/manager/link/detail', A, link.detail);
+    app.post('/manager/link/list', A, link.adminList);
+    app.post('/manager/link/status', A, link.status);
+    app.post('/manager/link/batch', A, link.batch);
+    app.post('/manager/link/import', A, link['import']);
+    app.get('/manager/link/export', A, link['export']);
+    // ---- User（update/delete 老路由保留在上方；以下为新增，全部 A）----
+    app.post('/manager/user/add', A, user.adminAdd);
+    app.get('/manager/user/detail', A, user.detail);
+    app.post('/manager/user/status', A, user.status);
+    app.post('/manager/user/batch', A, user.batch);
+    app.post('/manager/user/import', A, user['import']);
+    app.get('/manager/user/export', A, user['export']);
+    // ---- Comment（/comment/add、/comment/all 老路由保留在上方且公开；以下全部 A）----
+    app.get('/manager/comment', A, comment.adminList);
+    app.get('/manager/comment/detail', A, comment.detail);
+    app.post('/manager/comment/modify', A, comment.modify);
+    app.post('/manager/comment/delete', A, comment.delete);
+    app.post('/manager/comment/status', A, comment.status);
+    app.post('/manager/comment/batch', A, comment.batch);
+    app.post('/manager/comment/import', A, comment['import']);
+    app.get('/manager/comment/export', A, comment['export']);
+    // ---- Log（/manager/log/add 带 id 兼容分支保留在上方；以下全部 A）----
+    app.post('/manager/log/modify', A, log.modify);
+    app.post('/manager/log/status', A, log.status);
+    app.post('/manager/log/batch', A, log.batch);
+    app.post('/manager/log/import', A, log['import']);
+    app.get('/manager/log/export', A, log['export']);
+    // ---- Audit（仅管理员只读；JSON + 页面）----
+    app.get('/manager/audit', A, audit.list);
+    app.get('/manager/audit/page', A, audit.auditPage);
+
+    // ---- 方案D：4 条纯增量后台 JSON 列表端点（只读、A）----
+    // 与下方 4 个 SSR 页 /manager/{content,category,user,log} 并存、不混：那 4 页继续承担 E01 分页兼容，
+    // 这 4 条只做筛选/搜索/排序的 JSON 数据供应（E03/E04/E05），全部走 req.query，不碰任何共享前台 handler。
+    app.get('/manager/content/list', A, content.adminList);
+    app.get('/manager/category/list', A, category.adminList);
+    app.get('/manager/user/list', A, user.adminList);
+    app.get('/manager/log/list', A, log.adminList);
+
     app.get('/error', function(req,res){res.render('error', {title: '没有找到',state: '404'});});
     // 下面的路由必须放到最后，404页面
     // app.get('*', function(req, res){res.redirect('/error');});

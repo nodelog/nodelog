@@ -1,0 +1,68 @@
+<%- include('header') %>
+<ol class="breadcrumb">
+    <li><a href="/manager">后台首页</a></li>
+    <li class="active">标签管理</li>
+</ol>
+<h3>标签管理</h3>
+
+<div class="admin-list">
+  <%- include('../common/adminToolbar', { bar: {
+      res: 'tag', base: '/manager/tag', keyword: true,
+      status: [{v:'0',t:'正常'},{v:'1',t:'禁用'}],
+      sort: [{v:'createTime',t:'创建时间'},{v:'name',t:'名称'},{v:'count',t:'文章数'}],
+      batch: true, batchStatuses: [{v:'0',t:'正常'},{v:'1',t:'禁用'}],
+      io: true,
+      add: { label: '新增标签', fields: [
+        {n:'name', t:'名称', k:'text', req:1, max:60},
+        {n:'slug', t:'标识', k:'text', max:60},
+        {n:'status', t:'状态', k:'select', o:[{v:'0',t:'正常'},{v:'1',t:'禁用'}], d:'0'}
+      ]}
+  } }) %>
+  <div class="bg-white jumbotron clear-margin">
+    <% var _docs = locals.docs || []; %>
+    <% if (_docs.length > 0) { %>
+    <table class="table table-hover">
+        <thead>
+        <tr>
+            <th class="admin-col-check" aria-label="选择"></th>
+            <th>编号</th>
+            <th>名称</th>
+            <th>标识</th>
+            <th>文章数</th>
+            <th class="admin-col-status">状态</th>
+            <th class="admin-col-actions">操作</th>
+        </tr>
+        </thead>
+        <tbody>
+        <% _docs.forEach(function (d, i) { %>
+        <% var _id = String(d._id == null ? '' : d._id); %>
+        <% var _nm = d.name == null ? '' : String(d.name); %>
+        <% var _st = (d.status === 1 || String(d.status) === '1') ? '1' : '0'; %>
+        <tr data-id="<%= _id %>" data-name="<%= _nm %>" data-slug="<%= d.slug == null ? '' : d.slug %>" data-status="<%= _st %>">
+            <td><input type="checkbox" class="js-batch-check" value="<%= _id %>" aria-label="选择 <%= _nm %>"></td>
+            <td><%= i + 1 %></td>
+            <td><a href="/manager/tag/detail?id=<%= _id %>"><%= _nm %></a></td>
+            <td><%= d.slug || '' %></td>
+            <td><%= d.count == null ? 0 : d.count %></td>
+            <td><label class="admin-status-toggle">
+                <input type="checkbox" class="js-admin-status" data-id="<%= _id %>" data-status="<%= _st %>" <%= _st === '0' ? 'checked' : '' %>>
+                <span class="sr-only"><%= _nm %>：</span><span class="js-status-label"><%= _st === '0' ? '正常' : '禁用' %></span>
+            </label></td>
+            <td><span class="admin-row-actions">
+                <a href="/manager/tag/detail?id=<%= _id %>">详情</a>
+                <button type="button" class="js-admin-edit" data-id="<%= _id %>" data-title="标签">编辑</button>
+                <button type="button" class="js-admin-delete" data-id="<%= _id %>">删除</button>
+            </span></td>
+        </tr>
+        <% }); %>
+        </tbody>
+    </table>
+    <% } else { %>
+    <%- include('../common/state', { kind:'empty', size:'inline', title: (locals.keyword || locals.status) ? '没有符合条件的标签' : '暂无标签', text: (locals.keyword || locals.status) ? '试试调整筛选条件或重置' : '' }) %>
+    <% } %>
+    <% if (locals.url && locals.page != null && locals.totalPage != null && Number(locals.totalPage) > 1) { %>
+    <%- include('../common/adminPager', { url: url, page: page, totalPage: totalPage }) %>
+    <% } %>
+  </div>
+</div>
+<%- include('footer') %>

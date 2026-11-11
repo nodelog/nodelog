@@ -2,6 +2,7 @@ var async = require("async");
 var utils = require("util");
 var Log = require('./../models/Log.js');
 var cmsUtils = require('./cmsUtils.js');
+var kit = require('./adminKit');
 var getCount = function (callback) {
     Log.getCount(function (err, total) {
         callback(err, total);
@@ -49,14 +50,18 @@ exports.findByPage = function (req, res) {
 };
 
 
+// 审计统一写 AuditLog，不写进 Log.js 公告集合（K01）。
+function logFinish(req, res, metaObj, body) {
+    kit.audit(req, metaObj, function () { res.json(body); });
+}
 exports.delete = function (req, res) {
-    var id = req.body.id;
-    Log.delete(id, function (err) {
-        if (!err) {
-            res.json({'success': true, 'msg': "删除成功"});
-        } else {
-            res.json({'success': false, 'msg': "删除失败"});
-        }
+    var chk = kit.requireId(req.body.id);
+    if (!chk.ok) return res.status(400).json({'success': false, 'msg': '参数错误'});
+    Log.delete(chk.id, function (err) {
+        var ok = !err;
+        logFinish(req, res, {action: 'delete', target: 'log', objectId: [chk.id],
+            detail: 'changed:status', result: ok},
+            {'success': ok, 'msg': ok ? "删除成功" : "删除失败"});
     });
 };
 
@@ -82,100 +87,49 @@ var findByName = function (name, callback) {
         callback(err, obj);
     });
 };
+// 兼容不可移除：/manager/log/add 带 id 即编辑（common.js:376 + addLog.ejs 在用）。
+// 响应键集合严格不变：新增/冲突失败 {success,msg}；新增成功 {success,msg}；编辑成功 {success,msg,id}。
 exports.add = function (req, res) {
     var id = req.body.id;
     var name = (req.body.name || '').trim();
     var oldName = req.body.oldName;
     var content = (req.body.content || '').trim();
-    var msg = "";
-    var success = false;
-    var flag = false;//是否已发起回调
-    if (name === "") {
-        msg = "标题不能为空";
-    } else if (content === "") {
-        msg = "内容不能为空";
-    } else {
-        flag = true;
-        findByName(name, function (err, obj) {
-            msg = "已存在该标题的公告";
-            if (id == null) {//add
-                if (obj !== null) {
-                    res.json({'success': success, 'msg': msg});
-                } else {
-                    var session = req.session;
-                    obj = {
-                        "name": name,
-                        "content": content
-                    };
-                    Log.save(obj, function (err) {
-                        if (!err) {
-                            success = true;
-                            msg = "发布公告成功";
-                        } else {
-                            console.log(err.message);
-                            msg = "发布公告失败";
-                        }
-                        res.json({'success': success, 'msg': msg});
-                    });
-                }
-            } else {//update
-                if (obj !== null && obj.name != oldName) {
-                    res.json({'success': success, 'msg': msg});
-                } else {
-                    obj = {
-                        "_id": id,
-                        "name": name,
-                        "content": content
-                    };
-                    Log.update(obj, function (err) {
-                        if (!err) {
-                            success = true;
-                            msg = "编辑公告成功";
-                            console.log("success");
-                        } else {
-                            console.log(err.message);
-                            msg = "编辑公告失败";
-                        }
-                        res.json({'success': success, 'msg': msg, 'id': obj.id});
-                    });
-                }
-            }
-        });
-    }//end else
-    if (!flag) {// no callback
-        res.json({'success': success, 'msg': msg});
+    var editing = id != null;
+    var action = editing ? 'update' : 'create';
+    var metaObj = {action: action, target: 'log', objectId: [], detail: 'changed:name,content', result: false};
+    function done(body, ok, oid) {
+        metaObj.result = !!ok;
+        if (oid) metaObj.objectId = [String(oid)];
+        logFinish(req, res, metaObj, body);
     }
-};
-//update
-exports.update = function (req, res) {
-    var id = req.body.id;
-    var name = (req.body.name || '').trim();
-    var msg = "";
-    var success = false;
-    var flag = false;//是否已发起回调
-    if (name == "") {
-        msg = "Log Name is empty";
-    } else {
-        flag = true;
-        findByName(name, function (err, obj) {
-            if (obj != null) {
-                msg = "Log Name is exists";
-                res.json({'success': success, 'msg': msg});
-            } else {
-                Log.update(id, name, function (err) {
-                    if (!err) {
-                        success = true;
-                        msg = "Modify Log is success";
-                    } else {
-                        console.log(err.message);
-                        msg = "Modify Log is failure";
-                    }
-                    res.json({'success': success, 'msg': msg});
-                });
+    function conflict() { return {success: false, msg: "已存在该标题的公告"}; }
+    if (name === "") return done({success: false, msg: "标题不能为空"}, false);
+    if (content === "") return done({success: false, msg: "内容不能为空"}, false);
+    findByName(name, function (err, obj) {
+        if (err) return done({success: false, msg: editing ? "编辑公告失败" : "发布公告失败"}, false);
+        if (id == null) {//add
+            if (obj !== null) return done(conflict(), false);
+            Log.save({"name": name, "content": content}, function (err2, saved) {
+                var ok = !err2;
+                if (!ok) console.log(err2.message);
+                done({success: ok, msg: ok ? "发布公告成功" : "发布公告失败"}, ok, saved && saved._id);
+            });
+        } else {//update 兼容分支：校验 id，沿用 oldName 判重逻辑
+            var chk = kit.requireId(id);
+            if (!chk.ok) return res.status(400).json({success: false, msg: '参数错误'});
+            if (obj !== null && String(obj._id) !== chk.id && obj.name != oldName) {
+                return done(conflict(), false, chk.id);
             }
-        });
-    }//end else
-    if (!flag) {// no callback
-        res.json({'success': success, 'msg': msg});
-    }
+            var u = {"_id": chk.id, "name": name, "content": content};
+            Log.update(u, function (err2) {
+                var ok = !err2;
+                if (!ok) console.log(err2.message); else console.log("success");
+                // 兼容红线：原响应字面量带 id:u.id，但 u 只有 _id → id 恒 undefined，JSON 序列化后 id 键被省略，
+                // 实际顶层键为 {success,msg}。此处保留 u.id（undefined）以维持键集合零破坏，不擅自补有值 id。
+                done({success: ok, msg: ok ? "编辑公告成功" : "编辑公告失败", id: u.id}, ok, chk.id);
+            });
+        }
+    });
 };
+// 后台新增能力（modify/status/batch/import/export）合并导出；死代码 exports.update（签名不符、不可达）已删除。
+Object.assign(exports, require('./logAdmin'));

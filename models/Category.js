@@ -28,7 +28,8 @@ var CategoryDAO = function () {
 CategoryDAO.prototype.save = function (obj, callback) {
     var categoryEntity = new CategoryModel(obj);
     categoryEntity.save(function (err) {
-        callback(err);
+        // 追加返回新建文档（含 _id）供导入/审计定位；旧调用方只取 err，不受影响。
+        callback(err, err ? null : categoryEntity);
     });
 };
 CategoryDAO.prototype.findByName = function (name, callback) {
@@ -99,4 +100,7 @@ CategoryDAO.prototype.update = function (id, fields, callback) {
         callback(err);
     });
 };
+// 通用后台 DAO 方法（软删 status=1）；findByNameExclude 供编辑自身判重（F02）。
+require('./_adminDao').attach(CategoryDAO, CategoryModel, {softStatus: constants.CATEGORY_UNABLE_STATUS});
+
 module.exports = new CategoryDAO();

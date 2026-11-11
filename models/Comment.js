@@ -10,7 +10,7 @@ var CommentSchema = new Schema({
     content: {type: ObjectId},
     createTime: { type: Date, default: Date.now},
     modifyTime: {type: Date, default: Date.now},
-    status: {type: Number, default: 0},
+    status: {type: Number, default: 0, required: true, min: 0, max: 1},
     userName: {type: String}//不保存数据库中，只在页面显示。
 }, {
     collection: "comment"
@@ -23,7 +23,8 @@ var CommentDAO = function () {
 CommentDAO.prototype.save = function (obj, callback) {
     var CommentEntity = new CommentModel(obj);
     CommentEntity.save(function (err) {
-        callback(err);
+        // 追加返回新建文档（含 _id）供导入/审计定位；旧调用方只取第 1 个 err，不受影响。
+        callback(err, err ? null : CommentEntity);
     });
 };
 CommentDAO.prototype.findByName = function (name, callback) {
@@ -76,4 +77,7 @@ CommentDAO.prototype.update = function (obj, callback) {
         callback(err);
     });
 };
+// 通用后台 DAO 方法（软删 status=1）；findByPage 已是全局后台列表（status:0 + 时间倒序 + 分页），复用不重写。
+require('./_adminDao').attach(CommentDAO, CommentModel, {softStatus: constants.COMMENT_UNABLE_STATUS});
+
 module.exports = new CommentDAO();

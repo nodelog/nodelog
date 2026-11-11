@@ -105,11 +105,17 @@
     on(document, 'click', '.js-category-content', function (e) {
       e.preventDefault();
       var dd = this.closest('.dropdown');
-      if (dd) dd.classList.toggle('open');
+      if (dd) {
+        var open = dd.classList.toggle('open');
+        this.setAttribute('aria-expanded', open ? 'true' : 'false');
+      }
     });
     on(document, 'click', function (e) {
       if (!e.target.closest('.dropdown')) {
-        qsa('.dropdown.open').forEach(function (d) { d.classList.remove('open'); });
+        qsa('.dropdown.open').forEach(function (d) {
+          d.classList.remove('open');
+          var t = d.querySelector('[aria-expanded]'); if (t) t.setAttribute('aria-expanded', 'false');
+        });
       }
     });
 
@@ -292,10 +298,27 @@
       var email = attr(this, 'data-email');
       var comment = val(qs('.js-comment-input')).trim();
       if (comment === '') { myMsg('评论内容为空'); return; }
-      loading(); closeLayer();
+      loading();                              // F2: 不再紧跟 closeLayer()，让加载层在请求期间真实可见
       postForm('/comment/add', { contentId: id, name: name, email: email, comment: comment }).then(function (data) {
         closeLayer(); myMsg(data.msg);
-        if (data.success) location.reload();
+        if (data.success) {
+          // I2: 免整页刷新——乐观插入新评论、更新计数、清空输入框
+          // 控制器 /comment/add 仅返回 {success,msg}，无新评论对象，故用输入值本地构造
+          var panel = qs('.js-comment-panel');
+          if (panel) {
+            var emptyState = panel.querySelector('.state');
+            if (emptyState) panel.innerHTML = '';
+            panel.insertAdjacentHTML('afterbegin', commentItem({ userName: name, comment: comment, createTime: new Date() }));
+          }
+          var title = qs('.js-comment-title');
+          if (title) {
+            var mm = title.textContent.match(/\((\d+)\)/);
+            var nn = mm ? (parseInt(mm[1], 10) + 1) : 1;
+            var base = title.textContent.replace(/\s*\(\d+\)\s*$/, '');
+            title.textContent = base + ' (' + nn + ')';
+          }
+          var ci = qs('.js-comment-input'); if (ci) ci.value = '';
+        }
       });
     });
 
@@ -345,12 +368,12 @@
         location.href = '/content/search?word=' + encodeURIComponent(word) + '&page=1';
       } else {
         if (word === '') { setHtml(qs('.js-search-panel'), ''); hide(qs('.js-search-panel')); qs('.js-search-bar').classList.remove('open'); return; }
-        suggest(word, '/content/search');
+        suggestDebounced(word, '/content/search');
       }
     });
     on(document, 'click', '.js-search-panel', function (e) {
       var retry = e.target.closest('.js-state-retry');
-      if (retry && attr(retry, 'data-retry') === 'search') suggest((qs('.js-search').value || '').trim(), '/content/search');
+      if (retry && attr(retry, 'data-retry') === 'search') suggest((qs('.js-search').value || '').trim(), '/content/search', null);
     });
     on(document, 'keyup focus click change', '.js-search-panel', '.js-search-auto', function (e) {
       e.stopPropagation();
@@ -460,7 +483,13 @@
 
     /* ESC / 关闭全部 */
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' || e.keyCode === 27) NL.closeAll();
+      if (e.key === 'Escape' || e.keyCode === 27) {
+        qsa('.dropdown.open').forEach(function (d) {
+          d.classList.remove('open');
+          var t = d.querySelector('[aria-expanded]'); if (t) t.setAttribute('aria-expanded', 'false');
+        });
+        NL.closeAll();
+      }
     });
     on(document, 'click', '.layer-close-all', function () { NL.closeAll(); });
 
@@ -478,16 +507,21 @@
   }
 
   /* ---------------- 分类菜单 ---------------- */
-  // 缓存全量分类，供导航菜单与写/编页「可搜索分类选择器」复用
+  // 缓存全量分类，供导航菜单与写/编页「可搜索分类选择器」复用；单次请求，多处共享
   var allCategories = [];
+  var categoryPromise = null;
+  function fetchCategories() {
+    if (categoryPromise) return categoryPromise;
+    categoryPromise = getJSON('/category/all', {}).then(function (data) {
+      allCategories = (data && data.docs) || [];
+      return allCategories;
+    });
+    return categoryPromise;
+  }
 
   // 懒加载分类（loadCategoryMenu 也会填充；管理端页面不跑 loadCategoryMenu，这里兜底）
   function ensureCategories(cb) {
-    if (allCategories.length) { cb(allCategories); return; }
-    getJSON('/category/all', {}).then(function (data) {
-      allCategories = (data && data.docs) || [];
-      cb(allCategories);
-    }).catch(function () { cb([]); });
+    fetchCategories().then(function (list) { cb(list); }).catch(function () { cb([]); });
   }
 
   // 可搜索分类选择器（替代原生 <select>）：输入框即筛选，下拉点选，选中值写入隐藏 .js-category-value
@@ -502,20 +536,32 @@
         var f = (filter || '').trim().toLowerCase();
         var cur = hidden.value;
         var html = '';
-        allCategories.forEach(function (c) {
+        allCategories.forEach(function (c, i) {
           if (f !== '' && (c.name || '').toLowerCase().indexOf(f) === -1) return;
-          var sel = (String(c._id) === String(cur)) ? ' is-selected' : '';
-          html += '<li class="category-picker__item' + sel + '" data-id="' + c._id + '" data-name="' + c.name + '">' + c.name + '</li>';
+          var isSel = (String(c._id) === String(cur));
+          html += '<li class="category-picker__item' + (isSel ? ' is-selected' : '') + '"'
+            + ' role="option" aria-selected="' + (isSel ? 'true' : 'false') + '"'
+            + ' tabindex="-1" id="cat-opt-' + i + '"'
+            + ' data-id="' + c._id + '" data-name="' + c.name + '">' + c.name + '</li>';
         });
         if (!html) html = '<li class="category-picker__empty">无匹配分类</li>';
         menu.innerHTML = html;
       }
-      function open() { render(input.value); menu.classList.add('is-open'); }
+      function setActive(items, idx) {
+        items.forEach(function (it, i) { it.classList.toggle('is-active', i === idx); });
+        menu.setAttribute('aria-activedescendant', items[idx] ? items[idx].id : '');
+      }
+      function open() { render(input.value); menu.classList.add('is-open'); var its = qsa('.category-picker__item', menu); if (its.length) setActive(its, 0); }
       function close() { menu.classList.remove('is-open'); }
       function choose(li) {
         if (!li || !li.getAttribute('data-id')) return;
         hidden.value = li.getAttribute('data-id');
         input.value = li.getAttribute('data-name');
+        qsa('.category-picker__item', menu).forEach(function (it) {
+          it.setAttribute('aria-selected', it === li ? 'true' : 'false');
+          it.classList.remove('is-active');
+        });
+        menu.setAttribute('aria-activedescendant', '');
         close();
       }
       input.addEventListener('focus', open);
@@ -523,7 +569,12 @@
       input.addEventListener('keydown', function (e) {
         var items = qsa('.category-picker__item', menu);
         if (!items.length) return;
-        if (e.key === 'Enter') { e.preventDefault(); choose(items[0]); }
+        var activeId = menu.getAttribute('aria-activedescendant');
+        var idx = -1;
+        for (var i = 0; i < items.length; i++) { if (items[i].id === activeId) { idx = i; break; } }
+        if (e.key === 'ArrowDown') { e.preventDefault(); idx = (idx + 1) % items.length; setActive(items, idx); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); idx = (idx - 1 + items.length) % items.length; setActive(items, idx); }
+        else if (e.key === 'Enter') { e.preventDefault(); choose(idx >= 0 ? items[idx] : items[0]); }
         else if (e.key === 'Escape') { close(); }
       });
       menu.addEventListener('click', function (e) {
@@ -543,8 +594,7 @@
   }
 
   function loadCategoryMenu() {
-    getJSON('/category/all', {}).then(function (data) {
-      var docs = (data && data.docs) || [];
+    fetchCategories().then(function (docs) {
       allCategories = docs;
       var html = '<li style="padding: 5px;"><input type="text" class="form-control js-category-auto" placeholder="输入" autofocus x-webkit-speech></li>';
       var _url = '', _addHtml = '', _editHtml = '';
@@ -589,6 +639,7 @@
 
     on(qs('.js-category-menu'), 'click', '.js-state-retry', function () {
       if (attr(this, 'data-retry') !== 'categories') return;
+      categoryPromise = null;   // 允许重试重新拉取分类
       var menu = qs('.js-category-menu');
       if (menu) menu.innerHTML = '<li>' + NL.state('loading') + '</li>';
       loadCategoryMenu();
@@ -773,13 +824,28 @@
   });
 
   /* ---------------- 搜索建议 ---------------- */
-  function suggest(word, searchUrl) {
+  // 防抖 + 竞态取消：连续输入只发最后一次请求，且 abort 掉在途的旧请求
+  var searchTimer = null;
+  var searchController = null;
+  function suggestDebounced(word, searchUrl) {
+    if (searchTimer) clearTimeout(searchTimer);
+    if (searchController) { try { searchController.abort(); } catch (e) {} }
+    searchController = ('AbortController' in window) ? new AbortController() : null;
+    var controller = searchController;
+    searchTimer = setTimeout(function () { suggest(word, searchUrl, controller ? controller.signal : null); }, 220);
+  }
+  function suggest(word, searchUrl, signal) {
     var panel = qs('.js-search-panel');
     if (!panel) return;
     panel.innerHTML = '<li>' + NL.state('loading') + '</li>';
     show(panel);
     qs('.js-search-bar').classList.add('open');
-    postForm(searchUrl, { word: word }).then(function (data) {
+    fetch(searchUrl, {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ word: word }).toString(),
+      signal: signal || null
+    }).then(function (r) { return r.json(); }).then(function (data) {
       var docs = (data && data.docs) || [];
       var html = '<li style="padding: 5px;"><input type="text" class="form-control js-search-auto" placeholder="精确定位" x-webkit-speech /></li>';
       if (docs.length > 0) {
@@ -793,7 +859,8 @@
       }
       panel.innerHTML = html;
       qs('.js-search-bar').classList.add('open');
-    }).catch(function () {
+    }).catch(function (err) {
+      if (err && err.name === 'AbortError') return; // 被新输入取消，忽略
       panel.innerHTML = '<li>' + NL.state('error', { title: '搜索建议没加载出来', text: '按回车仍可直接搜索', retry: 'search' }) + '</li>';
       qs('.js-search-bar').classList.add('open');
     });
@@ -806,9 +873,23 @@
       el.checked = (initial === '0');
       el.addEventListener('change', function () {
         var id = attr(el, 'data-id');
+        var prev = el.checked;
         var payload = build(el.checked);
         payload.id = id;
-        postForm(api, payload);
+        el.disabled = true;
+        postForm(api, payload).then(function (data) {
+          el.disabled = false;
+          if (data && data.success) {
+            NL.toast(data.msg || '已保存');
+          } else {
+            el.checked = !prev;                 // 失败回滚开关
+            NL.toast((data && data.msg) || '操作失败');
+          }
+        }).catch(function () {
+          el.disabled = false;
+          el.checked = !prev;                   // 网络错误也回滚
+          NL.toast('网络错误，操作未生效');
+        });
       });
     });
   }
@@ -821,7 +902,7 @@
     popEl.className = 'nl-popover';
     popEl.setAttribute('role', 'tooltip');
     popEl.innerHTML = html;
-    popEl.style.cssText = 'position:fixed;z-index:2147483000;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--shadow);padding:var(--space-3);max-width:280px;';
+    popEl.style.cssText = 'position:fixed;z-index:var(--z-tooltip);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--elev);padding:var(--space-3);max-width:280px;';
     document.body.appendChild(popEl);
     var r = ref.getBoundingClientRect();
     var top = r.bottom + 8;
@@ -866,4 +947,399 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
+})();
+
+/* =========================================================================
+   NODELOG · 后台管理增强（纯追加 · 自治 block · 零新依赖）
+   —— 只消费 views/common/{adminToolbar,adminPager,icons}.ejs 的数据属性；
+   —— 不重排、不覆盖上方 IIFE 的任何既有函数/委托（change-safety：唯一追加锚点）。
+   —— 依赖全局 window.NL（ui.js 提供 modal/alert/toast/closeAll）；后台 footer
+      不加载前台 state/esc 脚本，故此处做带守卫的 fallback，绝不覆盖前台实现。
+   —— 所有用户字段只经 createElement/textContent/setAttribute/DOM value 落地；
+      按钮字段描述由 data-form(JSON) 驱动；用户值一律不拼进 HTML 字符串。
+   ========================================================================= */
+(function () {
+  'use strict';
+
+  /* ---------------- 极小工具（对齐上方 IIFE 的 qs/qsa/on，含靶心防护） ---------------- */
+  function qs(sel, root) { return (root || document).querySelector(sel); }
+  function qsa(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+  function on(el, evt, sel, handler) {
+    if (!el) return;
+    el.addEventListener(evt, function (e) {
+      var t = (e.target && e.target.closest) ? e.target.closest(sel) : null;
+      if (t && el.contains(t)) handler.call(t, e, t);
+    });
+  }
+  function post(url, data) {
+    return fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(data || {}).toString()
+    }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    });
+  }
+  function safeUrl(u) {
+    u = String(u == null ? '' : u).trim();
+    if (/^https?:\/\//i.test(u)) return u;
+    if (/^\/(?!\/)/.test(u)) return u;   // 拒绝 //evil.com 协议相对地址
+    return null;                          // 拒绝 javascript:/data:/vbscript:
+  }
+
+  /* ---------------- NL 带守卫 fallback（后台 footer 无前台 state/esc） ---------------- */
+  var NL = (window.NL = window.NL || {});
+  if (typeof NL.esc !== 'function') {
+    NL.esc = function (s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    };
+  }
+  if (typeof NL.state !== 'function') {
+    // 图标只用 icons.ejs 的 symbol，不引入第二套图标语言。
+    var STATE_SYMBOL = { error: 'i-shield', empty: 'i-list', success: 'i-check' };
+    NL.state = function (kind, o) {
+      o = o || {};
+      var isAlert = (kind === 'error');
+      var h = '<div class="state state--' + NL.esc(kind) + ' state--inline" data-state="' + NL.esc(kind) + '"' +
+        ' role="' + (isAlert ? 'alert' : 'status') + '" aria-live="' + (isAlert ? 'assertive' : 'polite') + '" aria-atomic="true">';
+      if (kind === 'loading') {
+        return h + '<div class="state-skeleton" aria-hidden="true"><span class="sk sk--title"></span>' +
+          '<span class="sk sk--line"></span><span class="sk sk--line sk--short"></span></div>' +
+          '<span class="sr-only">正在加载</span></div>';
+      }
+      h += '<span class="state-icon" aria-hidden="true"><svg class="nl-icon" width="20" height="20">' +
+        '<use href="#' + NL.esc(STATE_SYMBOL[kind] || 'i-list') + '"></use></svg></span><div class="state-body">';
+      if (o.title) h += '<p class="state-title">' + NL.esc(o.title) + '</p>';
+      if (o.text) h += '<p class="state-text">' + NL.esc(o.text) + '</p>';
+      if (o.retry) {
+        h += '<div class="state-actions"><button type="button" class="btn btn-sm js-state-retry" data-retry="' +
+          NL.esc(o.retry) + '">' + NL.esc(o.retryLabel || '重试') + '</button></div>';
+      }
+      return h + '</div></div>';
+    };
+  }
+
+  function toast(m) { if (typeof NL.toast === 'function') NL.toast(m); }
+  function confirmBox(msg, cb) {
+    if (typeof NL.alert === 'function') NL.alert(msg, { onConfirm: cb });
+    else if (window.confirm(msg)) cb();
+  }
+
+  /* ---------------- 上下文：从工具条 data-* 推导 API，通用不硬编码资源 ---------------- */
+  var BATCH_LIMIT = 100; // 与 controllers/adminConfig.BATCH_LIMIT 默认一致，后端校验为准
+  function toolbar(el) { return (el && el.closest) ? (el.closest('.admin-toolbar') || qs('.admin-toolbar')) : qs('.admin-toolbar'); }
+  function resOf(el) { var t = toolbar(el); return (t && t.getAttribute('data-res')) || ''; }
+  function listScope(el) { var t = toolbar(el); return (t && t.closest('.admin-list')) || document; }
+  function apiFor(res, action, el) {
+    var t = toolbar(el);
+    var custom = t ? t.getAttribute('data-' + action + '-api') : null;
+    return custom || ('/manager/' + res + '/' + action);
+  }
+  function boxes(root, checkedOnly) {
+    return qsa(checkedOnly ? '.js-batch-check:checked' : '.js-batch-check', root || document);
+  }
+  function selectedIds() {
+    return boxes(document, true).map(function (el) { return el.value; }).filter(function (v) { return v !== ''; });
+  }
+  function rowOf(id) {
+    var all = boxes(document, false);
+    for (var i = 0; i < all.length; i++) if (all[i].value === String(id)) return all[i].closest('tr');
+    return null;
+  }
+  function updateCount() {
+    qsa('.js-batch-count').forEach(function (el) {
+      el.textContent = '已选 ' + selectedIds().length + ' 条（单次≤' + BATCH_LIMIT + '）';
+    });
+  }
+  function updateRowStatus(tr, status) {
+    if (!tr) return;
+    var cb = qs('.js-admin-status', tr);
+    var label = qs('.js-status-label', tr);
+    var s = String(status);
+    if (cb) { cb.checked = (s === '0'); cb.setAttribute('data-status', s); }
+    if (label) label.textContent = (s === '0' ? '正常' : '禁用');
+  }
+
+  /* ---------------- 批量选择（全选/单选/计数，上限 100） ---------------- */
+  on(document, 'change', '.js-batch-all', function () {
+    var scope = listScope(this);
+    var all = boxes(scope, false);
+    var toCheck = this.checked;
+    var picked = 0;
+    all.forEach(function (b) {
+      if (toCheck && picked >= BATCH_LIMIT) { b.checked = false; return; }
+      b.checked = toCheck;
+      if (toCheck) picked++;
+    });
+    if (toCheck && all.length > BATCH_LIMIT) toast('单次最多 ' + BATCH_LIMIT + ' 条，已选中前 ' + BATCH_LIMIT + ' 条');
+    updateCount();
+  });
+  on(document, 'change', '.js-batch-check', function () {
+    var scope = listScope(this);
+    var all = boxes(scope, false);
+    var head = qs('.js-batch-all', scope);
+    var checked = all.filter(function (b) { return b.checked; }).length;
+    if (head) head.checked = (checked > 0 && checked === all.length);
+    updateCount();
+  });
+
+  /* ---------------- 批量删除 / 批量改状态（部分成功：失败行保留） ---------------- */
+  on(document, 'click', '.js-batch-delete', function () {
+    var ids = selectedIds();
+    if (!ids.length) { toast('请先选择要操作的记录'); return; }
+    if (ids.length > BATCH_LIMIT) { toast('单次最多操作 ' + BATCH_LIMIT + ' 条'); return; }
+    var res = resOf(this);
+    var self = this;
+    confirmBox('删除后无法恢复，确定删除选中的 ' + ids.length + ' 条记录吗？', function () {
+      post(apiFor(res, 'batch', self), { ids: ids, action: 'delete' })
+        .then(function (data) { applyBatchResult(data, ids, 'delete'); })
+        .catch(function () { toast('网络错误，批量删除未生效'); });
+    });
+  });
+  on(document, 'click', '.js-batch-status', function () {
+    var ids = selectedIds();
+    if (!ids.length) { toast('请先选择要操作的记录'); return; }
+    if (ids.length > BATCH_LIMIT) { toast('单次最多操作 ' + BATCH_LIMIT + ' 条'); return; }
+    var res = resOf(this);
+    var self = this;
+    var sel = qs('.js-batch-status-value', toolbar(this));
+    var status = sel ? sel.value : '';
+    if (status === '') { toast('请选择目标状态'); return; }
+    confirmBox('确定把选中的 ' + ids.length + ' 条记录改为目标状态吗？', function () {
+      post(apiFor(res, 'batch', self), { ids: ids, action: 'status', status: status })
+        .then(function (data) { applyBatchResult(data, ids, 'status', status); })
+        .catch(function () { toast('网络错误，批量改状态未生效'); });
+    });
+  });
+  function applyBatchResult(data, ids, action, status) {
+    if (!data || data.success === false) { toast((data && data.msg) || '操作失败，原数据已保留'); return; }
+    var results = data.results || [];
+    var okMap = {};
+    var okN = 0;
+    results.forEach(function (r) {
+      if (r && r.ok) { okMap[String(r.id)] = r; okN++; }
+    });
+    var failed = (typeof data.failed === 'number') ? data.failed : (ids.length - okN);
+    ids.forEach(function (id) {
+      var tr = rowOf(id);
+      if (!tr) return;
+      if (okMap[String(id)]) {
+        if (action === 'delete') {
+          if (tr.parentNode) tr.parentNode.removeChild(tr);
+        } else {
+          updateRowStatus(tr, status);
+          var chk = qs('.js-batch-check', tr); if (chk) chk.checked = false;
+        }
+      } else {
+        // 失败行保留并就地标注（文字 + 颜色双线索，不只靠颜色），绝不整体清空/伪装空态。
+        tr.classList.add('admin-row--error');
+        tr.setAttribute('data-batch-error', '1');
+        var op = tr.querySelector('.admin-col-actions') || tr.lastElementChild;
+        if (op && !op.querySelector('.admin-row-error-tag')) {
+          var tag = document.createElement('span');
+          tag.className = 'admin-row-error-tag';
+          tag.textContent = ' 操作失败';
+          op.appendChild(tag);
+        }
+      }
+    });
+    updateCount();
+    if (failed > 0) toast('成功 ' + okN + ' 条，失败 ' + failed + ' 条；失败记录已保留');
+    else toast((action === 'delete' ? '已删除 ' : '已更新 ') + okN + ' 条');
+  }
+
+  /* ---------------- 单条状态 / 单条删除（失败回滚，保留原行） ---------------- */
+  on(document, 'change', '.js-admin-status', function () {
+    var el = this;
+    var tr = el.closest('tr');
+    var res = resOf(el);
+    var id = el.getAttribute('data-id');
+    var target = el.checked ? '0' : '1';
+    var prev = el.checked ? '1' : '0';
+    el.disabled = true;
+    post(apiFor(res, 'status', el), { id: id, status: target })
+      .then(function (data) {
+        el.disabled = false;
+        if (data && data.success !== false) {
+          el.setAttribute('data-status', target);
+          var label = tr ? qs('.js-status-label', tr) : null;
+          if (label) label.textContent = (target === '0' ? '正常' : '禁用');
+          toast((data && data.msg) || '状态已更新');
+        } else {
+          el.checked = (prev === '0');
+          toast((data && data.msg) || '状态更新失败，已恢复原状');
+        }
+      })
+      .catch(function () { el.disabled = false; el.checked = (prev === '0'); toast('网络错误，状态未更新'); });
+  });
+  on(document, 'click', '.js-admin-delete', function () {
+    var el = this;
+    var tr = el.closest('tr');
+    var res = resOf(el);
+    var id = el.getAttribute('data-id');
+    confirmBox('删除后无法恢复，确定删除这条记录吗？', function () {
+      post(apiFor(res, 'delete', el), { id: id })
+        .then(function (data) {
+          if (data && data.success !== false) {
+            if (tr && tr.parentNode) tr.parentNode.removeChild(tr);
+            updateCount();
+            toast((data && data.msg) || '已删除');
+          } else toast((data && data.msg) || '删除失败，原数据已保留');
+        })
+        .catch(function () { toast('网络错误，删除未生效'); });
+    });
+  });
+
+  /* ---------------- 新增 / 编辑：字段描述由 data-form(JSON) 驱动，控件全用 DOM API ---------------- */
+  function fieldsOf(btn) {
+    try { return JSON.parse(btn.getAttribute('data-form') || '[]') || []; }
+    catch (e) { return []; }
+  }
+  function openForm(btn, edit) {
+    if (typeof NL.modal !== 'function') { toast('弹层组件未就绪，请刷新页面'); return; }
+    var res = resOf(btn);
+    var bar = toolbar(btn);
+    var fields = fieldsOf(btn);
+    if (!fields.length && bar) fields = fieldsOf(bar);   // 编辑按钮未自带字段时，复用工具条新增字段
+    var title = btn.getAttribute('data-title') || '记录';
+    var api = (edit && ((btn.getAttribute('data-edit-api') || (bar && bar.getAttribute('data-edit-api')))))
+      || btn.getAttribute('data-api') || ('/manager/' + res + '/add');
+    var id = edit ? btn.getAttribute('data-id') : '';
+    var tr = edit ? btn.closest('tr') : null;
+    NL.modal({
+      title: (edit ? '编辑' : '新增') + ' · ' + title,
+      content: '', // 内容全部在 onOpen 内用 DOM 接口构建；用户字段不进 HTML 字符串
+      size: 'large',
+      onOpen: function (modal) {
+        var body = modal.querySelector('.nl-modal-body');
+        var form = document.createElement('form');
+        form.className = 'admin-form';
+        form.noValidate = true;                 // 自校验 + 就地错误，避免浏览器气泡与文案脱节
+        fields.forEach(function (f) {
+          var wrap = document.createElement('label');
+          var cap = document.createElement('span');
+          cap.textContent = f.t || f.n;
+          wrap.appendChild(cap);
+          var input;
+          if (f.k === 'textarea') { input = document.createElement('textarea'); input.rows = 4; }
+          else if (f.k === 'select') {
+            input = document.createElement('select');
+            (f.o || []).forEach(function (o) {
+              var opt = document.createElement('option');
+              opt.value = String(o.v); opt.textContent = String(o.t);
+              input.appendChild(opt);
+            });
+          } else { input = document.createElement('input'); input.type = 'text'; }
+          input.name = f.n;
+          input.className = 'form-control';
+          if (f.max) input.maxLength = parseInt(f.max, 10);
+          if (f.req) { input.required = true; input.setAttribute('aria-required', 'true'); }
+          var initial = (tr && tr.getAttribute('data-' + f.n) != null) ? tr.getAttribute('data-' + f.n) : f.d;
+          if (initial != null) input.value = String(initial);
+          wrap.appendChild(input);
+          form.appendChild(wrap);
+        });
+        var err = document.createElement('p');
+        err.className = 'admin-form-error';
+        err.setAttribute('role', 'alert');
+        err.hidden = true;
+        form.appendChild(err);
+        var actions = document.createElement('div');
+        actions.className = 'admin-form-actions';
+        var cancel = document.createElement('button');
+        cancel.type = 'button'; cancel.className = 'btn'; cancel.textContent = '取消';
+        cancel.addEventListener('click', function () { NL.closeAll(); });
+        var save = document.createElement('button');
+        save.type = 'submit'; save.className = 'btn btn-primary'; save.textContent = '保存';
+        actions.appendChild(cancel); actions.appendChild(save); form.appendChild(actions);
+
+        function showErr(msg) { err.textContent = msg; err.hidden = false; }
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          err.hidden = true;
+          var payload = {};
+          var bad = null;
+          fields.forEach(function (f) {
+            var input = form.elements[f.n];
+            var v = input ? String(input.value == null ? '' : input.value).trim() : '';
+            if (f.req && v === '' && !bad) bad = { input: input, msg: (f.t || f.n) + '不能为空' };
+            payload[f.n] = v;
+          });
+          if (bad) { showErr(bad.msg); if (bad.input) bad.input.focus(); return; }
+          if (id) payload.id = id;
+          save.disabled = true;
+          post(api, payload)
+            .then(function (data) {
+              save.disabled = false;
+              if (data && data.success !== false) {
+                NL.closeAll();
+                toast((data && data.msg) || '已保存');
+                location.reload();
+              } else showErr((data && data.msg) || '保存失败，请检查输入后重试');
+            })
+            .catch(function () { save.disabled = false; showErr('网络错误，保存未生效，请重试'); });
+        });
+        body.appendChild(form);
+      }
+    });
+  }
+  on(document, 'click', '.js-admin-add', function () { openForm(this, false); });
+  on(document, 'click', '.js-admin-edit', function () { openForm(this, true); });
+
+  /* ---------------- 导入 CSV（JSON body: {content}）/ 导出 CSV（GET 下载） ---------------- */
+  on(document, 'click', '.js-admin-import', function () {
+    var f = qs('.js-admin-file', toolbar(this));
+    if (f) f.click();
+  });
+  on(document, 'change', '.js-admin-file', function () {
+    var input = this;
+    var file = input.files && input.files[0];
+    if (!file) return;
+    var MAX_BYTES = 2 * 1024 * 1024;   // 与 adminConfig.IMPORT_MAX_BYTES 默认一致，后端为准
+    var MAX_ROWS = 1000;               // 与 adminConfig.IMPORT_MAX_ROWS 默认一致
+    function reset() { try { input.value = ''; } catch (e) {} } // 允许重复选同一文件
+    if (file.size > MAX_BYTES) { toast('文件超过 2MB，请拆分后重试'); reset(); return; }
+    var res = resOf(input);
+    var reader = new FileReader();
+    reader.onload = function () {
+      var text = String(reader.result || '').replace(/^\uFEFF/, '');  // 去 UTF-8 BOM
+      var rows = text.split(/\r?\n/).filter(function (line) { return line.trim() !== ''; }).length;
+      if (!text.trim()) { toast('CSV 内容不能为空'); reset(); return; }
+      if (rows > MAX_ROWS) { toast('文件超过 ' + MAX_ROWS + ' 行，请拆分后重试'); reset(); return; }
+      post(apiFor(res, 'import', input), { content: text })
+        .then(function (data) {
+          if (data && data.success !== false) {
+            toast('导入完成：成功 ' + (data.created || 0) + ' 条，失败 ' + (data.failed || 0) + ' 条');
+            location.reload();
+          } else toast((data && data.msg) || '导入失败，请检查 CSV 格式');
+        })
+        .catch(function () { toast('网络错误，导入未生效'); })
+        .then(reset);
+    };
+    reader.onerror = function () { toast('文件读取失败，请重试'); reset(); };
+    reader.readAsText(file, 'UTF-8');
+  });
+  on(document, 'click', '.js-admin-export', function () {
+    var res = resOf(this);
+    var form = qs('.js-admin-filter', toolbar(this));
+    var params = new URLSearchParams();
+    if (form) {
+      var fd = new FormData(form);
+      fd.forEach(function (v, k) { if (v !== '' && v != null) params.append(k, v); });
+    } else {
+      var cur = new URLSearchParams(location.search);
+      cur.delete('page');
+      cur.forEach(function (v, k) { params.append(k, v); });
+    }
+    window.location.assign('/manager/' + res + '/export?' + params.toString());
+  });
+
+  /* ---------------- 初始化：进入页面先同步批量计数 ---------------- */
+  function bootAdmin() { updateCount(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootAdmin);
+  else bootAdmin();
 })();

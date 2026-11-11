@@ -2,7 +2,11 @@ var async = require('async');
 var Tag = require('./../models/Tag');
 var Content = require('./../models/Content');
 var cmsUtils = require('./cmsUtils');
+var kit = require('./adminKit');
+var crud = require('./adminCrud');
+var io = require('./adminIo');
 
+// ---------- 前台共享接口（保持公开，绝不加鉴权；仅 findAll 已带 status:0 过滤）----------
 // 标签页：/tag/:slug （slug 或名称均可）
 exports.findBySlug = function (req, res) {
     var slug = req.params.slug;
@@ -43,11 +47,148 @@ exports.findBySlug = function (req, res) {
         });
     }
 };
-
-// 标签云（JSON，供前端/首页调用）
+// 标签云（JSON，供前端/首页调用）—— 响应 {docs} 结构不变（I-3/I-5）
 exports.list = function (req, res) {
     Tag.findAll(function (err, docs) {
         if (err) return res.json({docs: []});
         res.json({docs: docs});
     });
 };
+
+// ---------- 后台管理（全部 A）----------
+var tagDesc = {soft: {status: 0}, search: ['name', 'slug'], dateField: 'createTime',
+    sortWhitelist: ['count', 'name', 'createTime'], defaultSortBy: 'count'};
+
+function finish(req, res, meta, body) {
+    kit.audit(req, meta, function () { res.json(body); });
+}
+function tagMeta(action, id, detail, result) {
+    return {action: action, target: 'tag', objectId: id ? [String(id)] : [], detail: detail || 'changed:name,slug,status', result: result !== false};
+}
+function recount(name, note, cb) {
+    // 唯一 count 写入者 syncTags 的薄编排入口；失败不阻断主写（§3.7）
+    Tag.reconcileForContent([], [name], function (err) {
+        if (err) console.warn('[tag] reconcile failed (' + note + '): ' + err.message);
+        cb(null);
+    });
+}
+function conflict(err) { return kit.normalizeDaoError(err, 'tag.write', '标签标识已存在'); }
+
+exports.adminList = crud.list({
+    Model: Tag, desc: tagDesc, view: 'manager/tag', title: '标签管理',
+    currentMenu: 'tag', urlPrefix: '/manager/tag',
+    sortWhitelist: tagDesc.sortWhitelist, defaultSortBy: 'count', statusRange: [0, 1]
+});
+exports.detail = crud.detail({
+    Model: Tag, desc: tagDesc, target: 'tag', view: 'manager/detail',
+    titleFn: function (d) { return d.name; }, currentMenu: 'tag'
+});
+
+// 新增：slug 唯一冲突 -> 409「标签标识已存在」（F02/唯一约束）
+exports.add = function (req, res) {
+    var name = kit.str(req.body.name, 100, true);
+    var slug = kit.str(req.body.slug, 200, false) || Tag.slugify(name || '');
+    var status = kit.intInRange(req.body.status, 0, 1, 0);
+    var meta = tagMeta('create', null, 'changed:name,slug,status');
+    function done(body, ok, id) {
+        meta.result = !!ok;
+        if (id) meta.objectId = [String(id)];
+        finish(req, res, meta, body);
+    }
+    if (!name || !slug) return done({success: false, msg: '标签名称不能为空'}, false);
+    Tag.findByName(name, function (err, exists) {
+        if (err) {
+            var n = conflict(err);
+            return res.status(n.status).json({success: false, msg: n.msg});
+        }
+        if (exists) return done({success: false, msg: '标签名称已存在'}, false);
+        Tag.save({name: name, slug: slug, status: status, count: 0,
+            createTime: new Date(), modifyTime: new Date()}, function (e, saved) {
+            if (e) {
+                var n2 = conflict(e);
+                return res.status(n2.status).json({success: false, msg: n2.msg});
+            }
+            var id = saved && saved._id ? String(saved._id) : '';
+            recount(name, 'add', function () {
+                done({success: true, msg: '添加标签成功', id: id}, true, id);
+            });
+        });
+    });
+};
+
+// 编辑自身判重：findByNameExclude 排除自身 id（F02）
+exports.modify = function (req, res) {
+    var chk = kit.requireId(req.body.id);
+    var name = kit.str(req.body.name, 100, true);
+    var slug = kit.str(req.body.slug, 200, false);
+    var status = kit.intInRange(req.body.status, 0, 1, null);
+    var meta = tagMeta('update', chk.ok ? chk.id : null, 'changed:name,slug,status');
+    function done(body, ok) { meta.result = !!ok; finish(req, res, meta, body); }
+    if (!chk.ok) return res.status(400).json({success: false, msg: '参数错误'});
+    if (!name) return done({success: false, msg: '标签名称不能为空'}, false);
+    Tag.adminFindById(chk.id, {status: 0}, function (err, doc) {
+        if (err || !doc) return done({success: false, msg: '标签不存在'}, false);
+        var newSlug = slug || doc.slug || Tag.slugify(name);
+        var newStatus = (status === null) ? doc.status : status;
+        Tag.findByNameExclude(name, chk.id, function (e2, dup) {
+            if (e2) {
+                var n0 = conflict(e2);
+                return res.status(n0.status).json({success: false, msg: n0.msg});
+            }
+            if (dup) return done({success: false, msg: '标签名称已存在'}, false);
+            Tag.adminUpdate(chk.id, {status: 0}, {name: name, slug: newSlug, status: newStatus}, function (e3, changed) {
+                if (e3) {
+                    var n = conflict(e3);
+                    return res.status(n.status).json({success: false, msg: n.msg});
+                }
+                if (!changed) return done({success: false, msg: '标签不存在'}, false);
+                // 改名后按同一口径重算（大小写不敏感），不留旧标签脏计数（§3.7）
+                Tag.reconcileForContent([doc.name], [name], function (re) {
+                    if (re) console.warn('[tag.modify] reconcile failed: ' + re.message);
+                    done({success: true, msg: '修改标签成功', id: chk.id}, true);
+                });
+            });
+        });
+    });
+};
+
+exports.delete = crud.remove({
+    Model: Tag, desc: tagDesc, target: 'tag', shape: 'success', deleteMsg: '删除成功',
+    notFoundMsg: '标签不存在或无权删除'
+    // 注意：标签软删后【不】触发 reconcile —— syncTags 在 total>0 时会自动复活，
+    // 这里若重算会立刻把刚禁用的标签恢复（与管理员禁用意图相反）。
+});
+exports.status = crud.status({Model: Tag, desc: tagDesc, target: 'tag', shape: 'success', statusRange: [0, 1], statusMsg: '状态更新成功'});
+exports.batch = crud.batch({Model: Tag, desc: tagDesc, target: 'tag', shape: 'success', statusRange: [0, 1]});
+
+exports['import'] = io.import({
+    Model: Tag, target: 'tag', columns: ['name', 'slug', 'count', 'status'],
+    rowToDoc: function (cells, ctx) {
+        var name = kit.csv.sanitize(cells[0]);
+        if (!name) throw new Error('标签名称不能为空');
+        return {
+            __row: ctx.row, name: name,
+            slug: kit.csv.sanitize(cells[1]) || Tag.slugify(name),
+            status: kit.intInRange(cells[3], 0, 1, 0),
+            count: 0, // 不信任导入的 count，导入后由 syncTags 重算覆盖（§4.3）
+            createTime: new Date(), modifyTime: new Date()
+        };
+    },
+    insertDoc: function (doc, cb) {
+        Tag.findByName(doc.name, function (err, exists) {
+            if (err) return cb(conflict(err));
+            if (exists) return cb(new Error('标签名称已存在'));
+            Tag.save(doc, function (e, saved) {
+                if (e) return cb(conflict(e));
+                recount(doc.name, 'import', function () {
+                    cb(null, saved && saved._id ? String(saved._id) : '');
+                });
+            });
+        });
+    }
+});
+exports['export'] = io.export({
+    Model: Tag, target: 'tag', desc: tagDesc,
+    columns: ['name', 'slug', 'count'],
+    docToRow: function (d) { return [d.name, d.slug || '', d.count || 0]; }
+});

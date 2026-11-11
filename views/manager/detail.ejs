@@ -1,0 +1,64 @@
+<%- include('header') %>
+<ol class="breadcrumb">
+    <li><a href="/manager">后台首页</a></li>
+    <li class="active"><%= title %></li>
+</ol>
+
+<%
+  // 通用详情：后端 render 传 resource（不是 target），一条模板服务 5 条详情路由。
+  // 字段中文标签 / 状态语义 / URL 白名单 / 敏感字段脱敏，全部在服务端完成；
+  // 所有用户字段均经转义后输出；href 需先过 _safeHref 白名单才生成链接。
+  var _resource = (typeof resource !== 'undefined' && resource) ? String(resource) : '';
+  var _listUrls = { tag:'/manager/tag', comment:'/manager/comment', category:'/manager/category',
+    link:'/manager/link', user:'/manager/user', content:'/manager/content', log:'/manager/log', audit:'/manager/audit/page' };
+  var _back = Object.prototype.hasOwnProperty.call(_listUrls, _resource) ? _listUrls[_resource] : '/manager';
+  var _labels = { _id:'编号', id:'编号', name:'名称', title:'标题', slug:'标识', count:'文章数',
+    status:'状态', role:'角色', url:'地址', link:'链接', href:'链接', website:'网站', homepage:'主页', blank:'新窗口',
+    createTime:'创建时间', modifyTime:'修改时间', time:'时间', ip:'IP 地址',
+    userName:'用户名', realName:'姓名', commenter:'评论者', comment:'评论内容',
+    content:'所属文章', contentName:'所属文章', actor:'操作者编号', actorName:'操作者',
+    action:'动作', target:'资源', objectId:'对象编号', result:'结果', detail:'详情',
+    view:'浏览量', tags:'标签', category:'分类', categoryName:'分类', author:'作者',
+    description:'描述', sort:'排序', order:'顺序', email:'邮箱', avatar:'头像',
+    type:'类型', contentType:'内容类型', original:'原文', star:'收藏', like:'点赞' };
+  var _sensitive = { __v:1, password:1, salt:1, htmlBackup:1, token:1, sessionKey:1 };
+  var _urlKeys = { url:1, link:1, href:1, website:1, homepage:1 };
+  function _label(k) { return Object.prototype.hasOwnProperty.call(_labels, k) ? _labels[k] : k; }
+  function _safeHref(u) {
+    u = String(u == null ? '' : u).trim();
+    return (/^https?:\/\//i.test(u) || /^\/(?!\/)/.test(u)) ? u : '';
+  }
+  function _pretty(k, v) {
+    if (v == null) return '—';
+    if (k === 'status') return (String(v) === '1' || v === 1) ? '禁用' : '正常';
+    if (k === 'role')   return (String(v) === '0' || v === 0) ? '管理员' : '普通用户';
+    if (k === 'blank')  return (String(v) === '0' || v === 0) ? '新窗口' : '当前窗口';
+    if (k === 'result') return (v === false || String(v) === 'false') ? '失败' : '成功';
+    if (typeof v === 'boolean') return v ? '是' : '否';
+    return String(v);
+  }
+%>
+<div class="bg-white jumbotron clear-margin">
+  <p><a href="<%= _back %>">← 返回列表</a></p>
+  <% if (locals.doc != null) { %>
+  <h3><%= (typeof title !== 'undefined' && title) ? title : '详情' %></h3>
+  <dl class="dl-horizontal detail-fields">
+    <% var _d = doc.toObject ? doc.toObject() : doc; %>
+    <% Object.keys(_d).forEach(function (key) { %>
+      <% if (Object.prototype.hasOwnProperty.call(_sensitive, key)) return; %>
+      <% var val = _d[key]; %>
+      <% if (val == null || typeof val === 'object') return; %>
+      <dt><%= _label(key) %></dt>
+      <% var href = Object.prototype.hasOwnProperty.call(_urlKeys, key) ? _safeHref(val) : ''; %>
+      <% if (href) { %>
+      <dd><a href="<%= href %>" target="_blank" rel="noopener noreferrer"><%= String(val) %></a></dd>
+      <% } else { %>
+      <dd><%= _pretty(key, val) %></dd>
+      <% } %>
+    <% }); %>
+  </dl>
+  <% } else { %>
+  <%- include('../common/state', { kind:'empty', size:'inline', title:'暂无数据' }) %>
+  <% } %>
+</div>
+<%- include('footer') %>

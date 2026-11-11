@@ -21,7 +21,8 @@ var LogDAO = function () {
 LogDAO.prototype.save = function (obj, callback) {
     var logEntity = new LogModel(obj);
     logEntity.save(function (err) {
-        callback(err);
+        // 追加返回新建文档（含 _id）供导入/审计定位；旧调用方只取第 1 个 err，不受影响。
+        callback(err, err ? null : logEntity);
     });
 };
 LogDAO.prototype.findByName = function (name, callback) {
@@ -64,4 +65,7 @@ LogDAO.prototype.update = function (obj, callback) {
         callback(err);
     });
 };
+// 通用后台 DAO 方法（软删 status=1）。公告写操作的审计走独立 AuditLog，不写本集合。
+require('./_adminDao').attach(LogDAO, LogModel, {softStatus: constants.LOG_UNABLE_STATUS});
+
 module.exports = new LogDAO();

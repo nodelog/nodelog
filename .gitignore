@@ -8,6 +8,7 @@ sitemap.*
 /node_modules/
 /.well-known/
 # 本地工作数据与 QA 产物（含登录凭据、备份、测试报告）：一律不入库
+/evidence/
 /.workbuddy/
 /.playwright-cli/
 /playwright-cli.json

@@ -1,0 +1,124 @@
+<%
+  // 后台列表统一工具条（搜索/筛选/排序 + 批量 + 导入导出 + 新增）。
+  // 由各列表页 include 并传入 bar 配置；父级 locals（filters/sortBy/order/keyword/status…）自动继承。
+  // bar = {
+  //   res, base, keyword, status:[{v,t}], sort:[{v,t}], keep:{}, extra:'audit',
+  //   auditActions:[...], batch, batchStatuses:[{v,t}], io, add:{label,fields}
+  // }
+  // 字段描述符 fields[] = {n:名, t:显示名, k:'text|textarea|select', o:[{v,t}], req, max, d:默认}
+  var bar = (typeof bar !== 'undefined' && bar) ? bar : {};
+  var _res = bar.res || '';
+  var _base = bar.base || '';
+  var _filters = (typeof filters !== 'undefined' && filters) ? filters : {};
+  function lv(name) {
+    if (typeof locals[name] !== 'undefined' && locals[name] !== null && locals[name] !== '') return locals[name];
+    if (typeof _filters[name] !== 'undefined' && _filters[name] !== null && _filters[name] !== '') return _filters[name];
+    return '';
+  }
+  var _sortBy = lv('sortBy');
+  var _order = lv('order') || 'desc';
+  var _status = lv('status');
+  function sel(name, list, cur, blankLabel) {
+    var h = '<select class="form-control" name="' + name + '" id="f-' + name + '">';
+    if (blankLabel) h += '<option value="">' + blankLabel + '</option>';
+    (list || []).forEach(function (o) {
+      h += '<option value="' + String(o.v) + '"' + (String(cur) === String(o.v) ? ' selected' : '') + '>' + String(o.t) + '</option>';
+    });
+    return h + '</select>';
+  }
+%>
+<% // 供 common.js 后台委托复用：编辑按钮未自带 data-form 时从这里取；修改 API 默认同资源 /modify。 %>
+<div class="admin-toolbar" data-res="<%= _res %>"
+     data-form="<%= JSON.stringify((bar.add && bar.add.fields) || []) %>"
+     data-edit-api="<%= (bar.add && bar.add.editApi) || (_base ? _base + '/modify' : '') %>">
+  <form class="admin-filter-form js-admin-filter" method="get" action="<%= _base %>">
+    <% if (bar.keep) { %>
+      <% Object.keys(bar.keep).forEach(function (k) { %>
+        <input type="hidden" name="<%= k %>" value="<%= bar.keep[k] %>">
+      <% }); %>
+    <% } %>
+    <% if (bar.keyword) { %>
+    <div class="admin-filter-item">
+      <label for="f-keyword">关键词</label>
+      <input type="search" id="f-keyword" name="keyword" class="form-control" maxlength="200"
+             value="<%= lv('keyword') %>" placeholder="名称 / 内容">
+    </div>
+    <% } %>
+    <% if (bar.status && bar.status.length) { %>
+    <div class="admin-filter-item">
+      <label for="f-status">状态</label>
+      <%- sel('status', bar.status, _status, '全部状态') %>
+    </div>
+    <% } %>
+    <% if (bar.extra === 'audit') { %>
+    <div class="admin-filter-item">
+      <label for="f-action">动作</label>
+      <input type="text" id="f-action" name="action" class="form-control" maxlength="100" value="<%= lv('action') %>" placeholder="如 create / delete">
+    </div>
+    <div class="admin-filter-item">
+      <label for="f-actor">操作者</label>
+      <input type="text" id="f-actor" name="actor" class="form-control" maxlength="200" value="<%= lv('actor') %>" placeholder="用户ID">
+    </div>
+    <div class="admin-filter-item">
+      <label for="f-target">资源</label>
+      <input type="text" id="f-target" name="target" class="form-control" maxlength="200" value="<%= lv('target') %>" placeholder="如 tag / user">
+    </div>
+    <div class="admin-filter-item">
+      <label for="f-result">结果</label>
+      <%- sel('result', [{v:'true',t:'成功'},{v:'false',t:'失败'}], lv('result'), '全部') %>
+    </div>
+    <div class="admin-filter-item">
+      <label for="f-from">起始</label>
+      <input type="date" id="f-from" name="from" class="form-control" value="<%= lv('from') %>">
+    </div>
+    <div class="admin-filter-item">
+      <label for="f-to">截止</label>
+      <input type="date" id="f-to" name="to" class="form-control" value="<%= lv('to') %>">
+    </div>
+    <% } %>
+    <% if (bar.sort && bar.sort.length) { %>
+    <div class="admin-filter-item">
+      <label for="f-sortBy">排序</label>
+      <%- sel('sortBy', bar.sort, _sortBy) %>
+    </div>
+    <div class="admin-filter-item admin-filter-item--order">
+      <label for="f-order">方向</label>
+      <%- sel('order', [{v:'desc',t:'降序'},{v:'asc',t:'升序'}], _order) %>
+    </div>
+    <% } %>
+    <div class="admin-filter-item admin-filter-item--actions">
+      <button type="submit" class="btn btn-primary"><svg class="nl-icon" aria-hidden="true"><use href="#i-search"></use></svg> 筛选</button>
+      <a class="btn" href="<%= _base %>">重置</a>
+    </div>
+  </form>
+
+  <div class="admin-actions">
+    <% if (bar.add) { %>
+    <button type="button" class="btn btn-primary js-admin-add"
+            data-api="<%= _base %>/add" data-title="<%= bar.add.label %>"
+            data-form="<%= JSON.stringify(bar.add.fields) %>"><svg class="nl-icon" aria-hidden="true"><use href="#i-plus"></use></svg> <%= bar.add.label %></button>
+    <% } %>
+    <% if (bar.io) { %>
+    <button type="button" class="btn js-admin-import" title="UTF-8 CSV，首行为表头，单次不超过 2MB / 1000 行"><svg class="nl-icon" aria-hidden="true"><use href="#i-upload"></use></svg> 导入 CSV</button>
+    <input type="file" accept=".csv,text/csv" class="hide js-admin-file" aria-label="选择 CSV 文件">
+    <button type="button" class="btn js-admin-export" title="导出当前筛选结果为 CSV；导出列可能与导入模板不同，不建议直接回灌"><svg class="nl-icon" aria-hidden="true"><use href="#i-download"></use></svg> 导出 CSV</button>
+    <% } %>
+  </div>
+
+  <% if (bar.batch) { %>
+  <div class="admin-batch">
+    <label class="admin-batch-all"><input type="checkbox" class="js-batch-all"> 全选本页</label>
+    <span class="js-batch-count" role="status" aria-live="polite">已选 0 条（单次≤100）</span>
+    <button type="button" class="btn js-batch-delete"><svg class="nl-icon" aria-hidden="true"><use href="#i-trash"></use></svg> 批量删除</button>
+    <label class="admin-batch-status">
+      改为
+      <select class="form-control js-batch-status-value" name="batch-status">
+        <% (bar.batchStatuses || [{v:'0',t:'正常'},{v:'1',t:'禁用'}]).forEach(function (o) { %>
+          <option value="<%= o.v %>"><%= o.t %></option>
+        <% }); %>
+      </select>
+    </label>
+    <button type="button" class="btn js-batch-status">批量改状态</button>
+  </div>
+  <% } %>
+</div>

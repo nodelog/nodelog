@@ -1,0 +1,25 @@
+<%
+  // 带筛选条件的分页：把当前列表筛选参数（来自父级 locals，后端已散开）拼进 url，
+  // 供 common/pager.ejs 的 .js-pre-page/.js-next-page 使用（它们会 url + 'page=' + n）。
+  // 用法：父模板 include 本文件并传 {url, page, totalPage}；筛选参数从父级 locals 自动读取。
+  // 额外传入 extraParams（如 {manager:'true', view:'manager/log'}）可追加固定参数。
+  var _url = (typeof url !== 'undefined' && url) ? url : '';
+  var _page = (typeof page !== 'undefined' && page != null) ? page : 1;
+  var _totalPage = (typeof totalPage !== 'undefined' && totalPage != null) ? totalPage : 1;
+  var _extra = (typeof extraParams !== 'undefined' && extraParams) ? extraParams : null;
+  var _keys = ['keyword', 'status', 'categoryId', 'tag', 'author', 'role', 'result',
+    'action', 'actor', 'target', 'objectId', 'from', 'to', 'sortBy', 'order', 'pageSize'];
+  var _pairs = [];
+  _keys.forEach(function (k) {
+    if (typeof locals[k] !== 'undefined' && locals[k] !== '' && locals[k] !== null) {
+      _pairs.push(encodeURIComponent(k) + '=' + encodeURIComponent(String(locals[k])));
+    }
+  });
+  if (_extra) {
+    Object.keys(_extra).forEach(function (k) {
+      if (_extra[k] !== '' && _extra[k] !== null) _pairs.push(encodeURIComponent(k) + '=' + encodeURIComponent(String(_extra[k])));
+    });
+  }
+  var _fullUrl = _url + (_pairs.length ? _pairs.join('&') + '&' : '');
+%>
+<%- include('pager', {url: _fullUrl, page: _page, totalPage: _totalPage}) %>
