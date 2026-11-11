@@ -1,0 +1,7 @@
+/* Vditor 全屏模式需盖过站点固定导航栏（Bootstrap .navbar-fixed-top 默认 z-index:1030）。
+   否则点「全屏」后，编辑器顶部工具栏被导航栏遮挡、无法点击，整屏「没法用」。
+   Vditor 全屏层 .vditor--fullscreen 自带 z-index:90（见 vendor/vditor/dist/index.css:526），
+   远低于导航栏，这里抬到最高，保证全屏独占视口。 */
+.vditor--fullscreen {
+  z-index: 2147483647 !important;
+}
