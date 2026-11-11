@@ -64,6 +64,7 @@
                data-phone="<%= session.user.phone || '' %>">
                 编辑
             </a>
+            <a href="javascript:;" class="js-user-delete" data-id="<%= session.user._id %>">删除</a>
         </td>
     </tr>
     <!--管理员-->
@@ -95,9 +96,7 @@
                    data-phone="<%= docs[i].phone || '' %>">
                     编辑
                 </a>
-                <a href="javascript:;" class="js-user-delete" data-id="<%= docs[i]._id %>">
-                    <%=docs[i].role==1?"删除":"--"%>
-                </a>
+                <a href="javascript:;" class="js-user-delete" data-id="<%= docs[i]._id %>">删除</a>
         </td>
     </tr>
     <% }}} %>

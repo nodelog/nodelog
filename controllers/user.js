@@ -97,11 +97,11 @@ exports.update = function (req, res) {
 }
 exports.delete = function (req, res) {
     var id = req.body.id;
-    User.delete(id, function (err) {
-        if (!err) {
+    User.delete(id, function (err, ok) {
+        if (!err && ok) {
             res.json({'success': true, 'msg': "删除成功"});
         } else {
-            res.json({'success': false, 'msg': "删除失败"});
+            res.json({'success': false, 'msg': err ? "删除失败" : "用户不存在或已删除"});
         }
     });
 }

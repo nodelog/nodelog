@@ -77,12 +77,16 @@ UserDAO.prototype.getCount = function (callback) {
             callback(err, total);
         });
 };
+// 管理员可删除任意用户（含其他管理员、含自己）：不做 role 限制。
+// 回调返回 (err, ok)，ok=true 表示确实有记录被置为删除态，避免「删管理员却误报成功」。
 UserDAO.prototype.delete = function (id, callback) {
     UserModel.update(
-        {"_id": id, "role": 1},
+        {"_id": id},
         {$set: {'status': constants.USER_DELETE_STATUS}},
-        function (err) {
-            callback(err);
+        function (err, raw) {
+            if (err) return callback(err);
+            var matched = raw && (typeof raw.n === 'number' ? raw.n : (raw.result && raw.result.n));
+            callback(null, matched > 0);
         });
 };
 UserDAO.prototype.update = function (obj, callback) {

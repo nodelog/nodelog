@@ -196,6 +196,6 @@ node scripts/verify-open-platform.js
 2. **分享封面按「链付收银博客」文字制作**（`public/images/share-cover.png`，深青底 + 绿强调色 + ¥ 品牌标记）；
 3. **后台管理端不注入微信分享**（移除 `common/meta.ejs` 的 OG / `jweixin` / `wechat-share.js` 块），前台 `meta-front.ejs` 保持不变；
 4. 支付接口按首版要求排除，未对接；
-5. **用户管理新增「手机号」列与手机号编辑**，微信扫码登录按手机号绑定本地账号（`controllers/openAuth.js` 三级落库：openUserId → phone → 新建）；管理员可对**所有**用户执行编辑（此前其他用户行仅有删除入口，无编辑入口）。
+5. **用户管理新增「手机号」列与手机号编辑**，微信扫码登录按手机号绑定本地账号（`controllers/openAuth.js` 三级落库：openUserId → phone → 新建）；管理员可对**所有**用户执行编辑（此前其他用户行仅有删除入口，无编辑入口）。删除亦**无限制**：`UserDAO.delete` 不再过滤 `role:1`，管理员可删除任意用户（含其他管理员、含自己），前端每个用户行（含当前登录管理员行）均显示「删除」入口；接口返回改为按实际影响行数判断，`success` 不再误报。
 
 **仍需上线前补验（环境限制）**：真浏览器渲染截图、微信 iOS/Android 真机扫码与分享验证；`createToken` → confirmed 真实链路需商家后台真实 AppID + 小程序授权。
