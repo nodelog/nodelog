@@ -20,7 +20,9 @@ function buildFields(req) {
     var contentType = req.body.contentType === 'markdown' ? 'markdown' : 'html';
     var tags = Array.isArray(req.body.tags)
         ? req.body.tags
-        : String(req.body.tags || '').split(',').map(function (t) { return t.trim(); }).filter(Boolean);
+        : String(req.body.tags || '').split(',');
+    // 归一化：去首尾空格、合并中间连续空白，防止「看不见的空格」让标签匹配失效
+    tags = tags.map(function (t) { return String(t == null ? '' : t).trim().replace(/\s+/g, ' '); }).filter(Boolean);
     var seo = {
         title: req.body['seo[title]'] || req.body.seoTitle || '',
         keywords: req.body['seo[keywords]'] || '',

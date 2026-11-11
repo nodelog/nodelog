@@ -217,8 +217,12 @@ ContentDAO.prototype.findByUser = function (page, author, callback) {
 function escapeRegex(s) {
     return String(s == null ? '' : s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
+// 容忍首尾空白（防止看不见的空格/全角空格导致匹配失败），并大小写不敏感
+function tagRegex(tag) {
+    return {"$regex": "^\\s*" + escapeRegex(tag) + "\\s*$", "$options": "i"};
+}
 ContentDAO.prototype.findByTag = function (page, tag, currentUser, callback) {
-    var tagTerm = {"$regex": "^" + escapeRegex(tag) + "$", "$options": "i"};
+    var tagTerm = tagRegex(tag);
     var term;
     if (currentUser == null) {
         term = {"tags": tagTerm, "status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}};
@@ -239,7 +243,7 @@ ContentDAO.prototype.findByTag = function (page, tag, currentUser, callback) {
     });
 };
 ContentDAO.prototype.getCountByTag = function (tag, currentUser, callback) {
-    var tagTerm = {"$regex": "^" + escapeRegex(tag) + "$", "$options": "i"};
+    var tagTerm = tagRegex(tag);
     var term;
     if (currentUser == null) {
         term = {"tags": tagTerm, "status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}};
