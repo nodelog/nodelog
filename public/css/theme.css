@@ -246,7 +246,9 @@ body:not(.manager) .page-shell { padding-top: var(--space-8); padding-bottom: va
 .btn-toolbar { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
 .open > .dropdown-menu { display: block; }
 .collapse.in { display: block; }
+.dropdown { position: relative; }
 .dropdown-menu {
+    position: absolute; top: 100%; left: 0;
     background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
     box-shadow: var(--elev); z-index: var(--z-dropdown);
     min-width: 200px; max-width: calc(100vw - var(--space-8));
@@ -623,3 +625,6 @@ html body .layui-layer-dialog .layui-layer-content { background: var(--surface) 
 }
 .vditor-reset a { color: var(--accent) !important; }
 .vditor-reset code { background: var(--surface-2) !important; }
+
+/* 写/编页「可搜索分类选择器」：键盘高亮（与 app.css 中 :hover 视觉一致；基础样式在 app.css，合并后保留） */
+.category-picker__item.is-active { background: var(--surface-2, #f2f4f7); }

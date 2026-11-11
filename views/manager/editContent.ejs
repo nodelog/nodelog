@@ -30,7 +30,7 @@
         <label for="mgrContentTags">标签 <span class="text-muted">（逗号分隔，留空则保存时自动提取）</span></label>
         <div class="tag-field">
             <input type="text" id="mgrContentTags" class="form-control js-tags-value" value="<%= (doc.tags||[]).join(', ') %>" placeholder="如：Node.js, 运维, 教程"/>
-            <button type="button" class="btn-ghost js-auto-tags" title="根据标题/正文自动提取标签">✨ 自动</button>
+            <button type="button" class="btn-ghost js-auto-tags" title="根据标题/正文自动提取标签">自动生成</button>
         </div>
         <div class="tag-preview js-tag-preview" aria-live="polite"></div>
         <p class="tag-hint js-tag-hint"></p>

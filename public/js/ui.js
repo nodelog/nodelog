@@ -13,6 +13,8 @@
   var modalEl = null;     // 当前打开的 modal / alert 弹层
   var loadingEl = null;   // 当前加载层
   var escHandler = null;  // ESC 关闭处理器
+  var lastOpener = null;  // 打开弹层前的焦点元素，关闭后归还，保证键盘可达性
+  var inertedEls = [];    // 打开弹层时被设为 inert 的背景节点
 
   function esc(s) {
     return String(s == null ? '' : s)
@@ -20,9 +22,26 @@
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
+  function restoreBackground() {
+    inertedEls.forEach(function (el) { try { el.inert = false; } catch (e) {} });
+    inertedEls = [];
+  }
+  // 焦点陷阱：弹层内 Tab / Shift+Tab 循环，焦点不逸出到背景
+  function trapFocus(container, e) {
+    if (e.key !== 'Tab') return;
+    var sel = 'a[href],button:not([disabled]),input:not([disabled]),textarea:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
+    var nodes = container.querySelectorAll(sel);
+    if (!nodes.length) { e.preventDefault(); return; }
+    var first = nodes[0], last = nodes[nodes.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
   function removeExistingModal() {
     if (modalEl && modalEl.parentNode) modalEl.parentNode.removeChild(modalEl);
     modalEl = null;
+    restoreBackground();
+    if (lastOpener && typeof lastOpener.focus === 'function') { try { lastOpener.focus(); } catch (e) {} }
+    lastOpener = null;
   }
 
   function bindDismiss(el) {
@@ -44,7 +63,7 @@
     if (!loadingEl) {
       loadingEl = document.createElement('div');
       loadingEl.className = 'nl-overlay';
-      loadingEl.setAttribute('role', 'alert');
+      loadingEl.setAttribute('role', 'status');
       loadingEl.setAttribute('aria-busy', 'true');
       loadingEl.innerHTML = '<div class="nl-loading"><span class="nl-spinner" aria-hidden="true"></span><span class="nl-loading-text"></span></div>';
       document.body.appendChild(loadingEl);
@@ -67,6 +86,7 @@
     overlay.className = 'nl-overlay';
     overlay.setAttribute('role', 'dialog');
     overlay.setAttribute('aria-modal', 'true');
+    lastOpener = document.activeElement;
 
     var modal = document.createElement('div');
     modal.className = 'nl-modal';
@@ -100,6 +120,11 @@
     document.body.appendChild(overlay);
     modalEl = overlay;
     bindDismiss(overlay);
+    // 背景节点置为 inert，阻断 Tab 进入背景；弹层内 Tab 循环
+    Array.prototype.forEach.call(document.body.children, function (child) {
+      if (child !== overlay) { try { child.inert = true; inertedEls.push(child); } catch (e) {} }
+    });
+    overlay.addEventListener('keydown', function (e) { trapFocus(modal, e); });
 
     closeX.addEventListener('click', function (e) { e.preventDefault(); closeAll(); });
     var cancelBtn = modal.querySelector('.js-nl-cancel');
