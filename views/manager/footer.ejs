@@ -2,13 +2,10 @@
     </article>
 </div>
 <%- include('../common/links') %>
-<script src="/js/jquery-1.10.2.min.js"></script>
-<script src="/js/jquery.cookie.js"></script>
-<script src="/js/bootstrap.js"></script>
-<script src="/js/bootstrap-switch.min.js"></script>
-<script src="/js/layer/layer.js"></script>
-<script src="/js/common.js"></script>
+<!-- 去框架化：dataFormat（纯 Date 垫片）+ ui.js（原生弹层/Toast 替代 layer）+ common.js（原生 DOM/fetch 替代 jQuery）。不再加载 jQuery / Bootstrap / layer / bootstrap-switch。 -->
 <script src="/js/dataFormat.js"></script>
+<script defer src="/js/ui.js"></script>
+<script defer src="/js/common.js"></script>
 <script src="/js/qr-login.js?v=20261111" defer></script>
 </body>
 </html>

@@ -63,20 +63,10 @@
 })();
 </script>
 
-<% if (typeof needEditor !== 'undefined' && needEditor) { %>
-<!-- 编辑页：标准链（jQuery → bootstrap → layer → common.js），编辑器由 editor.ejs 内联 Vditor 资源承载 -->
+<!-- 去框架化：dataFormat（纯 Date 垫片）+ ui.js（原生弹层/Toast 替代 layer）+ common.js（原生 DOM/fetch 替代 jQuery）。不再加载 jQuery / Bootstrap / layer。 -->
 <script src="/js/dataFormat.js"></script>
-<script defer src="/js/jquery-1.10.2.min.js"></script>
-<script defer src="/js/bootstrap.js"></script>
-<script defer src="/js/layer/layer.js"></script>
+<script defer src="/js/ui.js"></script>
 <script defer src="/js/common.js"></script>
-<% } else { %>
-<!-- 普通前台页：不再加载编辑器全家桶；defer 保证 jQuery → 插件 → common 的执行顺序 -->
-<script defer src="/js/jquery-1.10.2.min.js"></script>
-<script defer src="/js/bootstrap.js"></script>
-<script defer src="/js/layer/layer.js"></script>
-<script defer src="/js/common.js"></script>
-<% } %>
 <script src="/js/qr-login.js?v=20261111" defer></script>
 
 <!-- 登录统一为微信扫码，账号密码登录 / 注册面板已移除 -->

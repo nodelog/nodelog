@@ -2,16 +2,14 @@
 // 原则：**服务端渲染的动态 HTML 页面绝不缓存**（登录态、文章列表、公告数都是实时数据），
 // 一律网络优先；只有静态资源（css/js/图片）才缓存优先。
 // v1 曾把首页 HTML 预缓存并 cache-first，导致强刷拿到旧快照、退出登录不生效、部署后白屏。
-// v5：本次又改了 /js/common.js（退出后整页刷新以反映服务端登出态），必须再升版本，
-// 否则 cache-first 会让已安装 SW 的用户永远跑旧的 common.js。
-var CACHE = 'nodelog-v5';
+// v6：去框架化后，前台/后台不再加载 jQuery / Bootstrap / layer，改为
+// theme.css + app.css（零依赖结构层）+ ui.js（原生弹层/Toast）+ common.js（原生 DOM/fetch）。
+// 必须升版本，否则已安装 SW 的用户仍会按 v5 预缓存已下线的 bootstrap/jQuery/layer 资源。
+var CACHE = 'nodelog-v6';
 var PRECACHE = [
   '/css/theme.css',
-  '/css/bootstrap.css',
-  '/js/layer/need/layer.css',
-  '/js/jquery-1.10.2.min.js',
-  '/js/bootstrap.js',
-  '/js/layer/layer.js',
+  '/css/app.css',
+  '/js/ui.js',
   '/js/common.js',
   '/js/jweixin-1.6.0.js',
   // 下面两个带版本号：与前台实际加载的 URL 完全一致，cache-first 才能直接命中

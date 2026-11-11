@@ -15,15 +15,14 @@
 <!--alexa排名验证-->
 <meta name="alexaVerifyID" content="UmbHL7uQNFzJnFyC4OkkDx5CA3E"/>
 <title><%if(locals.title){%><%=title%><%}%>-打造最快的搜索体验</title>
-<!-- 前台仅 3 份 CSS：bootstrap.css 承载 collapse/dropdown 结构，theme.css 是唯一视觉源 -->
-<link rel="stylesheet" href="/css/bootstrap.css">
-<link rel="stylesheet" href="/js/layer/need/layer.css">
+<!-- 前台样式：theme.css（设计令牌 + 组件库）为唯一视觉源；app.css 仅补齐栅格 / 工具类 / 弹层等零依赖结构层（替代 bootstrap.css + layer.css） -->
+<link rel="stylesheet" href="/css/theme.css">
+<link rel="stylesheet" href="/css/app.css">
 <% if (typeof needEditor !== 'undefined' && needEditor) { %>
 <!-- 仅编辑页按需加载：编辑器图标 / 旧工具栏 / 代码高亮 -->
 <link rel="stylesheet" href="/css/font-awesome.css">
 <link rel="stylesheet" href="/css/index.css">
 <% } %>
-<link rel="stylesheet" href="/css/theme.css">
 <link rel="manifest" href="/manifest.json">
 <script>
   (function () {

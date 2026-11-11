@@ -1,0 +1,241 @@
+/* =========================================================================
+   NODELOG · app.css
+   去框架化替代层：在 theme.css（设计令牌 + 组件库）之上，补齐 Bootstrap
+   仅作为「结构/栅格/字体」提供的那部分，全部零依赖、零 jQuery。
+   仅覆盖视图真正使用的类，不照搬 6000+ 行 bootstrap.css。
+   加载顺序：theme.css 之后。
+   ========================================================================= */
+
+/* ---- 1. 栅格（flexbox 12 列，移动优先）-------------------------------- */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  margin-left: calc(var(--space-4) * -1);
+  margin-right: calc(var(--space-4) * -1);
+}
+[class^="col-"],
+[class*=" col-"] {
+  box-sizing: border-box;
+  width: 100%;
+  padding-left: var(--space-4);
+  padding-right: var(--space-4);
+}
+.col-1  { flex: 0 0 8.3333%;  max-width: 8.3333%; }
+.col-2  { flex: 0 0 16.6667%; max-width: 16.6667%; }
+.col-3  { flex: 0 0 25%;      max-width: 25%; }
+.col-4  { flex: 0 0 33.3333%; max-width: 33.3333%; }
+.col-5  { flex: 0 0 41.6667%; max-width: 41.6667%; }
+.col-6  { flex: 0 0 50%;      max-width: 50%; }
+.col-7  { flex: 0 0 58.3333%; max-width: 58.3333%; }
+.col-8  { flex: 0 0 66.6667%; max-width: 66.6667%; }
+.col-9  { flex: 0 0 75%;      max-width: 75%; }
+.col-10 { flex: 0 0 83.3333%; max-width: 83.3333%; }
+.col-11 { flex: 0 0 91.6667%; max-width: 91.6667%; }
+.col-12 { flex: 0 0 100%;     max-width: 100%; }
+
+@media (min-width: 576px) {
+  .col-sm-1  { flex: 0 0 8.3333%;  max-width: 8.3333%; }
+  .col-sm-2  { flex: 0 0 16.6667%; max-width: 16.6667%; }
+  .col-sm-3  { flex: 0 0 25%;      max-width: 25%; }
+  .col-sm-4  { flex: 0 0 33.3333%; max-width: 33.3333%; }
+  .col-sm-5  { flex: 0 0 41.6667%; max-width: 41.6667%; }
+  .col-sm-6  { flex: 0 0 50%;      max-width: 50%; }
+  .col-sm-7  { flex: 0 0 58.3333%; max-width: 58.3333%; }
+  .col-sm-8  { flex: 0 0 66.6667%; max-width: 66.6667%; }
+  .col-sm-9  { flex: 0 0 75%;      max-width: 75%; }
+  .col-sm-10 { flex: 0 0 83.3333%; max-width: 83.3333%; }
+  .col-sm-11 { flex: 0 0 91.6667%; max-width: 91.6667%; }
+  .col-sm-12 { flex: 0 0 100%;     max-width: 100%; }
+  .col-sm-offset-1 { margin-left: 8.3333%; }
+  .col-sm-offset-2 { margin-left: 16.6667%; }
+  .col-sm-offset-3 { margin-left: 25%; }
+}
+@media (min-width: 768px) {
+  .col-md-1  { flex: 0 0 8.3333%;  max-width: 8.3333%; }
+  .col-md-2  { flex: 0 0 16.6667%; max-width: 16.6667%; }
+  .col-md-3  { flex: 0 0 25%;      max-width: 25%; }
+  .col-md-4  { flex: 0 0 33.3333%; max-width: 33.3333%; }
+  .col-md-5  { flex: 0 0 41.6667%; max-width: 41.6667%; }
+  .col-md-6  { flex: 0 0 50%;      max-width: 50%; }
+  .col-md-7  { flex: 0 0 58.3333%; max-width: 58.3333%; }
+  .col-md-8  { flex: 0 0 66.6667%; max-width: 66.6667%; }
+  .col-md-9  { flex: 0 0 75%;      max-width: 75%; }
+  .col-md-10 { flex: 0 0 83.3333%; max-width: 83.3333%; }
+  .col-md-11 { flex: 0 0 91.6667%; max-width: 91.6667%; }
+  .col-md-12 { flex: 0 0 100%;     max-width: 100%; }
+  .col-md-offset-1 { margin-left: 8.3333%; }
+  .col-md-offset-2 { margin-left: 16.6667%; }
+}
+@media (min-width: 992px) {
+  .col-lg-1  { flex: 0 0 8.3333%;  max-width: 8.3333%; }
+  .col-lg-2  { flex: 0 0 16.6667%; max-width: 16.6667%; }
+  .col-lg-3  { flex: 0 0 25%;      max-width: 25%; }
+  .col-lg-4  { flex: 0 0 33.3333%; max-width: 33.3333%; }
+  .col-lg-5  { flex: 0 0 41.6667%; max-width: 41.6667%; }
+  .col-lg-6  { flex: 0 0 50%;      max-width: 50%; }
+  .col-lg-7  { flex: 0 0 58.3333%; max-width: 58.3333%; }
+  .col-lg-8  { flex: 0 0 66.6667%; max-width: 66.6667%; }
+  .col-lg-9  { flex: 0 0 75%;      max-width: 75%; }
+  .col-lg-10 { flex: 0 0 83.3333%; max-width: 83.3333%; }
+  .col-lg-11 { flex: 0 0 91.6667%; max-width: 91.6667%; }
+  .col-lg-12 { flex: 0 0 100%;     max-width: 100%; }
+}
+
+/* ---- 2. 工具类 -------------------------------------------------------- */
+.clearfix::after { content: ""; display: table; clear: both; }
+.pull-left  { float: left; }
+.pull-right { float: right; }
+.center-block { display: block; margin-left: auto; margin-right: auto; }
+.text-left   { text-align: left; }
+.text-right  { text-align: right; }
+.text-primary { color: var(--accent); }
+.muted, .text-muted { color: var(--muted); }
+.hidden { display: none !important; }
+.show   { display: block !important; }
+.list-unstyled { list-style: none; margin: 0; padding: 0; }
+.img-responsive { display: block; max-width: 100%; height: auto; }
+
+/* ---- 3. 输入组 / 媒体对象 -------------------------------------------- */
+.input-group { display: flex; align-items: stretch; }
+.input-group .form-control { flex: 1 1 auto; min-width: 0; }
+.input-group-addon {
+  display: flex; align-items: center; padding: 0 var(--space-3);
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-right: 0; border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  color: var(--muted); font-size: var(--fs-body-sm); white-space: nowrap;
+}
+.input-group .form-control:first-child { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.input-group .form-control:last-child  { border-top-left-radius: 0;  border-bottom-left-radius: 0; }
+
+.media { display: flex; align-items: flex-start; gap: var(--space-3); }
+.media-body { flex: 1 1 auto; }
+
+/* ---- 4. 遗留组件类（原 bootstrap / 旧模板）--------------------------- */
+.page-header { padding-bottom: var(--space-2); margin: 0 0 var(--space-6); border-bottom: 1px solid var(--border); }
+.page-header h1, .page-header h2 { margin: 0; font-size: var(--fs-h2); }
+.alert-link { font-weight: 600; color: inherit; text-decoration: underline; }
+.alert .alert-link { color: inherit; }
+.bottom-border { border-bottom: 1px solid var(--border); }
+.nav-bg { background: var(--surface); color: var(--ink); }
+.navbar-fixed-top { position: fixed; top: 0; left: 0; right: 0; z-index: 1030; }
+.navbar-header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.navbar-nav { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); margin: 0; padding: 0; list-style: none; }
+.navbar-nav > li { list-style: none; }
+.badge-father { position: relative; }
+.badge-father .badge { position: absolute; top: -6px; right: -10px; }
+.previous, .next { display: inline-block; }
+.success { color: var(--success); }
+.empty { padding: var(--space-12) var(--space-4); text-align: center; color: var(--muted); }
+.empty-title { font-size: var(--fs-lead); font-weight: 600; color: var(--ink); margin: 0 0 var(--space-2); }
+.pointer { cursor: pointer; }
+.opacity-03 { opacity: .3; }
+.hover-opacity-1:hover { opacity: 1; }
+.fixed-right-top { position: fixed; right: var(--space-4); top: var(--space-4); z-index: 1040; }
+.size-40 { width: 40px; height: 40px; }
+.padding-15 { padding: 15px; }
+.no-margin { margin: 0 !important; }
+.caret { display: inline-block; width: 0; height: 0; margin-left: 4px; vertical-align: middle; border-top: 4px solid; border-right: 4px solid transparent; border-left: 4px solid transparent; }
+.close { float: right; font-size: 21px; font-weight: 700; line-height: 1; color: var(--muted); background: transparent; border: 0; cursor: pointer; }
+.close:hover { color: var(--ink); }
+.divider { height: 1px; margin: var(--space-2) 0; background: var(--border); }
+
+/* 旧模板用的 l-* 间距助手（前端页少量出现，统一补一份） */
+.l-padding-vertical { padding-top: var(--space-4); padding-bottom: var(--space-4); }
+.l-heigh-200 { min-height: 200px; }
+.l-margin-top-17 { margin-top: 17px; }
+.l-margin-top-20 { margin-top: 20px; }
+
+/* ---- 5. 折叠 / 下拉（与 theme.css 的 .in / .open 约定对齐）----------- */
+.collapse { display: none; }
+.collapse.in { display: block; }
+.dropdown-menu { display: none; }
+.open > .dropdown-menu,
+.dropdown.open > .dropdown-menu,
+.dropdown.is-open > .dropdown-menu { display: block; }
+
+/* 主导航：移动端折叠，桌面端常显 */
+.navbar-toggle { display: inline-flex; flex-direction: column; justify-content: center; gap: 4px; width: 44px; height: 44px; padding: var(--space-2); background: transparent; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); cursor: pointer; }
+.icon-bar { display: block; width: 22px; height: 2px; background: var(--ink); border-radius: 2px; }
+@media (max-width: 767px) {
+  .navbar-collapse.collapse { display: none; }
+  .navbar-collapse.collapse.in { display: block; }
+}
+@media (min-width: 768px) {
+  .navbar-toggle { display: none; }
+  .collapse.navbar-collapse { display: flex; flex-wrap: wrap; }
+  .navbar-nav { flex-wrap: nowrap; }
+}
+.manager .navbar-toggle .icon-bar { background: var(--manager-nav-fg); }
+
+/* ---- 6. Glyphicons（仅保留用到的图标，字体文件在 /public/fonts）------ */
+@font-face {
+  font-family: 'Glyphicons Halflings';
+  src: url(../fonts/glyphicons-halflings-regular.eot);
+  src: url(../fonts/glyphicons-halflings-regular.eot?#iefix) format('embedded-opentype'),
+       url(../fonts/glyphicons-halflings-regular.woff) format('woff'),
+       url(../fonts/glyphicons-halflings-regular.ttf) format('truetype'),
+       url(../fonts/glyphicons-halflings-regular.svg#glyphicons_halflingsregular) format('svg');
+}
+.glyphicon {
+  position: relative; top: 1px; display: inline-block;
+  font-family: 'Glyphicons Halflings'; font-style: normal; font-weight: 400;
+  line-height: 1; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+}
+.glyphicon-plus:before      { content: "\2b"; }
+.glyphicon-bookmark:before  { content: "\e044"; }
+.glyphicon-time:before      { content: "\e023"; }
+.glyphicon-user:before      { content: "\e008"; }
+.glyphicon-pencil:before    { content: "\270f"; }
+.glyphicon-tag:before       { content: "\e041"; }
+.glyphicon-eye-open:before  { content: "\e105"; }
+.glyphicon-envelope:before  { content: "\2709"; }
+.glyphicon-phone:before     { content: "\e145"; }
+.glyphicon-lock:before      { content: "\e033"; }
+.glyphicon-hand-right:before{ content: "\e127"; }
+
+/* ---- 7. 原生弹层 / Toast（供 ui.js 使用）----------------------------- */
+.nl-overlay {
+  position: fixed; inset: 0; z-index: 2147483000;
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--space-4); background: rgba(17, 27, 33, .5);
+  animation: nl-fade .15s ease;
+}
+.nl-modal {
+  width: 100%; max-width: 360px; max-height: 86vh; overflow: auto;
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow); font-family: var(--font);
+}
+.nl-modal-head {
+  padding: var(--space-4); border-bottom: 1px solid var(--border);
+  font-weight: 600; font-size: var(--fs-body); line-height: 1.4;
+}
+.nl-modal-body { padding: var(--space-4); font-size: var(--fs-body-sm); line-height: 1.6; word-break: break-word; }
+.nl-modal-foot { display: flex; gap: var(--space-2); justify-content: flex-end; padding: var(--space-3) var(--space-4); border-top: 1px solid var(--border); }
+.nl-modal-foot .btn { min-height: 40px; }
+.nl-loading {
+  display: inline-flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-4) var(--space-6); background: var(--surface);
+  color: var(--ink); border-radius: var(--radius); box-shadow: var(--shadow); font-family: var(--font);
+}
+.nl-spinner {
+  width: 20px; height: 20px; border-radius: 50%;
+  border: 2px solid var(--border); border-top-color: var(--accent);
+  animation: nl-spin .7s linear infinite;
+}
+@keyframes nl-spin { to { transform: rotate(360deg); } }
+@keyframes nl-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.toast-host { position: fixed; left: 50%; bottom: var(--space-8); transform: translateX(-50%); z-index: 2147483001; display: flex; flex-direction: column; gap: var(--space-2); pointer-events: none; }
+.nl-toast {
+  pointer-events: auto; background: var(--ink); color: #fff;
+  padding: var(--space-3) var(--space-5); border-radius: var(--radius-sm);
+  font-size: var(--fs-body-sm); line-height: 1.5; box-shadow: var(--shadow);
+  max-width: 90vw; text-align: center; animation: nl-toast-in .2s ease;
+}
+@keyframes nl-toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .nl-overlay, .nl-toast, .nl-spinner { animation: none; }
+  .nl-spinner { border-top-color: var(--accent); }
+}
