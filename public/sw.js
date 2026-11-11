@@ -1,11 +1,14 @@
 // NODELOG Service Worker
-// 原则：**服务端渲染的动态 HTML 页面绝不缓存**（登录态、文章列表、公告数都是实时数据），
-// 一律网络优先；只有静态资源（css/js/图片）才缓存优先。
+// 原则：**所有内容都以网络为准**——动态 HTML 页面绝不缓存（登录态/文章列表/公告数是实时数据），
+// 静态资源（css/js/图片）虽写缓存兜底离线，但读取一律网络优先，保证改完部署即生效。
 // v1 曾把首页 HTML 预缓存并 cache-first，导致强刷拿到旧快照、退出登录不生效、部署后白屏。
 // v7：去框架化后，前台/后台不再加载 jQuery / Bootstrap / layer，改为
 // theme.css + app.css（零依赖结构层）+ ui.js（原生弹层/Toast）+ common.js（原生 DOM/fetch）。
-// 必须升版本，否则已安装 SW 的用户仍会按旧版本预缓存已下线的资源或把 /tags 等接口缓存成旧响应。
-var CACHE = 'nodelog-v7';
+// v8：静态资源（css/js/图片/字体/第三方库）从「缓存优先」改为「网络优先」。
+//     缓存优先会导致：改了 CSS/JS 后普通刷新仍拿旧文件、只有强刷才生效，而强刷又不回写缓存，
+//     于是「强刷一次生效一次、不强刷又回退」。网络优先：每次先问服务器（未变更走 304，
+//     开销极小），成功即写缓存，离线才回退缓存——改完部署后普通刷新即可生效，不再回退。
+var CACHE = 'nodelog-v8';
 var PRECACHE = [
   '/css/theme.css',
   '/css/app.css',
@@ -110,16 +113,21 @@ self.addEventListener('fetch', function (e) {
     return;
   }
 
-  // 3) 其余静态资源：缓存优先，缺失则网络并写入缓存
+  // 3) 其余静态资源（css/js/fonts/vendor/images）：网络优先，成功即写缓存，离线才回退缓存。
+  //    这样改完 CSS/JS 部署后，普通刷新就能拿到新版，不必强刷、也不会「强刷一次又回退」。
+  //    未变更的资源服务器返回 304，浏览器直接用本地副本，额外成本只有一个轻量协商请求。
   e.respondWith(
-    caches.match(req).then(function (cached) {
-      if (cached) return cached;
-      return fetch(req).then(function (resp) {
-        if (resp && resp.status === 200 && (resp.type === 'basic' || url.origin === self.location.origin)) {
-          var cp = resp.clone();
-          caches.open(CACHE).then(function (c) { c.put(req, cp); });
-        }
-        return resp;
+    fetch(req).then(function (resp) {
+      if (resp && resp.status === 200 && (resp.type === 'basic' || url.origin === self.location.origin)) {
+        var cp = resp.clone();
+        caches.open(CACHE).then(function (c) { c.put(req, cp); });
+      }
+      return resp;
+    }).catch(function () {
+      // 网络失败（离线/服务器不可达）时才用缓存兜底，保证 PWA 离线可用
+      return caches.match(req).then(function (cached) {
+        if (cached) return cached;
+        return new Response('', { status: 504, statusText: 'Offline' });
       });
     })
   );
