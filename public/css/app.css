@@ -204,7 +204,7 @@
   width: 100%; max-width: 360px; max-height: 86vh; overflow: auto;
   background: var(--surface); color: var(--ink);
   border: 1px solid var(--border); border-radius: var(--radius);
-  box-shadow: var(--elev); font-family: var(--font);
+  box-shadow: var(--elev); font-family: var(--font-ui);
 }
 .nl-modal-head {
   padding: var(--space-4); border-bottom: 1px solid var(--border);
@@ -216,7 +216,7 @@
 .nl-loading {
   display: inline-flex; align-items: center; gap: var(--space-3);
   padding: var(--space-4) var(--space-6); background: var(--surface);
-  color: var(--ink); border-radius: var(--radius); box-shadow: var(--elev); font-family: var(--font);
+  color: var(--ink); border-radius: var(--radius); box-shadow: var(--elev); font-family: var(--font-ui);
 }
 .nl-spinner {
   width: 20px; height: 20px; border-radius: 50%;
@@ -231,6 +231,7 @@
   pointer-events: auto; background: var(--ink); color: #fff;
   padding: var(--space-3) var(--space-5); border-radius: var(--radius-sm);
   font-size: var(--fs-body-sm); line-height: 1.5; box-shadow: var(--elev);
+  font-family: var(--font-ui);
   max-width: 90vw; text-align: center; animation: nl-toast-in .2s ease;
 }
 @keyframes nl-toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }

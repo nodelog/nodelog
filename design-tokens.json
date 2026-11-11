@@ -21,6 +21,7 @@
       "warning": "#8a5a0a",
       "success": "#2f7d5d",
       "info": "#1d4ed8",
+      "accent2": "#0891b2",
       "shadow": "0 1px 2px rgba(16,24,40,.05), 0 8px 24px rgba(16,24,40,.06)"
     },
     "dark": {
@@ -40,6 +41,7 @@
       "warning": "#e0ad55",
       "success": "#67c99a",
       "info": "#6aa6ff",
+      "accent2": "#22d3ee",
       "shadow": "0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35)"
     }
   },
@@ -75,7 +77,9 @@
   },
   "typography": {
     "fontSans": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", \"Source Han Sans SC\", \"Noto Sans CJK SC\", sans-serif",
-    "fontMono": "\"SFMono-Regular\", Consolas, \"Liberation Mono\", Menlo, monospace",
+    "fontMono": "\"JetBrains Mono\", \"Cascadia Code\", \"Fira Code\", ui-monospace, \"SFMono-Regular\", Consolas, \"Liberation Mono\", Menlo, \"Courier New\", monospace",
+    "fontUI": "\"JetBrains Mono\", \"Cascadia Code\", \"Fira Code\", ui-monospace, \"SFMono-Regular\", Consolas, \"Liberation Mono\", Menlo, \"Courier New\", monospace",
+    "chromeNote": "UI 铬层（导航 / 标题 / 按钮 / 标签 / 状态 / 页码）使用 fontUI（等宽字体）营造极客 / 终端观感；长文正文仍用 fontSans（无衬线）以保证中文阅读舒适。两者均走设计令牌，theme.css 为唯一视觉源。",
     "scale": {
       "fs-small":   {"size": "13px", "lineHeight": 1.50, "weight": 400, "letterSpacing": "0.01em", "role": "date / count / badge"},
       "fs-body-sm": {"size": "15px", "lineHeight": 1.60, "weight": 400, "letterSpacing": "0", "role": "sidebar / button / form / pager / excerpt"},
