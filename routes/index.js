@@ -71,7 +71,7 @@ var route = function (app) {
     app.get('/log/detail',  log.findById);
     app.get('/manager/log/detail',filter.authorizeAdmin, log.findById);
     app.get('/log',log.findByPage);
-    app.post('/log/count', log.logCount);
+    app.get('/log/count', log.logCount);
     app.get('/category/all', category.findAll);
     app.get('/content/detail', content.findById);
     app.get('/content/edit', filter.authorize, content.findById);
@@ -104,7 +104,7 @@ var route = function (app) {
     // 越权点 1 修复：后台友链页必须登录 + 管理员（D2/R1）。公开 /link/list 在下方保持无鉴权。
     app.get('/manager/link', filter.authorize, filter.authorizeAdmin, function(req, res){res.render('manager/link',{currentMenu:"link",title:"链接管理"});});
     app.post('/manager/link/save', filter.authorizeAdmin, link.save);
-    app.post('/link/list', link.findAll);
+    app.get('/link/list', link.findAll);
     app.post('/manager/link/delete', filter.authorizeAdmin, link.delete);
 
     // ==================== 后台管理模块增强 · 新增路由（SPEC §5.3）====================
@@ -176,6 +176,15 @@ var route = function (app) {
     app.get('/manager/category/list', A, category.adminList);
     app.get('/manager/user/list', A, user.adminList);
     app.get('/manager/log/list', A, log.adminList);
+
+    // ---- 方案D-SSR：4 条管理员专用页面级筛选/排序 SSR 路由（老 4 条 SSR 路由零改动）----
+    // 复用 crud.list 的 SSR 分支（传 view + urlPrefix），locals 含 docs/filters/散开的筛选字段/url，
+    // 供升级后的 manager/{content,category,user,log} 模板里的 adminToolbar/adminPager 消费。
+    // 与上方 4 条 JSON 端点、4 条老 SSR 路由、公开 / /index /log /category/all 全部并存不混。
+    app.get('/manager/content/admin', A, content.adminPage);
+    app.get('/manager/category/admin', A, category.adminPage);
+    app.get('/manager/user/admin', A, user.adminPage);
+    app.get('/manager/log/admin', A, log.adminPage);
 
     app.get('/error', function(req,res){res.render('error', {title: '没有找到',state: '404'});});
     // 下面的路由必须放到最后，404页面
