@@ -518,7 +518,9 @@ section.card + section.card { margin-top: var(--space-6); }
 .article-content h2, .markdown-body h2 { font-size: var(--fs-h3); margin: 1.4em 0 .6em; }
 .article-content h3, .markdown-body h3 { font-size: var(--fs-lead); margin: 1.3em 0 .5em; }
 .article-content p, .markdown-body p { margin: .8em 0; }
-.article-content img, .markdown-body img { max-width: 100%; border-radius: var(--radius-sm); }
+/* 正文图片限宽居中：与编辑器 vditor-fix.css 同一上限（760px），编辑/前台所见即所得。
+   原图再大也只按此宽度展示、居中；点击可放大看原图（见 contentDetail.ejs 内联 lightbox）。 */
+.article-content img, .markdown-body img { display: block; max-width: min(100%, 760px); height: auto; margin: .8em auto; border-radius: var(--radius-sm); }
 .article-content ul, .markdown-body ul, .article-content ol, .markdown-body ol { padding-left: 1.6em; margin: .6em 0; }
 .article-content li, .markdown-body li { margin: var(--space-1) 0; }
 .article-content code, .markdown-body code { background: var(--surface-2); padding: 1px var(--space-1); border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: var(--mono); font-size: .9em; }

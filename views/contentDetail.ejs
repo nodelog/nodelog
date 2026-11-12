@@ -58,4 +58,41 @@
 <% if (typeof doc !== 'undefined' && doc != null && session.user != null && session.user._id == doc.author) { %>
 <input type="hidden" class="js-current-menu" value="js-my-content-menu"/>
 <% } %>
+<% /* 正文图片点击看原图：正文图片已按 760px 限宽居中，点开查看原始大图。
+      纯原生、无第三方依赖；事件委托到 .article-content，不写任何 data 属性、不污染 Markdown。 */ %>
+<style>
+  .nl-lightbox { position: fixed; inset: 0; z-index: 2147483000; display: none; align-items: center; justify-content: center;
+    background: rgba(0,0,0,.86); padding: 24px; cursor: zoom-out; }
+  .nl-lightbox.is-open { display: flex; }
+  .nl-lightbox img { max-width: 96vw; max-height: 92vh; width: auto; height: auto; object-fit: contain;
+    border-radius: 4px; cursor: default; box-shadow: 0 8px 40px rgba(0,0,0,.5); }
+  .nl-lightbox__close { position: absolute; top: 16px; right: 22px; color: #fff; font-size: 30px; line-height: 1;
+    background: none; border: 0; cursor: pointer; padding: 4px 10px; }
+</style>
+<div class="nl-lightbox" role="dialog" aria-modal="true" aria-label="查看原图" aria-hidden="true">
+  <button type="button" class="nl-lightbox__close" aria-label="关闭">×</button>
+  <img alt="" src=""/>
+</div>
+<script>
+(function () {
+  var box = document.querySelector('.nl-lightbox');
+  var boxImg = box && box.querySelector('img');
+  var content = document.querySelector('.article-content');
+  if (!box || !boxImg || !content) return;
+  function close() { box.classList.remove('is-open'); box.setAttribute('aria-hidden', 'true'); boxImg.removeAttribute('src'); }
+  content.addEventListener('click', function (e) {
+    var img = e.target && e.target.closest && e.target.closest('img');
+    if (!img || !content.contains(img)) return;
+    var src = img.getAttribute('src');
+    if (!src) return;
+    e.preventDefault();
+    boxImg.src = src;
+    boxImg.alt = img.getAttribute('alt') || '';
+    box.classList.add('is-open');
+    box.setAttribute('aria-hidden', 'false');
+  });
+  box.addEventListener('click', function (e) { if (e.target === box || e.target.closest('.nl-lightbox__close')) close(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && box.classList.contains('is-open')) close(); });
+})();
+</script>
 <%- include('footer') %>
