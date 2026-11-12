@@ -70,7 +70,7 @@ function onUnavailable(req, source, err, cb) {
     console.error('[moderationGuard] matcher_unavailable: ' + (err && err.message ? err.message : err));
     kit.audit(req, {action: 'moderation', target: source, objectId: [],
         detail: 'matcher_unavailable', result: false}, function () {
-        cb(cfg.MODERATION_FAIL_MODE === 'closed'
+        cb(null, cfg.MODERATION_FAIL_MODE === 'closed'
             ? {allowed: false, msg: UNAVAILABLE_MSG, reason: 'unavailable'}
             : {allowed: true, reason: 'fail_open'});
     });
