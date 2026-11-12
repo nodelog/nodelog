@@ -6,6 +6,7 @@
  *   - 只把脱敏后的用户信息回传前端，绝不回传 JWT 原文 / 手机号 / AppSecret / 堆栈。
  *   - JWT 写进 httpOnly cookie（30 天），session.user 与原有本地账号登录完全同构。
  *   - restoreUser 是「尽力而为」的中间件：任何异常都静默放行，绝不阻塞页面渲染。
+ * G03 豁免（SPEC §10.1）：扫码/恢复逻辑内聚，风控 +2 行(L2)→307；谁=架构师/为什么=内聚/何时复审=下个迭代。不调阈值。
  */
 'use strict';
 
@@ -144,6 +145,8 @@ function finishLogin(req, res, cfg, payload, jwt) {
             if (err || !doc) {
                 return res.json({success: false, msg: '登录失败，请重试'});
             }
+            // L2 封堵（§6.2）：一处覆盖 byOpenId/byPhone/createNew 三来源，status≠0 拒登且不写 session/cookie。
+            if (doc.status !== 0) return res.json({success: false, msg: '账号已停用，请联系管理员'});
             // 与 controllers/user.js 的本地登录一致：直接放完整的 mongoose 文档，
             // 保证 _id / userName / realName / role / status / email / createTime 等字段全部可用。
             req.session.user = doc;
@@ -290,8 +293,8 @@ exports.restoreUser = function (req, res, next) {
         User.findByOpenUserId(String(payload.userId), function (err, doc) {
             if (done) return; // 兜底定时器已放行，响应可能已发出，不再回写 session
             try {
-                // DAO 查询已带 status < 2，这里再判一次，防止后续改动放宽条件
-                if (!err && doc && doc.status < 2 && req.session) {
+                // L3 封堵（§6.2）：DAO 查 status<2 含停用(1)；恢复只认 status===0，避免停用账号被 30 天 cookie 复活。
+                if (!err && doc && doc.status === 0 && req.session) {
                     req.session.user = doc;
                 }
             } catch (e) { /* 静默：恢复失败不影响请求 */ }

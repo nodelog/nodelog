@@ -10,7 +10,8 @@ var AuditLogSchema = new Schema({
     actor: {type: ObjectId, required: true},                 // 谁（session.user._id；系统写入者用固定 24 位 0 id）
     actorName: {type: String},                               // 冗余用户名，便于审计页展示
     action: {type: String, required: true,
-        enum: ['create', 'update', 'delete', 'status', 'batch', 'import', 'export', 'audit_cleanup', 'tag_reconcile']},
+        // SPEC-MODERATION §3.5：只新增 moderation，旧 9 个全部保留；用途靠 target + detail 区分。
+        enum: ['create', 'update', 'delete', 'status', 'batch', 'import', 'export', 'audit_cleanup', 'tag_reconcile', 'moderation']},
     target: {type: String, required: true},                  // content/category/tag/link/user/comment/log/audit
     objectId: {type: [String], default: []},                 // 目标 id 数组（单条 1 个，批量/导入 N 个）
     time: {type: Date, default: Date.now, index: true},      // 可排序 / 保留期清理依据

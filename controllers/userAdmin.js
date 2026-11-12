@@ -35,6 +35,26 @@ exports.adminList = crud.list({
         cb(null, out);
     }
 });
+// 方案D-SSR：管理员专用页面级筛选/排序（GET /manager/user/admin）。
+// 【关键】与上方 DEF-003 六字段 JSON 白名单【分开定义】的 SSR decorate：管理员内部页要展示
+// email/phone/modifyTime，但绝不含 password/passwordHash/openUserId/token/secret。
+// 白名单重建 POJO（先 toObject），敏感键不进渲染数据；老模板 manager/user 依赖这些字段。
+function userSsrDecorate(docs, cb) {
+    cb(null, (docs || []).map(function (d) {
+        var p = d && d.toObject ? d.toObject() : Object.assign({}, d || {});
+        return {
+            _id: p._id, userName: p.userName, realName: p.realName,
+            role: p.role, status: p.status, createTime: p.createTime,
+            modifyTime: p.modifyTime, email: p.email || '', phone: p.phone || ''
+        };
+    }));
+}
+exports.adminPage = crud.list({
+    Model: User, desc: userDesc, target: 'user', statusRange: [0, 1],
+    sortWhitelist: userDesc.sortWhitelist, defaultSortBy: userDesc.defaultSortBy,
+    view: 'manager/user', urlPrefix: '/manager/user/admin',
+    title: '用户管理', currentMenu: 'user', decorate: userSsrDecorate
+});
 
 function encryption(password) {
     return bcrypt.hashSync(String(password), bcrypt.genSaltSync(10));

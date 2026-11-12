@@ -19,15 +19,17 @@
         <ul class="nav navbar-nav">
             <li><a href="/manager" class="color-white <%if(locals.currentMenu&&currentMenu=="home"){%>current-menu<%}%>">概览</a></li>
             <% if(session.user != null){ %>
-            <li><a href="/manager/content?manager=true&page=1" class="color-white <%if(locals.currentMenu&&currentMenu=="content"){%>current-menu<%}%>">文章</a></li>
-            <li><a href="/manager/user?page=1" class="color-white <%if(locals.currentMenu&&currentMenu=="user"){%>current-menu<%}%>">用户</a></li>
+            <li><a href="<%= session.user.role == 0 ? '/manager/content/admin?page=1' : '/manager/content?manager=true&page=1' %>" class="color-white <%if(locals.currentMenu&&currentMenu=="content"){%>current-menu<%}%>">文章</a></li>
+            <li><a href="<%= session.user.role == 0 ? '/manager/user/admin?page=1' : '/manager/user?page=1' %>" class="color-white <%if(locals.currentMenu&&currentMenu=="user"){%>current-menu<%}%>">用户</a></li>
             <% if(session.user.role == 0){ %>
-            <li><a href="/manager/category?page=1" class="color-white <%if(locals.currentMenu&&currentMenu=="category"){%>current-menu<%}%>">分类</a></li>
-            <li><a href="/manager/log?view=manager/log&page=1" class="color-white <%if(locals.currentMenu&&currentMenu=="log"){%>current-menu<%}%>">公告</a></li>
+            <li><a href="/manager/category/admin?page=1" class="color-white <%if(locals.currentMenu&&currentMenu=="category"){%>current-menu<%}%>">分类</a></li>
+            <li><a href="/manager/log/admin?page=1" class="color-white <%if(locals.currentMenu&&currentMenu=="log"){%>current-menu<%}%>">公告</a></li>
             <li><a href="/manager/link" class="color-white <%if(locals.currentMenu&&currentMenu=="link"){%>current-menu<%}%>">链接</a></li>
             <li><a href="/manager/tag?page=1" class="color-white <%if(locals.currentMenu&&currentMenu=="tag"){%>current-menu<%}%>">标签</a></li>
             <li><a href="/manager/comment?page=1" class="color-white <%if(locals.currentMenu&&currentMenu=="comment"){%>current-menu<%}%>">评论</a></li>
             <li><a href="/manager/audit/page" class="color-white <%if(locals.currentMenu&&currentMenu=="audit"){%>current-menu<%}%>">操作日志</a></li>
+            <li><a href="/manager/sensitive-word" class="color-white <%if(locals.currentMenu&&(currentMenu=="sensitiveWord"||currentMenu=="sensitive-word")){%>current-menu<%}%>">敏感词</a></li>
+            <li><a href="/manager/violation" class="color-white <%if(locals.currentMenu&&currentMenu=="violation"){%>current-menu<%}%>">违规记录</a></li>
             <% } %>
             <li><a href="javascript:;" class="color-white js-logout-btn" title="退出登录">退出</a></li>
             <% } %>

@@ -3,6 +3,7 @@ var mongodb = require('./mongodb');
 var constants = require('./constants');
 
 var Schema = mongodb.mongoose.Schema;
+var ObjectId = Schema.ObjectId;
 var UserSchema = new Schema({
     userName: {type: 'String', required: true},
     realName: {type: 'String', required: true},
@@ -18,7 +19,15 @@ var UserSchema = new Schema({
     createTime: { type: Date, default: Date.now},
     modifyTime: {type: Date, default: Date.now},
     role: {type: 'Number', default: 1, required: true, min: 0, max: 1 },//0 super admin,1 normal user
-    status: {type: 'Number', default: 0, required: true, min: 0, max: 2}//0 enable,1 disable
+    status: {type: 'Number', default: 0, required: true, min: 0, max: 2},//0 enable,1 disable,2 delete
+    // 内容风控七字段（§3.4）：全 optional + default，不回填、不改 status、不进 publicUser 白名单。
+    violationCount: {type: 'Number', default: 0, min: 0},                  // 累计命中次数，拒发 $inc:1
+    muteUntil: {type: Date, default: null},                                // 禁言截止；null/已过期即未禁言
+    disposedLevel: {type: 'Number', default: 0, min: 0, max: 4},           // 当前最高处置级别 0..4
+    lastViolationAt: {type: Date, default: null},                          // 最近命中（非处置）时间
+    moderationNote: {type: String, default: ''},                           // 处置/封禁原因，≤200，无正文/PII
+    bannedAt: {type: Date, default: null},                                 // 封禁时间（level=4 写，level=0 清）
+    disposedBy: {type: ObjectId, default: null}                            // 最后处置人 _id，只从 session 取
 }, {
     collection: "user"
 });
@@ -162,6 +171,19 @@ UserDAO.prototype.updatePassword = function (callback) {
         });
         callback(err);
     });
+};
+// 风控（§5.5/§6.5）：命中累计违规（单文档 $inc/$set，无事务）。
+UserDAO.prototype.recordViolation = function (id, at, callback) {
+    UserModel.updateOne({_id: id}, {
+        $inc: {violationCount: 1}, $set: {lastViolationAt: at || new Date()}
+    }, function (err) { callback(err); });
+};
+// 四级处置幂等 $set：fields 白名单由 dispose 组装；同名值重复写无副作用。
+UserDAO.prototype.applyDisposition = function (id, fields, callback) {
+    UserModel.updateOne({_id: id}, {$set: Object.assign({modifyTime: new Date()}, fields || {})},
+        function (err, result) {
+            callback(err, err ? 0 : (result && result.matchedCount != null ? result.matchedCount : 0));
+        });
 };
 // 通用后台 DAO 方法（软删 status=2，与其余资源 status=1 不同 —— I-10）。
 require('./_adminDao').attach(UserDAO, UserModel, {softStatus: constants.USER_DELETE_STATUS});

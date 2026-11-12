@@ -19,6 +19,7 @@ function opt(name, def) {
 function has(name) { return argv.indexOf(name) >= 0; }
 var BASE = (opt('--base', 'http://127.0.0.1:3099') || '').replace(/\/+$/, '');
 var COOKIE = opt('--cookie', '');
+var USER_COOKIE = opt('--cookie-user', ''); // 普通用户(role=1) Cookie，用于 SSR 越权对照
 var ORIGIN = opt('--origin', BASE); // CSRF 同源：Origin 必须与 Host 一致
 var WRITE = has('--write');
 
@@ -27,12 +28,17 @@ function check(name, ok, detail) {
     if (ok) pass++; else { fail++; failNames.push(name); }
     console.log((ok ? '[PASS] ' : '[FAIL] ') + name + (detail ? '  ' + detail : ''));
 }
+// 跨角色未完成项（如前端模板升级）用 advisory 醒目提示，不计入 fail，避免掩盖后端真实状态。
+function advisory(name, detail) {
+    console.log('[ADVISORY] ' + name + (detail ? '  ' + detail : ''));
+}
 function keysOf(obj) { return Object.keys(obj || {}).sort().join(','); }
 function sameKeys(obj, arr) { return keysOf(obj) === arr.slice().sort().join(','); }
 
 function headers(extra) {
     var h = Object.assign({'Content-Type': 'application/x-www-form-urlencoded', 'Origin': ORIGIN}, extra || {});
-    if (COOKIE) h['Cookie'] = COOKIE;
+    // extraHeaders 显式给定 Cookie 时优先（双 role 对照用 --cookie-user 覆盖全局管理员 Cookie）。
+    if (COOKIE && !h['Cookie']) h['Cookie'] = COOKIE;
     return h;
 }
 // noCookie=true 用于越权对照：即使全局传了 --cookie，该请求也强制不带 Cookie。
@@ -117,6 +123,102 @@ function safeChecks() {
             });
         });
     }
+    return p;
+}
+
+// ---------- 本轮新增：会话脱敏 + 4 条管理员 SSR 路由（#14/#15）----------
+function ssrSessionChecks() {
+    var p = Promise.resolve(), RES = ['content', 'category', 'user', 'log'];
+    var SENS = ['password', 'passwordHash', 'openUserId', 'token', 'secret'];
+    var KEEP = ['_id', 'userName', 'realName', 'role', 'status', 'createTime', 'modifyTime', 'email', 'phone'];
+    // 内层对象：无 5 个敏感字段 + 保留 9 个必需字段
+    function pub(o) {
+        var k = keysOf(o);
+        return SENS.every(function (s) { return k.indexOf(s) < 0; }) &&
+            KEEP.every(function (s) { return k.indexOf(s) >= 0; });
+    }
+    // 1) /user/login 响应 obj 脱敏（登录仍成功，验证 bcrypt 用完整 session 对象）
+    p = p.then(function () {
+        return req('POST', '/user/login', 'userName=nodelog&password=Qa@2026').then(function (r) {
+            check('会话脱敏 /user/login obj(9留5删+登录成功)',
+                r.status === 200 && sameKeys(r.json, ['success', 'msg', 'obj']) && r.json.success === true && pub(r.json && r.json.obj),
+                'objKey=' + keysOf(r.json && r.json.obj));
+        });
+    });
+    // 2) /session 响应 user 脱敏（需管理员 Cookie）
+    if (COOKIE) p = p.then(function () {
+        return req('GET', '/session').then(function (r) {
+            check('会话脱敏 /session user(9留5删)',
+                r.status === 200 && sameKeys(r.json, ['user']) && pub(r.json && r.json.user),
+                'userKey=' + keysOf(r.json && r.json.user));
+        });
+    });
+    // 3) 4 条新 SSR：role=0→200 且渲染 tbody；未登录→302/401；role=1→非200；老 4 路由 200 回归
+    RES.forEach(function (res) {
+        var path = '/manager/' + res + '/admin';
+        p = p.then(function () {
+            return req('GET', path).then(function (r) {
+                check('SSR ' + res + ' role=0→200 且渲染 tbody', r.status === 200 && r.text.indexOf('<tbody') >= 0, 'status=' + r.status);
+                check('SSR ' + res + ' 含分页控件', r.status === 200 && (r.text.indexOf('js-pre-page') >= 0 || r.text.indexOf('admin-pager') >= 0), 'pager=' + (r.text.indexOf('js-pre-page') >= 0));
+                // 筛选控件依赖前端把 adminToolbar include 进老模板；缺失不误判为后端 FAIL。
+                advisory('SSR ' + res + ' 筛选控件', r.text.indexOf('js-admin-filter') >= 0 ? '已就位' : '待前端 include adminToolbar（后端 filters/sortBy/order/url locals 已注入）');
+            });
+        });
+        p = p.then(function () {
+            return req('GET', path, undefined, {}, true).then(function (r) {
+                check('SSR ' + res + ' 未登录→302/401', r.status === 302 || r.status === 401, 'status=' + r.status);
+            });
+        });
+        if (USER_COOKIE) p = p.then(function () {
+            return req('GET', path, undefined, {'Cookie': USER_COOKIE}).then(function (r) {
+                check('SSR ' + res + ' role=1→拒绝(非200)', r.status !== 200 && (r.status === 302 || r.status === 401 || r.status === 403),
+                    'status=' + r.status + '（共享 filter.deny 对 GET 统一 302，与 403 安全等价）');
+            });
+        });
+        p = p.then(function () {
+            return req('GET', '/manager/' + res).then(function (r) {
+                check('老路由 /manager/' + res + ' 仍 200(回归)', r.status === 200, 'status=' + r.status);
+            });
+        });
+    });
+    // 4) SSR 与 JSON 结果集一致：以分页 totalPage 对照（两者共用 buildWhere/parseListQuery/adminList）
+    if (COOKIE) RES.forEach(function (res) {
+        ['keyword=QA', 'status=0', 'sortBy=modifyTime&order=asc', 'page=2'].forEach(function (q) {
+            p = p.then(function () {
+                return Promise.all([
+                    req('GET', '/manager/' + res + '/admin?' + q),
+                    req('GET', '/manager/' + res + '/list?' + q + '&format=json')
+                ]).then(function (a) {
+                    var s = a[0], j = a[1], m = /data-total="(\d+)"/.exec(s.text || '');
+                    var st = m ? Number(m[1]) : null, jt = j.json && j.json.totalPage;
+                    var ok = s.status === 200 && j.status === 200 && j.json && ((st === jt) || (st === null && jt === 0));
+                    check('结果集 ' + res + ' SSR/JSON totalPage ?' + q, ok,
+                        'ssr=' + st + ' json=' + jt + ' ssrHttp=' + s.status + ' jsonHttp=' + j.status);
+                });
+            });
+        });
+    });
+    // 5) 空结果集对照：不存在的关键词 SSR 走“暂无数据”，JSON total=0
+    p = p.then(function () {
+        return Promise.all([
+            req('GET', '/manager/content/admin?keyword=zzzzNOTEXISTxxxx'),
+            req('GET', '/manager/content/list?keyword=zzzzNOTEXISTxxxx&format=json')
+        ]).then(function (a) {
+            var empty = (a[0].text || '').indexOf('暂无数据') >= 0;
+            check('空结果集对照 keyword=不存在', a[0].status === 200 && a[1].status === 200 && a[1].json && a[1].json.total === 0 && empty,
+                'jsonTotal=' + (a[1].json && a[1].json.total) + ' ssrEmpty=' + empty);
+        });
+    });
+    // 6) 重点：新 SSR user 页无 bcrypt 哈希；老 /manager/user SSR 仍渲染 email/phone 控件
+    p = p.then(function () {
+        return Promise.all([req('GET', '/manager/user/admin'), req('GET', '/manager/user')]).then(function (a) {
+            var n = a[0], o = a[1], hash = /\$2[aby]\$\d\d\$/.test(n.text || '');
+            check('新 SSR user 页无 bcrypt 哈希明文', n.status === 200 && !hash, 'status=' + n.status + ' bcryptHit=' + hash);
+            check('老 /manager/user SSR 仍渲染 email/phone 控件',
+                o.status === 200 && o.text.indexOf('js-email') >= 0 && o.text.indexOf('js-phone') >= 0,
+                'status=' + o.status + ' emailCtrl=' + (o.text.indexOf('js-email') >= 0) + ' phoneCtrl=' + (o.text.indexOf('js-phone') >= 0));
+        });
+    });
     return p;
 }
 
@@ -206,6 +308,7 @@ if (typeof fetch !== 'function') {
     process.exit(1);
 }
 safeChecks()
+    .then(ssrSessionChecks)
     .then(function () { return WRITE ? writeChecks() : null; })
     .then(report)
     .catch(function (e) {

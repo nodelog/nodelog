@@ -3,6 +3,24 @@ var User = require('./../models/User.js');
 var constants = require('./../models/constants.js');
 var cmsUtils = require('./cmsUtils.js');
 var kit = require('./adminKit');
+
+// 登录/会话响应的统一脱敏（SPEC-MODERATION §3.4 ADR-104，与 #14 同批加固）。
+// 从黑名单删 5 键改为【白名单 9 字段】：风控新增 7 个内部字段不会穿透到 /session 与 /user/login。
+// 白名单恰好等于 #14 声明的 9 字段；内层键集合零变化；{success,msg,obj}/{user} 顶层键零变化。
+// bcrypt.compareSync 与 restoreUser 走 session 内存里的完整对象（session.user = obj 不动），不受影响。
+var PUBLIC_USER_KEYS = ['_id', 'userName', 'realName', 'role', 'status',
+    'createTime', 'modifyTime', 'email', 'phone'];
+function publicUser(u) {
+    if (!u) return u;
+    var d = (typeof u.toObject === 'function') ? u.toObject() : Object.assign({}, u);
+    var out = {};
+    PUBLIC_USER_KEYS.forEach(function (k) {
+        if (Object.prototype.hasOwnProperty.call(d, k)) out[k] = d[k];
+    });
+    return out;
+}
+exports.publicUser = publicUser;
+
 var getCount = function (callback) {
     User.getCount(function (err, total) {
         callback(err, total);
@@ -183,6 +201,11 @@ exports.login = function (req, res) {
 //            }
             if (obj != null) {
                 if(bcrypt.compareSync(password, obj.password)){
+                    // L1 封堵（§6.2）：密码正确但账号已停用(status=1) → 拒登，不写 session。
+                    // 键集合与老失败分支一致 {success,msg,obj}，仅 obj 置 null。
+                    if (obj.status === constants.USER_UNABLE_STATUS) {
+                        return res.json({'success': false, 'msg': '账号已停用，请联系管理员', 'obj': null});
+                    }
                     success = true;
                     msg = "登录成功";
                     var session = req.session;
@@ -195,7 +218,7 @@ exports.login = function (req, res) {
             } else {
                 msg = "用户不存在";
             }
-            res.json({'success': success, 'msg': msg, 'obj': obj});
+            res.json({'success': success, 'msg': msg, 'obj': publicUser(obj)});
         });
 
     }
@@ -221,7 +244,8 @@ exports.logout = function (req, res) {
 
 exports.session = function (req, res) {
     var user = req.session.user;
-    res.json({user: user});
+    // 顶层键 {user} 保持不变，仅内层对象脱敏；未登录 user 为 null/undefined 时 publicUser 原样返回。
+    res.json({user: publicUser(user)});
 }
 
 //加密

@@ -5,6 +5,7 @@ var Content = require('./../models/Content.js');
 var User = require('./../models/User.js');
 var cmsUtils = require('./cmsUtils.js');
 var kit = require('./adminKit'); // 后台 delete/audit 统一工具（DEF-001：原缺失导致 /manager/comment/delete 500）
+var guard = require('./moderation/moderationGuard');
 var settings = require('./../settings');
 
 var mailer        = require('nodemailer');
@@ -166,61 +167,73 @@ exports.add = function (req, res) {
         msg = "邮箱格式不正确";
     } else {
         flag = true;
-        if (id == null) {//add
-            var session = req.session;
-            var obj = {
-                "comment": comment,
-                "commenter": session.user._id,
-                "content": contentId
-            };
-            Comment.save(obj, function (err) {
-                if (!err) {
-                    success = true;
-                    msg = "评论成功";
-                } else {
-                    console.log(err.message);
-                    msg = "评论失败";
-                }
-                //发送邮件
-                if(email){
-                    var detailLink = 'https://blog.jiangzi.xin/content/detail?id='+contentId+'&view=contentDetail';
-                    var _html = '<b style="color: #222222;">'+session.user.realName + '</b>:';
-                    _html += '评论了您的文章<b style="color: #2a6496;"><a href=\"'+detailLink+'\">《'+name+'》</a></b><br/>';
-                    _html += '评论内容：<b style="color: #222222;">'+comment+'</b><br/>';
-                    _html += '<b style="color: #2a6496;"><a href=\"'+detailLink+'\">点击查看详情</a></b>';
-                    var mailOptions = {
-                        from: session.site.name + ' <'+settings.email.user+'>', // 如果不加<xxx@xxx.com> 会报语法错误
-                        to: email, // list of receivers
-                        subject: session.user.realName + '评论了您的文章《'+name+'》', // Subject line
-                        html: _html
-                    };
-                    transport.sendMail(mailOptions, function(err, info){
-                        if(err){
-                            console.log(err);
-                        }else{
-                            console.log('Message sent: ' + info.response);
-                        }
-                    });
-                }
-                res.json({'success': success, 'msg': msg});
-            });
-        } else {//update
-            var obj = {
-                "id": id,
-                "comment": comment
-            };
-            Comment.update(obj, function (err) {
-                if (!err) {
-                    success = true;
-                    msg = "Edit Comment is success";
-                    console.log("success");
-                } else {
-                    console.log(err.message);
-                    msg = "Edit Comment is failure";
-                }
-                res.json({'success': success, 'msg': msg, 'id': obj.id});
-            });
-        }
+        // W3+W4（§5.3）：cleanComment + 长度/邮箱校验之后、写分支之前【一处】前置守卫，
+        // 同时覆盖新增/带 id 编辑两分支。命中即早返回：Comment.save/update 与邮件（sendMail）全不可达。
+        guard.enforce(req, {comment: comment}, 'comment', function (gErr, verdict) {
+            function reject(m) {
+                // §5.6：新增分支失败键 {success,msg}；带 id 编辑分支失败键 {success,msg,id}（带原 id）。
+                return (id == null) ? res.json({'success': false, 'msg': m})
+                                    : res.json({'success': false, 'msg': m, 'id': id});
+            }
+            if (gErr) {
+                var n = kit.normalizeDaoError(gErr, 'comment.guard');
+                return res.status(n.status).json(id == null ? {'success': false, 'msg': n.msg}
+                                                          : {'success': false, 'msg': n.msg, 'id': id});
+            }
+            if (!verdict.allowed) return reject(verdict.msg);
+
+            if (id == null) {//add
+                var session = req.session;
+                var obj = {
+                    "comment": comment,
+                    "commenter": session.user._id,
+                    "content": contentId
+                };
+                Comment.save(obj, function (err) {
+                    if (!err) {
+                        success = true;
+                        msg = "评论成功";
+                    } else {
+                        console.log(err.message);
+                        msg = "评论失败";
+                    }
+                    //发送邮件（守卫命中时本回调整体不可达 → 零邮件）
+                    if(email){
+                        var detailLink = 'https://blog.jiangzi.xin/content/detail?id='+contentId+'&view=contentDetail';
+                        var _html = '<b style="color: #222222;">'+session.user.realName + '</b>:';
+                        _html += '评论了您的文章<b style="color: #2a6496;"><a href=\"'+detailLink+'\">《'+name+'》</a></b><br/>';
+                        _html += '评论内容：<b style="color: #222222;">'+comment+'</b><br/>';
+                        _html += '<b style="color: #2a6496;"><a href=\"'+detailLink+'\">点击查看详情</a></b>';
+                        var mailOptions = {
+                            from: session.site.name + ' <'+settings.email.user+'>',
+                            to: email,
+                            subject: session.user.realName + '评论了您的文章《'+name+'》',
+                            html: _html
+                        };
+                        transport.sendMail(mailOptions, function(err, info){
+                            if(err){ console.log(err); } else { console.log('Message sent: ' + info.response); }
+                        });
+                    }
+                    res.json({'success': success, 'msg': msg});
+                });
+            } else {//update
+                var obj = {
+                    "id": id,
+                    "comment": comment
+                };
+                Comment.update(obj, function (err) {
+                    if (!err) {
+                        success = true;
+                        msg = "Edit Comment is success";
+                        console.log("success");
+                    } else {
+                        console.log(err.message);
+                        msg = "Edit Comment is failure";
+                    }
+                    res.json({'success': success, 'msg': msg, 'id': obj.id});
+                });
+            }
+        });
     }//end else
     if (!flag) {// no callback
         res.json({'success': success, 'msg': msg});

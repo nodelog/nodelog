@@ -11,6 +11,8 @@ var upload = require('./../controllers/upload');
 var ai = require('./../controllers/ai');
 var analytics = require('./../controllers/analytics');
 var rateLimit = require('./../controllers/rateLimit');
+var cfgConst = require('./../controllers/adminConfig');
+var moderation = require('./../controllers/moderation');
 var markdown = require('./../controllers/markdown');
 var openAuth = require('./../controllers/openAuth');
 var audit = require('./../controllers/audit');
@@ -76,7 +78,18 @@ var route = function (app) {
     app.get('/content/detail', content.findById);
     app.get('/content/edit', filter.authorize, content.findById);
     app.get('/content/category', content.findByCategory);
-    app.post('/content/add', filter.authorize, content.add);
+    // P0 风控（§7.2）：content/add 按用户限流（默认 3 次/60s，按 session.user._id 分桶，NAT 多用户互不干扰）。
+    app.post('/content/add', filter.authorize,
+        rateLimit.limit({
+            max: cfgConst.MODERATION_CONTENT_MAX,
+            windowMs: cfgConst.MODERATION_CONTENT_WINDOW_MS,
+            key: 'content-add',
+            keyFunction: function (req) {
+                return (req.session && req.session.user && req.session.user._id)
+                    ? String(req.session.user._id) : (req.ip || 'unknown');
+            }
+        }),
+        content.add);
     app.get('/content/addPage', function (req, res) {
         res.render("addContent", {"title": "写文章",currentMenu:"content"});
     });
@@ -185,6 +198,22 @@ var route = function (app) {
     app.get('/manager/category/admin', A, category.adminPage);
     app.get('/manager/user/admin', A, user.adminPage);
     app.get('/manager/log/admin', A, log.adminPage);
+
+    // ---- 内容风控与账号处置（SPEC-MODERATION §8.1，全部 A；公开前台接口零改动）----
+    // 敏感词库写后 controller 调 matcher.invalidate；违规记录 append-only；处置走独立幂等接口。
+    app.get('/manager/sensitive-word', A, moderation.sensitiveWordAdmin.page);
+    app.get('/manager/sensitive-word/list', A, moderation.sensitiveWordAdmin.list);
+    app.post('/manager/sensitive-word/add', A, moderation.sensitiveWordAdmin.add);
+    app.post('/manager/sensitive-word/modify', A, moderation.sensitiveWordAdmin.modify);
+    app.post('/manager/sensitive-word/delete', A, moderation.sensitiveWordAdmin.delete);
+    app.post('/manager/sensitive-word/status', A, moderation.sensitiveWordAdmin.status);
+    app.post('/manager/sensitive-word/batch', A, moderation.sensitiveWordAdmin.batch);
+    app.post('/manager/sensitive-word/import', A, moderation.sensitiveWordAdmin['import']);
+    app.get('/manager/sensitive-word/export', A, moderation.sensitiveWordAdmin['export']);
+    app.get('/manager/violation', A, moderation.violationAdmin.page);
+    app.get('/manager/violation/list', A, moderation.violationAdmin.list);
+    app.get('/manager/violation/detail', A, moderation.violationAdmin.detail);
+    app.post('/manager/moderation/user/dispose', A, moderation.dispose.apply);
 
     app.get('/error', function(req,res){res.render('error', {title: '没有找到',state: '404'});});
     // 下面的路由必须放到最后，404页面

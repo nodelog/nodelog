@@ -95,7 +95,7 @@
   <div class="admin-actions">
     <% if (bar.add) { %>
     <button type="button" class="btn btn-primary js-admin-add"
-            data-api="<%= _base %>/add" data-title="<%= bar.add.label %>"
+            data-api="<%= (bar.add && bar.add.api) || _base + '/add' %>" data-title="<%= bar.add.label %>"
             data-form="<%= JSON.stringify(bar.add.fields) %>"><svg class="nl-icon" aria-hidden="true"><use href="#i-plus"></use></svg> <%= bar.add.label %></button>
     <% } %>
     <% if (bar.io) { %>

@@ -1275,7 +1275,7 @@
           post(api, payload)
             .then(function (data) {
               save.disabled = false;
-              if (data && data.success !== false) {
+              if (data && data.success !== false && data.result !== false) {
                 NL.closeAll();
                 toast((data && data.msg) || '已保存');
                 location.reload();

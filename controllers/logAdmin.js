@@ -15,6 +15,15 @@ exports.adminList = crud.list({
     Model: Log, desc: logDesc, target: 'log', statusRange: [0, 1],
     sortWhitelist: logDesc.sortWhitelist, defaultSortBy: logDesc.defaultSortBy
 });
+// 方案D-SSR：管理员专用页面级筛选/排序（GET /manager/log/admin）。
+// 新的 crud.list SSR 实例，view 指向升级后的老模板 manager/log；
+// 原始 docs 已含 _id/name/createTime/modifyTime/status，无需 decorate。
+exports.adminPage = crud.list({
+    Model: Log, desc: logDesc, target: 'log', statusRange: [0, 1],
+    sortWhitelist: logDesc.sortWhitelist, defaultSortBy: logDesc.defaultSortBy,
+    view: 'manager/log', urlPrefix: '/manager/log/admin',
+    title: '公告管理', currentMenu: 'log'
+});
 function finish(req, res, metaObj, body) {
     kit.audit(req, metaObj, function () { res.json(body); });
 }

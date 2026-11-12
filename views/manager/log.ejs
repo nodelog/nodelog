@@ -3,6 +3,75 @@
     <li><a href="/manager">后台首页</a></li>
     <li class="active">公告管理</li>
 </ol>
+<% if (typeof filters !== 'undefined') { %>
+<% /* 新 /admin SSR 路由；老路由无 filters，保持下方 legacy UI（含 /manager/log/addPage 发布公告入口），role=1 零回归。 */ %>
+<% var safeHref = function (u) { u = String(u == null ? '' : u).trim(); return (/^https?:\/\//i.test(u) || /^\/(?!\/)/.test(u)) ? u : '#'; }; %>
+<% /* content 在 Log schema 为 Mixed；新数据是 HTML 字符串，旧数据可能是对象。仅字符串回填，避免 [object Object] 覆盖正文。 */ %>
+<% var _lf = [
+     {n:'name', t:'标题', k:'text', req:1, max:200},
+     {n:'content', t:'正文（支持 HTML；请确认已保留原正文，留空保存会清空）', k:'textarea', req:1}
+   ]; %>
+<% var _lef = _lf.concat([{n:'oldName', t:'原标题（勿改，用于判重）', k:'text', max:200}]); %>
+<h3>公告管理</h3>
+<div class="admin-list">
+  <%- include('../common/adminToolbar', { bar: {
+      res: 'log', base: '/manager/log/admin',
+      keyword: true,
+      status: [{v:'0',t:'正常'},{v:'1',t:'禁用'}],
+      sort: [{v:'createTime',t:'发布时间'},{v:'modifyTime',t:'修改时间'},{v:'name',t:'标题'}],
+      batch: true, batchStatuses: [{v:'0',t:'正常'},{v:'1',t:'禁用'}],
+      io: true,
+      add: { label: '发布公告', api: '/manager/log/add', editApi: '/manager/log/add', fields: _lf }
+  } }) %>
+  <div class="bg-white jumbotron clear-margin">
+    <% var _docs = Array.isArray(docs) ? docs : []; %>
+    <% if (_docs.length > 0) { %>
+    <table class="table table-hover">
+      <thead>
+      <tr>
+        <th class="admin-col-check" aria-label="选择"></th>
+        <th>编号</th>
+        <th>标题</th>
+        <th>发布时间</th>
+        <th>修改时间</th>
+        <th class="admin-col-status">状态</th>
+        <th class="admin-col-actions">操作</th>
+      </tr>
+      </thead>
+      <tbody>
+      <% _docs.forEach(function (d, i) { %>
+        <% var _id = String(d._id == null ? '' : d._id); %>
+        <% var _nm = String(d.name == null ? '' : d.name); %>
+        <% var _st = (d.status === 1 || String(d.status) === '1') ? '1' : '0'; %>
+        <% var _stTxt = _st === '1' ? '禁用' : '正常'; %>
+        <% var _href = safeHref('/manager/log/detail?id=' + _id); %>
+        <% var _ct = (typeof d.content === 'string') ? d.content : ''; %>
+        <tr data-id="<%= _id %>" data-name="<%= _nm %>" data-content="<%= _ct %>" data-oldName="<%= _nm %>" data-status="<%= _st %>">
+          <td><input type="checkbox" class="js-batch-check" value="<%= _id %>" aria-label="选择 <%= _nm %>"></td>
+          <td><%= i + 1 %></td>
+          <td><a href="<%= _href %>"><%= _nm %></a></td>
+          <td><%= format(d.createTime) %></td>
+          <td><%= format(d.modifyTime) %></td>
+          <td><label class="admin-status-toggle">
+              <input type="checkbox" class="js-admin-status" data-id="<%= _id %>" data-status="<%= _st %>" <%= _st === '0' ? 'checked' : '' %>>
+              <span class="js-status-label"><%= _stTxt %></span>
+            </label></td>
+          <td class="admin-col-actions"><span class="admin-row-actions">
+              <a href="<%= _href %>">详情</a>
+              <button type="button" class="js-admin-edit" data-id="<%= _id %>" data-title="公告" data-form="<%= JSON.stringify(_lef) %>">编辑</button>
+              <button type="button" class="js-admin-delete" data-id="<%= _id %>">删除</button>
+            </span></td>
+        </tr>
+      <% }); %>
+      </tbody>
+    </table>
+    <%- include('../common/adminPager', { url: url, page: page, totalPage: totalPage }) %>
+    <% } else { %>
+    <%- include('../common/state', { kind:'empty', size:'inline', title:(locals.filters && Object.keys(locals.filters).length > 0) ? '没有符合条件的公告' : '暂无公告', text:(locals.filters && Object.keys(locals.filters).length > 0) ? '试试调整筛选条件或重置' : '' }) %>
+    <% } %>
+  </div>
+</div>
+<% } else { %>
 <h3>公告管理
     <a href="/manager/log/addPage" class="btn btn-primary pull-right">发布公告</a>
 </h3>
@@ -34,5 +103,6 @@
 <%- include('../common/pager') %>
 <% }else{ %>
 <div class="empty">暂无数据</div>
+<% } %>
 <% } %>
 <%- include('footer') %>

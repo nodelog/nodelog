@@ -1,0 +1,117 @@
+<%- include('header') %>
+<ol class="breadcrumb">
+    <li><a href="/manager">后台首页</a></li>
+    <li class="active">违规记录</li>
+</ol>
+<%
+  // append-only：无新增/编辑/删除/批量/导入导出。仅筛选 + 分页 + 四级处置入口。
+  // 共享 adminToolbar 无 source/disposition 字段且属禁改区，故本页自写等价工具栏，
+  // 复用 admin-filter-* / admin-row-actions 等既有 CSS 类，保持与其它后台页同构。
+  var _LV = {0:'解除', 1:'警告', 2:'禁言', 3:'停用', 4:'封禁'};
+  var _SRC = {content:'文章', comment:'评论'};
+  var _FIELD = {name:'标题', content:'正文', excerpt:'摘要', tags:'标签',
+    seoTitle:'SEO标题', seoKeywords:'SEO关键词', seoDescription:'SEO描述', comment:'评论'};
+  var _docs = Array.isArray(docs) ? docs : [];
+  var _q = function (k) { return locals[k] == null ? '' : String(locals[k]); };
+  function sel(name, list, cur, blank) {
+    var h = '<select class="form-control" name="' + name + '" id="v-' + name + '">';
+    if (blank) h += '<option value="">' + blank + '</option>';
+    (list || []).forEach(function (o) {
+      h += '<option value="' + o.v + '"' + (String(cur) === String(o.v) ? ' selected' : '') + '>' + o.t + '</option>';
+    });
+    return h + '</select>';
+  }
+  // 本页不放详情链接：/manager/violation/detail 是 JSON 接口而非 HTML 页，硬塞会形成死链。
+%>
+<h3>违规记录</h3>
+<div class="admin-list">
+  <div class="admin-toolbar" data-res="violation">
+    <form class="admin-filter-form js-admin-filter" method="get" action="/manager/violation">
+      <div class="admin-filter-item">
+        <label for="v-keyword">命中词</label>
+        <input type="search" id="v-keyword" name="keyword" class="form-control" maxlength="100" value="<%= _q('keyword') %>" placeholder="按命中的敏感词筛选">
+      </div>
+      <div class="admin-filter-item">
+        <label for="v-source">来源</label>
+        <%- sel('source', [{v:'content',t:'文章'},{v:'comment',t:'评论'}], _q('source'), '全部来源') %>
+      </div>
+      <div class="admin-filter-item">
+        <label for="v-disposition">处置</label>
+        <%- sel('disposition', [{v:'0',t:'解除'},{v:'1',t:'警告'},{v:'2',t:'禁言'},{v:'3',t:'停用'},{v:'4',t:'封禁'}], _q('disposition'), '全部级别') %>
+      </div>
+      <div class="admin-filter-item">
+        <label for="v-from">起始</label>
+        <input type="date" id="v-from" name="from" class="form-control" value="<%= _q('from') %>">
+      </div>
+      <div class="admin-filter-item">
+        <label for="v-to">截止</label>
+        <input type="date" id="v-to" name="to" class="form-control" value="<%= _q('to') %>">
+      </div>
+      <div class="admin-filter-item">
+        <label for="v-sortBy">排序</label>
+        <%- sel('sortBy', [{v:'time',t:'命中时间'},{v:'user',t:'用户'},{v:'source',t:'来源'},{v:'field',t:'字段'}], _q('sortBy') || 'time') %>
+      </div>
+      <div class="admin-filter-item admin-filter-item--order">
+        <label for="v-order">方向</label>
+        <%- sel('order', [{v:'desc',t:'降序'},{v:'asc',t:'升序'}], _q('order') || 'desc') %>
+      </div>
+      <div class="admin-filter-item admin-filter-item--actions">
+        <button type="submit" class="btn btn-primary"><svg class="nl-icon" aria-hidden="true"><use href="#i-search"></use></svg> 筛选</button>
+        <a class="btn" href="/manager/violation">重置</a>
+      </div>
+    </form>
+  </div>
+  <div class="bg-white jumbotron clear-margin">
+    <% if (_docs.length > 0) { %>
+    <table class="table table-hover">
+      <thead>
+      <tr>
+        <th class="admin-col-opt">编号</th>
+        <th>用户</th>
+        <th class="admin-col-opt">来源</th>
+        <th class="admin-col-opt">命中字段</th>
+        <th>命中词</th>
+        <th class="admin-col-opt">命中时间</th>
+        <th class="admin-col-status">当前处置</th>
+        <th class="admin-col-actions">操作</th>
+      </tr>
+      </thead>
+      <tbody>
+      <% _docs.forEach(function (d, i) { %>
+        <% var _id = String(d._id == null ? '' : d._id); %>
+        <% var _un = d.userName == null ? '' : String(d.userName); %>
+        <% var _u = d.user == null ? '' : String(d.user); %>
+        <% var _src = String(d.source == null ? '' : d.source); %>
+        <% var _field = String(d.field == null ? '' : d.field); %>
+        <% var _word = d.hitWord == null ? '' : String(d.hitWord); %>
+        <% var _last = (Array.isArray(d.disposition) && d.disposition.length) ? d.disposition[d.disposition.length - 1] : null; %>
+        <% var _cur = (_last && _last.level != null) ? Number(_last.level) : -1; %>
+        <tr data-id="<%= _id %>">
+          <td class="admin-col-opt"><%= i + 1 %></td>
+          <td><%= _un || (_u ? _u.slice(0, 8) : '—') %></td>
+          <td class="admin-col-opt"><%= _SRC[_src] || _src || '—' %></td>
+          <td class="admin-col-opt"><%= _FIELD[_field] || _field || '—' %></td>
+          <td><%= _word %></td>
+          <td class="admin-col-opt"><%= format(d.time) %></td>
+          <td><span class="js-status-label"><%= _cur < 0 ? '未处置' : (_LV[_cur] || '未处置') %></span></td>
+          <td class="admin-col-actions"><span class="admin-row-actions">
+            <button type="button" class="js-dispose-btn" data-id="<%= _id %>" data-user="<%= _u %>" data-level="1" aria-label="对该记录执行警告">警告</button>
+            <button type="button" class="js-dispose-btn" data-id="<%= _id %>" data-user="<%= _u %>" data-level="2" aria-label="对该记录执行禁言">禁言</button>
+            <button type="button" class="js-dispose-btn" data-id="<%= _id %>" data-user="<%= _u %>" data-level="3" aria-label="对该记录执行停用">停用</button>
+            <button type="button" class="js-dispose-btn" data-id="<%= _id %>" data-user="<%= _u %>" data-level="4" aria-label="对该记录执行封禁">封禁</button>
+            <% if (_cur >= 0) { %>
+            <button type="button" class="js-dispose-btn" data-id="<%= _id %>" data-user="<%= _u %>" data-level="0" aria-label="解除该记录的处置">解除</button>
+            <% } %>
+          </span></td>
+        </tr>
+      <% }); %>
+      </tbody>
+    </table>
+    <%- include('../common/adminPager', { url: url, page: page, totalPage: totalPage, extraParams: {source: _q('source'), disposition: _q('disposition'), field: _q('field'), user: _q('user')} }) %>
+    <% } else { %>
+    <%- include('../common/state', { kind:'empty', size:'inline', title:(_q('keyword')||_q('source')||_q('disposition')||_q('from')||_q('to')) ? '没有符合条件的违规记录' : '暂无违规记录', text:(_q('keyword')||_q('source')||_q('disposition')||_q('from')||_q('to')) ? '试试调整筛选条件或重置' : '命中敏感词的发布会被自动拦截并在此留痕' }) %>
+    <% } %>
+  </div>
+</div>
+<script defer src="/js/moderation.js"></script>
+<%- include('footer') %>

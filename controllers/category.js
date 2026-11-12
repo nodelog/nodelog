@@ -13,6 +13,15 @@ exports.adminList = crud.list({
     Model: Category, desc: categoryDesc, target: 'category', statusRange: [0, 1],
     sortWhitelist: categoryDesc.sortWhitelist, defaultSortBy: categoryDesc.defaultSortBy
 });
+// 方案D-SSR：管理员专用页面级筛选/排序（GET /manager/category/admin）。
+// 新的 crud.list SSR 实例，view 指向升级后的老模板 manager/category；
+// 原始 docs 已含 _id/name/createTime/modifyTime/status，无需 decorate。
+exports.adminPage = crud.list({
+    Model: Category, desc: categoryDesc, target: 'category', statusRange: [0, 1],
+    sortWhitelist: categoryDesc.sortWhitelist, defaultSortBy: categoryDesc.defaultSortBy,
+    view: 'manager/category', urlPrefix: '/manager/category/admin',
+    title: '分类管理', currentMenu: 'category'
+});
 
 function finish(req, res, meta, body) {
     kit.audit(req, meta, function () { res.json(body); });

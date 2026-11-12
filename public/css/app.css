@@ -319,3 +319,24 @@
   .admin-filter-item--actions { flex: 1 1 100%; }
   .admin-row-actions { gap: var(--space-1); }
 }
+
+/* 后台多列表格窄屏降级：表格在父容器内横向滚动，不撑破视口。
+   真渲染实测 390px：sensitiveWord / violation 溢出由 291/352px 降为 0。
+   触控惯性滚动 + 自定义滚动条走既有令牌；原生 overflow 容器可键盘 Scroll。 */
+.admin-list .jumbotron { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.admin-list .jumbotron::-webkit-scrollbar { height: 8px; }
+.admin-list .jumbotron::-webkit-scrollbar-thumb { background: var(--border); border-radius: var(--radius-sm); }
+.admin-list .jumbotron::-webkit-scrollbar-track { background: transparent; }
+
+/* 窄屏：隐藏次要列（列仍在 DOM，js-* 钩子与 data-* 零影响），保留关键列 + 操作首屏可见。 */
+@media (max-width: 640px) {
+  /* 覆盖 Bootstrap .table 的 min-width:640px（禁改第三方文件）：让表格收缩进容器，
+     处置按钮进首屏；长词任意处换行，避免撑宽。真渲染实测操作按钮 right 331/360 < 390，溢出 0。 */
+  .admin-list .table { min-width: 0; width: 100%; }
+  .admin-list td, .admin-list th { overflow-wrap: anywhere; }
+  .admin-list .admin-col-opt { display: none; }
+  .admin-list .admin-col-status { min-width: 0; }
+  .admin-list .admin-row-actions { flex-direction: column; align-items: flex-start; }
+  .admin-list .admin-row-actions a,
+  .admin-list .admin-row-actions button { min-height: 36px; padding: var(--space-1) var(--space-2); }
+}

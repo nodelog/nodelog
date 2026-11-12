@@ -1,5 +1,5 @@
-// Comment 后台审核能力（SPEC §4.6，全部 A）。从 comment.js 拆出以满足单文件 ≤300 行门禁。
-// 字段错位修复已在 comment.js:findById 完成；本文件负责列表/详情/编辑/状态/批量/导入/导出与审计。
+// Comment 后台审核（SPEC §4.6，全部 A）；从 comment.js 拆出满足单文件 ≤300 行门禁。
+// 本文件负责列表/详情/编辑/状态/批量/导入/导出与审计。
 var async = require('async');
 var Comment = require('./../models/Comment.js');
 var User = require('./../models/User.js');
@@ -7,6 +7,7 @@ var Content = require('./../models/Content.js');
 var kit = require('./adminKit');
 var crud = require('./adminCrud');
 var io = require('./adminIo');
+var guard = require('./moderation/moderationGuard');
 
 var commentDesc = {
     soft: {status: 0}, search: ['comment', 'userName'], dateField: 'createTime',
@@ -91,12 +92,20 @@ exports.modify = function (req, res) {
     if (!chk.ok) return res.status(400).json({success: false, msg: '参数错误'});
     var bad = validate(text);
     if (bad) return done({success: false, msg: bad}, false);
-    Comment.update({id: chk.id, comment: text}, function (err) {
-        if (err) {
-            var n = kit.normalizeDaoError(err, 'comment.modify');
+    // W5c（§5.4）：后台评论编辑直连 Comment.update，validate 之后挂守卫。命中零副作用、零成功审计。
+    guard.enforce(req, {comment: text}, 'comment', function (gErr, verdict) {
+        if (gErr) {
+            var n = kit.normalizeDaoError(gErr, 'comment.modify.guard');
             return done({success: false, msg: n.status === 500 ? '修改失败' : n.msg}, false);
         }
-        done({success: true, msg: '修改成功', id: chk.id}, true);
+        if (!verdict.allowed) return done({success: false, msg: verdict.msg}, false);
+        Comment.update({id: chk.id, comment: text}, function (err) {
+            if (err) {
+                var n2 = kit.normalizeDaoError(err, 'comment.modify');
+                return done({success: false, msg: n2.status === 500 ? '修改失败' : n2.msg}, false);
+            }
+            done({success: true, msg: '修改成功', id: chk.id}, true);
+        });
     });
 };
 exports.status = crud.status({
@@ -114,14 +123,24 @@ exports['import'] = io.import({
         if (text.length > 2000) throw new Error('评论内容过长');
         var content = kit.csv.sanitize(cells[2]);
         if (content && !kit.isObjectId(content)) throw new Error('文章 id 非法');
-        return {__row: ctx.row, comment: text, userName: kit.csv.sanitize(cells[1]),
+        return {__row: ctx.row, __req: ctx.req, comment: text, userName: kit.csv.sanitize(cells[1]),
             content: content || null, status: kit.intInRange(cells[3], 0, 1, 0),
             createTime: new Date(), modifyTime: new Date()};
     },
     insertDoc: function (doc, cb) {
-        Comment.save(doc, function (err, saved) {
-            if (err) return cb(err);
-            cb(null, saved && saved._id ? String(saved._id) : '');
+        // W5b（§5.4）：直连 Comment.save 绕过 add，单独挂守卫。命中行进 results（ok:false），不落库。
+        var req = doc.__req; delete doc.__req; req._moderationRow = doc.__row; // CSV 命中审计 detail 带 row=N（§5.4）
+        guard.enforce(req, {comment: doc.comment}, 'comment', function (gErr, verdict) {
+            if (gErr) return cb(gErr);
+            if (!verdict.allowed) {
+                var e = new Error('第 ' + doc.__row + ' 行包含违规信息');
+                e.userMsg = e.message;
+                return cb(e);
+            }
+            Comment.save(doc, function (err, saved) {
+                if (err) return cb(err);
+                cb(null, saved && saved._id ? String(saved._id) : '');
+            });
         });
     }
 });

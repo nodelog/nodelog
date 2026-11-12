@@ -3,6 +3,90 @@
     <li><a href="/manager">后台首页</a></li>
     <li class="active">用户管理</li>
 </ol>
+<% if (typeof filters !== 'undefined') { %>
+<% /* 新 /admin SSR 路由：crud.list 注入 filters/sortBy/order；老路由无 filters，走下方原样 legacy UI，role=1 零回归。 */ %>
+<% /* 新 SSR decorate 白名单 _id/userName/realName/role/status/createTime/modifyTime/email/phone，绝不含 password。 */ %>
+<% /* status：0 正常 / 1 禁用；2 为软删（desc.soft: status<2 已过滤），只能走 delete；batchStatuses 仅 0/1。 */ %>
+<% var safeHref = function (u) { u = String(u == null ? '' : u).trim(); return (/^https?:\/\//i.test(u) || /^\/(?!\/)/.test(u)) ? u : '#'; }; %>
+<% var _uf = [
+     {n:'userName', t:'用户名', k:'text', req:1, max:100},
+     {n:'realName', t:'姓名', k:'text', max:100},
+     {n:'email', t:'邮箱', k:'text', max:50},
+     {n:'phone', t:'手机号', k:'text', max:20},
+     {n:'password', t:'新密码（新增必填 8-128 位 / 编辑留空不修改）', k:'text', max:128},
+     {n:'role', t:'角色', k:'select', o:[{v:'0',t:'管理员'},{v:'1',t:'普通用户'}], d:'1'},
+     {n:'status', t:'状态', k:'select', o:[{v:'0',t:'正常'},{v:'1',t:'禁用'}], d:'0'}
+   ]; %>
+<h3>用户管理</h3>
+<div class="admin-list">
+  <%- include('../common/adminToolbar', { bar: {
+      res: 'user', base: '/manager/user/admin',
+      keyword: true,
+      status: [{v:'0',t:'正常'},{v:'1',t:'禁用'}],
+      sort: [{v:'createTime',t:'注册时间'},{v:'modifyTime',t:'修改时间'},{v:'userName',t:'用户名'}],
+      batch: true, batchStatuses: [{v:'0',t:'正常'},{v:'1',t:'禁用'}],
+      io: true,
+      add: { label: '新增用户', api: '/manager/user/add', editApi: '/manager/user/update', fields: _uf }
+  } }) %>
+  <div class="bg-white jumbotron clear-margin">
+    <% var _docs = Array.isArray(docs) ? docs : []; %>
+    <% if (_docs.length > 0) { %>
+    <table class="table table-hover">
+      <thead>
+      <tr>
+        <th class="admin-col-check" aria-label="选择"></th>
+        <th>编号</th>
+        <th>用户名</th>
+        <th>姓名</th>
+        <th>邮箱</th>
+        <th>手机号</th>
+        <th>注册时间</th>
+        <th>修改时间</th>
+        <th class="admin-col-status">状态</th>
+        <th>角色</th>
+        <th class="admin-col-actions">操作</th>
+      </tr>
+      </thead>
+      <tbody>
+      <% _docs.forEach(function (d, i) { %>
+        <% var _id = String(d._id == null ? '' : d._id); %>
+        <% var _nm = String(d.userName == null ? '' : d.userName); %>
+        <% var _rn = String(d.realName || d.userName || ''); %>
+        <% var _st = (d.status === 1 || String(d.status) === '1') ? '1' : '0'; %>
+        <% var _stTxt = _st === '1' ? '禁用' : '正常'; %>
+        <% var _role = (d.role === 0 || String(d.role) === '0') ? '0' : '1'; %>
+        <% var _roleTxt = _role === '0' ? '管理员' : '普通用户'; %>
+        <% var _href = safeHref('/manager/user/detail?id=' + _id); %>
+        <tr data-id="<%= _id %>" data-userName="<%= _nm %>" data-realName="<%= _rn %>" data-email="<%= d.email || '' %>" data-phone="<%= d.phone || '' %>" data-role="<%= _role %>" data-status="<%= _st %>">
+          <td><input type="checkbox" class="js-batch-check" value="<%= _id %>" aria-label="选择 <%= _nm %>"></td>
+          <td><%= i + 1 %></td>
+          <td><a href="<%= _href %>"><%= _nm %></a></td>
+          <td><%= _rn %></td>
+          <td><%= d.email || '未设置' %></td>
+          <td><%= d.phone || '未设置' %></td>
+          <td><%= format(d.createTime) %></td>
+          <td><%= format(d.modifyTime) %></td>
+          <td><label class="admin-status-toggle">
+              <input type="checkbox" class="js-admin-status" data-id="<%= _id %>" data-status="<%= _st %>" <%= _st === '0' ? 'checked' : '' %>>
+              <span class="js-status-label"><%= _stTxt %></span>
+            </label></td>
+          <td><%= _roleTxt %></td>
+          <td class="admin-col-actions"><span class="admin-row-actions">
+              <a href="<%= _href %>">详情</a>
+              <button type="button" class="js-admin-edit" data-id="<%= _id %>" data-title="用户">编辑</button>
+              <button type="button" class="js-admin-delete" data-id="<%= _id %>">删除</button>
+            </span></td>
+        </tr>
+      <% }); %>
+      </tbody>
+    </table>
+    <%- include('../common/adminPager', { url: url, page: page, totalPage: totalPage }) %>
+    <% } else { %>
+    <%- include('../common/state', { kind:'empty', size:'inline', title:(locals.filters && Object.keys(locals.filters).length > 0) ? '没有符合条件的用户' : '暂无用户', text:(locals.filters && Object.keys(locals.filters).length > 0) ? '试试调整筛选条件或重置' : '' }) %>
+    <% } %>
+  </div>
+</div>
+<% } else { %>
 <h3>用户管理</h3>
 <table class="table table-hover">
     <thead>
@@ -108,4 +192,5 @@
         <div class="empty">暂无数据</div>
     <%}%>
 <%}%>
+<% } %>
 <%- include('footer') %>

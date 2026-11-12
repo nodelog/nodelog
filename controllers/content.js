@@ -8,6 +8,7 @@ var Category = require('./../models/Category.js');
 var cmsUtils = require('./cmsUtils.js');
 var Tag = require('./../models/Tag.js');
 var kit = require('./adminKit');
+var guard = require('./moderation/moderationGuard');
 
 function buildFields(req) {
     var name = (req.body.name || '').trim();
@@ -108,6 +109,8 @@ var findByName = function (name, callback) {
 
 // add（/content/add 新增 + 带 id 编辑兼容分支不可移除；/manager/content/modify 复用本 handler）
 // 越权点 2：调用写操作【之前】早拒绝，越权零副作用；DAO 侧 update 再带 author 条件（L3）。
+// W1+W2（§5.2）：校验之后、findByName 之前插【一处】风控前置守卫，同时覆盖新增/带 id 编辑两分支。
+// 命中即早返回，重名检查/归属早拒绝/Content.save/update/Tag 重算/成功审计全不可达（§5.5 零副作用）。
 exports.add = function (req, res) {
     var id = req.body.id;
     var oldName = req.body.oldName;
@@ -125,52 +128,66 @@ exports.add = function (req, res) {
     if (f.content === "") return finishBody({success: false, msg: "内容不能为空"}, false);
     if (isModifyRoute && !kit.requireId(id).ok) return finishBody({success: false, msg: "参数错误"}, false);
 
-    findByName(f.name, function (err, obj) {
-        if (id == null) {//add
-            if (obj !== null) return finishBody({success: false, msg: "文章已经存在"}, false);
-            f.author = req.session.user._id;
-            Content.save(f, function (err, saved) {
-                if (err) {
-                    console.error('[content.add] save failed: ' + err.message);
-                    return finishBody({success: false, msg: "发表文章失败"}, false);
-                }
-                reconcileTags([], f.tags, 'add', function () {
-                    finishBody({success: true, msg: "发表文章成功"}, true, saved && saved._id);
-                });
-            });
-        } else {//update（兼容分支不可移除）
-            var chk = kit.requireId(id);
-            if (!chk.ok) return finishBody({success: false, msg: "参数错误"}, false);
-            if (obj !== null && obj.name != oldName) return finishBody({success: false, msg: "文章已经存在"}, false);
-            var current = req.session.user;
-            var isAdmin = current && current.role === 0;
-            // L2 早拒绝：先按 id 取正文做归属比对（管理员豁免，D6），零副作用。
-            Content.findById(id, function (err2, doc) {
-                if (err2 || !doc) return finishBody({success: false, msg: "文章不存在"}, false);
-                if (!isAdmin && String(doc.author) !== String(current._id)) {
-                    return finishBody({success: false, msg: "无权编辑他人文章"}, false);
-                }
-                var oldTags = doc.tags || [];
-                f.id = id;
-                meta.action = 'update';
-                // D6：管理员改 author 记审计（只记字段名，不记归属值）
-                if (isAdmin && req.body.author && kit.isObjectId(req.body.author) &&
-                    String(req.body.author) !== String(doc.author)) {
-                    f.author = req.body.author;
-                    meta.detail = 'changed:name,content,tags,author';
-                }
-                Content.update(f, current, function (err3) {
-                    if (err3) {
-                        console.error('[content.add] update failed: ' + err3.message);
-                        meta.detail = 'changed:none';
-                        return finishBody({success: false, msg: "编辑文章失败"}, false, id);
+    // 风控字段：键顺序 = 首个命中字段的报告顺序（§4.3）；tags 数组逐项匹配。
+    var modFields = {
+        name: f.name, content: f.content, excerpt: f.excerpt, tags: f.tags,
+        seoTitle: f.seo.title, seoKeywords: f.seo.keywords, seoDescription: f.seo.description
+    };
+    guard.enforce(req, modFields, 'content', function (gErr, verdict) {
+        // 账号状态守卫 DB 错误 → 归一化 500（§6.2 不静默放行）；命中/停用/禁言 → 老失败键 {success,msg}。
+        if (gErr) {
+            var n = kit.normalizeDaoError(gErr, 'content.guard');
+            return res.status(n.status).json({success: false, msg: n.msg});
+        }
+        if (!verdict.allowed) return res.json({success: false, msg: verdict.msg});
+
+        findByName(f.name, function (err, obj) {
+            if (id == null) {//add
+                if (obj !== null) return finishBody({success: false, msg: "文章已经存在"}, false);
+                f.author = req.session.user._id;
+                Content.save(f, function (err, saved) {
+                    if (err) {
+                        console.error('[content.add] save failed: ' + err.message);
+                        return finishBody({success: false, msg: "发表文章失败"}, false);
                     }
-                    reconcileTags(oldTags, f.tags, 'edit', function () {
-                        finishBody({success: true, msg: "编辑文章成功", id: id}, true, id);
+                    reconcileTags([], f.tags, 'add', function () {
+                        finishBody({success: true, msg: "发表文章成功"}, true, saved && saved._id);
                     });
                 });
-            });
-        }
+            } else {//update（兼容分支不可移除）
+                var chk = kit.requireId(id);
+                if (!chk.ok) return finishBody({success: false, msg: "参数错误"}, false);
+                if (obj !== null && obj.name != oldName) return finishBody({success: false, msg: "文章已经存在"}, false);
+                var current = req.session.user;
+                var isAdmin = current && current.role === 0;
+                // L2 早拒绝：先按 id 取正文做归属比对（管理员豁免，D6），零副作用。
+                Content.findById(id, function (err2, doc) {
+                    if (err2 || !doc) return finishBody({success: false, msg: "文章不存在"}, false);
+                    if (!isAdmin && String(doc.author) !== String(current._id)) {
+                        return finishBody({success: false, msg: "无权编辑他人文章"}, false);
+                    }
+                    var oldTags = doc.tags || [];
+                    f.id = id;
+                    meta.action = 'update';
+                    // D6：管理员改 author 记审计（只记字段名，不记归属值）
+                    if (isAdmin && req.body.author && kit.isObjectId(req.body.author) &&
+                        String(req.body.author) !== String(doc.author)) {
+                        f.author = req.body.author;
+                        meta.detail = 'changed:name,content,tags,author';
+                    }
+                    Content.update(f, current, function (err3) {
+                        if (err3) {
+                            console.error('[content.add] update failed: ' + err3.message);
+                            meta.detail = 'changed:none';
+                            return finishBody({success: false, msg: "编辑文章失败"}, false, id);
+                        }
+                        reconcileTags(oldTags, f.tags, 'edit', function () {
+                            finishBody({success: true, msg: "编辑文章成功", id: id}, true, id);
+                        });
+                    });
+                });
+            }
+        });
     });
 };
 // 历史按名称重命名接口（无路由挂载）：保留导出，改用新 DAO 签名避免 TypeError。
