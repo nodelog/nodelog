@@ -1,6 +1,6 @@
 /**
- * 新功能公告的「唯一生成逻辑」：服务端 API 与本地 CLI 共用，保证同一 commit
- * 在任何触发通道（git hook / CI / 手工补发）下生成的标题与正文完全一致。
+ * 站点更新公告（新功能 / 优化升级）的「唯一生成逻辑」：服务端 API 与本地 CLI 共用，
+ * 保证同一 commit 在任何触发通道（git hook / CI / 手工补发）下生成的标题与正文完全一致。
  *
  * 纯函数模块：不 require settings / mongoose / express，便于单测。
  * 安全边界在服务端：所有来自 commit message 的文本一律转义后才拼进 HTML 正文，
@@ -15,6 +15,12 @@ var RECORD = '\x1e';
 var FEAT_RE = /^[@\s]*(?:feat|feature)\s*(?:\(([^)]*)\))?\s*[:：]\s*(.+)$/i;
 // 中文写法：新增 / 新功能 / 上线 开头
 var CN_FEAT_RE = /^[@\s]*(?:新增|新功能|上线)\s*[:：]?\s*(.+)$/;
+// 优化类：重构 / 样式与体验升级 / 性能 / 明确的 optimize/ux 前缀
+var OPT_RE = /^[@\s]*(?:refactor|style|perf|optimize|improvement|ux)\s*(?:\(([^)]*)\))?\s*[:：]\s*(.+)$/i;
+// 中文优化关键词（不含单独的「调整」，避免把「调整代码格式」这类纯整理当公告）
+var CN_OPT_RE = /优化|改进|升级|增强|精致化|重构|提升|简化|自适应|美化/;
+// 明确排除的提交类型：缺陷修复、依赖/构建杂务、文档、文案、测试、合并
+var EXCLUDE_RE = /^[@\s]*(?:fix|hotfix|chore|docs|doc|test|copy|ci|build|revert|merge|release)\s*(?:\([^)]*\))?\s*[:：]/i;
 
 function limit(s, n) {
     return String(s == null ? '' : s).slice(0, n);
@@ -30,22 +36,42 @@ function esc(s) {
 }
 
 /**
- * 判断一条 commit subject 是否属于「新功能」。
+ * 给提交分类：feature（新功能）/ optimization（优化升级）/ null（不发公告）。
+ * 判定顺序固定：新功能 → 明确排除 → 英文优化前缀 → 中文优化关键词 → 自定义扩展。
+ * feat 条目生成的标题与旧版完全一致（【新功能…】·短hash），保证历史 CSV 补发不重复。
  * @param {string} subject
  * @param {RegExp} [extra] 可选的自定义扩展规则（--pattern）
- * @returns {{scope:string, text:string}|null}
+ * @returns {{kind:string, scope:string, text:string}|null}
  */
-function featureOf(subject, extra) {
+function classify(subject, extra) {
     var s = String(subject == null ? '' : subject).trim();
     var m = FEAT_RE.exec(s);
-    if (m) return { scope: limit(m[1] || '', 30), text: limit(m[2], 200).trim() };
+    if (m) return { kind: 'feature', scope: limit(m[1] || '', 30), text: limit(m[2], 200).trim() };
     m = CN_FEAT_RE.exec(s);
-    if (m) return { scope: '', text: limit(m[1], 200).trim() };
+    if (m) return { kind: 'feature', scope: '', text: limit(m[1], 200).trim() };
+    if (EXCLUDE_RE.test(s)) return null;
+    m = OPT_RE.exec(s);
+    if (m) return { kind: 'optimization', scope: limit(m[1] || '', 30), text: limit(m[2], 200).trim() };
+    if (CN_OPT_RE.test(s)) return { kind: 'optimization', scope: '', text: limit(s, 200).trim() };
     if (extra instanceof RegExp) {
         extra.lastIndex = 0;
-        if (extra.test(s)) return { scope: '', text: limit(s, 200).trim() };
+        if (extra.test(s)) return { kind: 'feature', scope: '', text: limit(s, 200).trim() };
     }
     return null;
+}
+
+/** 兼容旧调用：只问「是不是新功能」。 */
+function featureOf(subject, extra) {
+    var c = classify(subject, extra);
+    return (c && c.kind === 'feature') ? { scope: c.scope, text: c.text } : null;
+}
+
+function labelOf(kind) {
+    return kind === 'optimization' ? '优化升级' : '新功能';
+}
+
+function leadOf(kind) {
+    return kind === 'optimization' ? '站点完成以下优化升级：' : '站点已上线以下新功能：';
 }
 
 /**
@@ -83,18 +109,18 @@ function safeRepoUrl(u) {
  */
 function buildAnnouncement(p) {
     if (!p || !/^[0-9a-f]{7,40}$/i.test(String(p.commit || ''))) return null;
-    var info = featureOf(p.subject);
+    var info = classify(p.subject);
     if (!info || !info.text) return null;
 
     var hash = String(p.commit).toLowerCase();
     var short = hash.slice(0, 7);
-    var title = '【新功能' + (info.scope ? '·' + info.scope : '') + '】' + info.text + ' · ' + short;
+    var title = '【' + labelOf(info.kind) + (info.scope ? '·' + info.scope : '') + '】' + info.text + ' · ' + short;
     var name = limit(title, 120);
 
     var repo = safeRepoUrl(p.repoUrl);
     var commitUrl = repo ? repo.replace(/\.git$/, '') + '/commit/' + hash : '';
 
-    var html = '<p>站点已上线以下新功能：</p>' +
+    var html = '<p>' + leadOf(info.kind) + '</p>' +
         '<h3>' + esc(info.text) + '</h3>';
 
     if (p.body) {
@@ -123,10 +149,10 @@ function buildAnnouncement(p) {
  * 后台 import 会去掉所有 HTML 标签，因此这里直接给无标签的单行文本。
  */
 function buildPlainText(p) {
-    var info = featureOf(p.subject);
+    var info = classify(p.subject);
     if (!info || !info.text) return '';
     var parts = [
-        '站点已上线以下新功能：' + info.text,
+        leadOf(info.kind) + info.text,
         '提交：' + String(p.commit).slice(0, 7),
         '范围：' + (info.scope || '站点功能')
     ];
@@ -141,6 +167,7 @@ module.exports = {
     RECORD: RECORD,
     GIT_FORMAT: '%H' + FIELD + '%an' + FIELD + '%aI' + FIELD + '%s' + FIELD + '%b' + RECORD,
     escapeHtml: esc,
+    classify: classify,
     featureOf: featureOf,
     parseGitLog: parseGitLog,
     buildAnnouncement: buildAnnouncement,

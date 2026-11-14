@@ -1,21 +1,23 @@
 #!/usr/bin/env node
 /**
- * 新功能公告自动发布 CLI —— 服务端 /api/announcements 的调用方。
+ * 站点更新公告自动发布 CLI —— 服务端 /api/announcements 的调用方。
  *
  * 用法：
  *   node scripts/announce-release.js --head                # 处理最新一次 commit（post-commit hook 默认）
- *   node scripts/announce-release.js --backfill            # 一次性补发全部历史新功能 commit
+ *   node scripts/announce-release.js --backfill            # 补发全部历史「新功能 + 优化升级」commit
  *   node scripts/announce-release.js --backfill --dry-run  # 只列出将补发的公告，不写库
- *   node scripts/announce-release.js --backfill --since=2026-01-01 --limit=20
+ *   node scripts/announce-release.js --backfill --scope=optimization   # 只补发优化类
+ *   node scripts/announce-release.js --backfill --scope=feature        # 只补发新功能（旧行为）
  *   node scripts/announce-release.js --head --base=http://127.0.0.1:3000
  *
- * 配置（环境变量，也可命令行覆盖）：
- *   ANNOUNCE_API_TOKEN   调用方 token（与服务端 ANNOUNCEMENT_API_TOKENS / ARTICLE_API_TOKENS 一致）
- *   ANNOUNCE_API_BASE     站点地址，默认 https://blog.jiangzi.xin
- *   ANNOUNCE_REPO_URL     代码仓库 https 地址，默认取 git remote origin
+ * Token 读取顺序（与文章发布 API 保持同一套配置习惯）：
+ *   命令行 --token > 环境变量 > settings.js 的 announcementApi.tokens > settings.js 的 articleApi.tokens。
+ *   因此本机/服务器只要已有 settings.js 的 articleApi 配置即可开箱运行，无需新增环境变量；
+ *   CI 上没有 settings.js（已 gitignore），用 Secret ANNOUNCE_API_TOKEN 注入。
+ *   其余可用环境变量：ANNOUNCE_API_BASE（默认 https://blog.jiangzi.xin）、ANNOUNCE_REPO_URL。
  *
  * 设计要点：
- *   - 「新功能」判定与公告文案生成全部复用 services/releaseNote.js，与服务端零分叉。
+ *   - 新功能/优化判定与公告文案生成全部复用 services/releaseNote.js，与服务端零分叉。
  *   - 幂等由服务端 commitHash 保证；重复/并发触发都只会有一条公告。
  *   - 网络失败 / 生产尚未部署新接口(404) 时把 payload 落到 .announce-queue/，
  *     下次任意一次运行（含 hook / CI）自动重试，提交永不丢失，且绝不阻塞 git commit。
@@ -46,7 +48,8 @@ var opt = {
     token: '',
     repoUrl: '',
     queue: true,
-    csv: ''
+    csv: '',
+    scope: 'update'   // update(默认)=新功能+优化 | feature=仅新功能 | optimization=仅优化
 };
 
 function parseArgs(argv) {
@@ -63,6 +66,13 @@ function parseArgs(argv) {
         else if (a.indexOf('--token=') === 0) opt.token = a.slice(8);
         else if (a.indexOf('--repo-url=') === 0) opt.repoUrl = a.slice(11);
         else if (a.indexOf('--csv=') === 0) opt.csv = a.slice(6);
+        else if (a.indexOf('--scope=') === 0) {
+            var sc = a.slice(8);
+            if (['update', 'feature', 'optimization'].indexOf(sc) === -1) {
+                fail('--scope 只支持 update / feature / optimization');
+            }
+            opt.scope = sc;
+        }
         else if (a.indexOf('--pattern=') === 0) {
             try { opt.pattern = new RegExp(a.slice(10), 'i'); }
             catch (e) { fail('--pattern 不是合法正则：' + e.message); }
@@ -74,13 +84,16 @@ function parseArgs(argv) {
 
 function printHelp() {
     console.log([
-        '新功能公告自动发布 / 历史补发',
+        '站点更新公告自动发布 / 历史补发（默认：新功能 + 优化升级）',
         '  --head              仅处理 HEAD（默认，供 post-commit hook 使用）',
-        '  --backfill          按时间正序补发全部历史新功能 commit',
+        '  --backfill          按时间正序补发全部历史提交',
+        '  --scope=update     新功能 + 优化升级（默认）',
+        '  --scope=feature    仅新功能（feat/新增，兼容旧行为）',
+        '  --scope=optimization  仅优化升级（重构/样式体验/中文优化关键词）',
         '  --dry-run           只打印清单，不调用接口',
         '  --since=YYYY-MM-DD 只处理该日期之后的提交',
         '  --limit=N           最多处理 N 条提交',
-        '  --pattern=REGEX     额外的新功能匹配规则',
+        '  --pattern=REGEX     额外的自定义匹配规则',
         '  --base=URL          站点地址（默认 ' + DEFAULT_BASE + '）',
         '  --token=TOKEN       API Token',
         '  --repo-url=URL      代码仓库地址（用于公告里的变更链接）',
@@ -117,11 +130,32 @@ function repoUrl() {
     return raw;
 }
 
+function firstToken(list) {
+    if (!Array.isArray(list)) return '';
+    for (var i = 0; i < list.length; i++) {
+        if (list[i] && typeof list[i].token === 'string' && list[i].token.trim()) {
+            return list[i].token.trim();
+        }
+    }
+    return '';
+}
+
 function token() {
-    return opt.token ||
+    var fromEnv = opt.token ||
         String(process.env.ANNOUNCE_API_TOKEN || '').trim() ||
         String(process.env.ANNOUNCEMENT_API_TOKENS || '').split(',')[0].trim() ||
         String(process.env.ARTICLE_API_TOKENS || '').split(',')[0].trim();
+    if (fromEnv) return fromEnv;
+
+    // 与文章发布 API 同一套配置：直接复用 settings.js 里的 articleApi.tokens。
+    // settings.js 被 gitignore，CI 上不存在，此时 catch 后由环境变量/Secret 兜底。
+    try {
+        var s = require('../settings');
+        return firstToken(s && s.announcementApi && s.announcementApi.tokens) ||
+            firstToken(s && s.articleApi && s.articleApi.tokens);
+    } catch (e) {
+        return '';
+    }
 }
 
 function base() {
@@ -174,6 +208,7 @@ function enqueue(payload, reason) {
     }
 }
 function dequeue(hash) {
+    if (!opt.queue) return;   // --no-queue 时既不写队列，也不动已有队列
     try {
         var f = queuePath(hash);
         if (fs.existsSync(f)) fs.unlinkSync(f);
@@ -250,22 +285,35 @@ async function main() {
     parseArgs(process.argv.slice(2));
 
     var commits = collectCommits();
-    var queued = readQueue();
+    // 清单类输出只看 git 历史；失败队列是运行时待重试数据，不混入补发清单
+    var queued = (opt.csv || opt.dryRun || !opt.queue) ? [] : readQueue();
     var seen = {};
     var payloads = [];
     var skipped = 0;
+    var counts = { feature: 0, optimization: 0 };
 
     commits.forEach(function (c) {
-        if (!note.featureOf(c.subject, opt.pattern)) { skipped++; return; }
+        var info = note.classify(c.subject, opt.pattern);
+        if (!info || (opt.scope === 'feature' && info.kind !== 'feature') ||
+            (opt.scope === 'optimization' && info.kind !== 'optimization')) {
+            skipped++;
+            return;
+        }
+        counts[info.kind]++;
         seen[c.commit] = true;
         payloads.push(buildPayload(c));
     });
     queued.forEach(function (p) {
-        if (!seen[p.commit]) { seen[p.commit] = true; payloads.push(p); }
+        if (seen[p.commit]) return;
+        seen[p.commit] = true;
+        var q = note.classify(p.subject, opt.pattern);
+        if (q) counts[q.kind]++;
+        payloads.push(p);
     });
 
+    var countsText = '新功能 ' + counts.feature + ' / 优化升级 ' + counts.optimization;
     if (!payloads.length) {
-        log('[announce] 没有需要发布的新功能提交' + (skipped ? '（跳过非 feat 提交 ' + skipped + ' 条）' : ''));
+        log('[announce] 没有需要发布的提交' + (skipped ? '（跳过 ' + skipped + ' 条）' : ''));
         return;
     }
 
@@ -274,7 +322,8 @@ async function main() {
 
     var tok = token();
     if (opt.dryRun) {
-        log('[announce] dry-run：共 ' + payloads.length + ' 条待发布/补发（跳过非 feat ' + skipped + ' 条）\n', true);
+        log('[announce] dry-run：共 ' + payloads.length + ' 条（' + countsText +
+            '；跳过 ' + skipped + ' 条）\n', true);
         payloads.forEach(function (p, i) {
             var built = note.buildAnnouncement(p);
             log((i + 1) + '. ' + (built ? built.name : p.subject) + '  [' + String(p.commit).slice(0, 7) + '  ' + p.date + ']', true);
@@ -321,7 +370,7 @@ async function main() {
 
     log('[announce] 完成：新建 ' + stat.created + ' / 已存在 ' + stat.duplicate +
         ' / 排队重试 ' + stat.queued + ' / 失败 ' + stat.failed +
-        '（跳过非 feat ' + skipped + ' 条）', true);
+        '（' + countsText + '；跳过 ' + skipped + ' 条）', true);
     if (stat.failed > 0) process.exitCode = 1;
 }
 

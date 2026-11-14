@@ -24,12 +24,39 @@ t('识别 feat / feat(scope) / 带噪声前缀 / 中文新增', function () {
     assert.ok(note.featureOf('新功能 支持 Markdown'));
 });
 
-t('fix / style / chore / docs / 中文修复 一律不发布', function () {
+t('featureOf 兼容旧语义：只把 feat 系判为新功能', function () {
     ['fix(editor): 修复草稿串稿', 'style(theme): 暗色重构', 'chore(tag): 诊断脚本',
         'refactor(tag): 重建标签页', 'docs: 更新 README', '修复：分类显示未分类',
         'copy(sidebar): 品牌卡文案'].forEach(function (s) {
         assert.strictEqual(note.featureOf(s), null, s);
     });
+});
+
+t('优化类：refactor/style/perf 前缀与中文优化关键词 → optimization', function () {
+    assert.strictEqual(note.classify('refactor(nav): 建立导航单一配置源 navConfig.js').kind, 'optimization');
+    assert.strictEqual(note.classify('style(frontend): 首页精致化升级').kind, 'optimization');
+    assert.strictEqual(note.classify('perf(list): 首屏渲染提速').kind, 'optimization');
+    assert.strictEqual(note.classify('分页优化简化').kind, 'optimization');
+    assert.strictEqual(note.classify('导航自适应--首页菜单图标和菜单边距调整美观').kind, 'optimization');
+    assert.strictEqual(note.classify('feat: 新功能优先').kind, 'feature');
+});
+
+t('fix/chore/docs/copy 与纯格式调整仍不发公告（含中文「升级」也不误收）', function () {
+    ['fix(admin): 修复批量操作', 'chore: 升级依赖到安全版本并迁移 EJS 模板语法',
+        'docs: 更新 README', 'copy(sidebar): 品牌卡文案', '调整代码格式',
+        '修复：分类显示未分类'].forEach(function (s) {
+        assert.strictEqual(note.classify(s), null, s);
+    });
+});
+
+t('feat 标题保持旧格式不变；优化公告改用【优化升级】前缀', function () {
+    var feat = note.buildAnnouncement({ commit: 'abc1234', subject: 'feat(tag): 标签计数一键重算' });
+    assert.strictEqual(feat.name, '【新功能·tag】标签计数一键重算 · abc1234');
+    var opt = note.buildAnnouncement({ commit: 'def5678', subject: 'refactor(ui): 统一设计系统并精简前后台视图' });
+    assert.strictEqual(opt.name, '【优化升级·ui】统一设计系统并精简前后台视图 · def5678');
+    assert.ok(opt.content.indexOf('站点完成以下优化升级') !== -1);
+    assert.ok(note.buildPlainText({ commit: 'def5678', subject: 'refactor(ui): 统一设计系统' })
+        .indexOf('站点完成以下优化升级') === 0);
 });
 
 t('--pattern 扩展规则生效', function () {

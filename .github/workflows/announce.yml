@@ -1,4 +1,4 @@
-# 新功能公告的兜底通道：任何来源的 push（其他电脑、网页改动、PR 合并）都会补齐公告。
+# 站点更新公告（新功能 + 优化升级）的兜底通道：任何来源的 push 都会补齐公告。
 # 与本地 post-commit hook 并存，服务端按 commitHash 幂等，重复触发不会产生第二条公告。
 # 需在仓库 Settings → Secrets 配置 ANNOUNCE_API_TOKEN（与服务端 ANNOUNCEMENT_API_TOKENS 一致）。
 name: auto-announce

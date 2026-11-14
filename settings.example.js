@@ -64,12 +64,13 @@ module.exports = {
         defaultAuthor: ''
     },
 
-    // ===== 新功能公告自动发布 API（git commit / CI 调用，见 scripts/announce-release.js）=====
-    // 推荐用环境变量注入，专用 token 与文章发文权限隔离：
-    //   ANNOUNCEMENT_API_TOKENS=abcd...32hex npm start
-    // 未配置本节时，接口自动回退复用上面的 ARTICLE_API_TOKENS（开箱即用）。
-    // 调用方（本机 / CI）需设置：ANNOUNCE_API_BASE=https://blog.jiangzi.xin
-    //                          ANNOUNCE_API_TOKEN=<同一个 token>
+    // ===== 站点更新公告自动发布 API（git commit / CI 调用，见 scripts/announce-release.js）=====
+    // 默认无需新增任何配置：接口和调用方脚本都会自动复用上面 articleApi.tokens[0].token，
+    // 与文章发布 API 保持同一套 settings.js 配置习惯。
+    // 如需与发文权限隔离，可单独配置本节（优先级高于 articleApi.tokens），
+    // 或用环境变量 ANNOUNCEMENT_API_TOKENS=abcd...32hex npm start。
+    // CI 上没有 settings.js（已 gitignore），改由 Secret ANNOUNCE_API_TOKEN 注入。
+    // 站点地址可用 ANNOUNCE_API_BASE 覆盖，默认 https://blog.jiangzi.xin。
     announcementApi: {
         tokens: [
             // { token: 'replace-with-a-32-hex-token', label: 'git-hook' }

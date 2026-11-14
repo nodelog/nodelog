@@ -109,5 +109,29 @@ t('后台 CSV 已导入同名公告（无 commitHash）→ 仍判定重复，不
     assert.strictEqual(store.length, 1);
 });
 
+t('优化类提交可发布，标题为【优化升级】且正文标明类型', function () {
+    store.length = 0;
+    var res = fakeRes();
+    api.publish({ body: payload('refactor(ui): 统一设计系统并精简前后台视图') }, res);
+    assert.strictEqual(res.code, 201);
+    assert.ok(store[0].name.indexOf('【优化升级·ui】') === 0);
+    assert.ok(store[0].content.indexOf('站点完成以下优化升级') !== -1);
+});
+
+t('未设环境变量时，复用 settings.js 的 articleApi.tokens 通过鉴权', function () {
+    var settings = null;
+    try { settings = require('../settings'); } catch (e) { settings = null; }
+    var list = settings && settings.articleApi && settings.articleApi.tokens;
+    if (!list || !list.length) {
+        console.log('    (本机无 settings.js articleApi 配置，跳过该环境相关断言)');
+        return;
+    }
+    delete process.env.ANNOUNCEMENT_API_TOKENS;   // 强制走 settings.js 回退
+    var res = fakeRes();
+    var next = false;
+    api.auth({ headers: { authorization: 'Bearer ' + list[0].token } }, res, function () { next = true; });
+    assert.strictEqual(next, true, 'settings.js 的 articleApi token 应被公告接口接受');
+});
+
 console.log('\n全部通过：' + passed + ' 项');
 process.exit(0);

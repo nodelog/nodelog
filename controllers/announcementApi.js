@@ -1,5 +1,5 @@
 /**
- * 开放公告发布 API：供 git hook / CI / 补发脚本自动发布「新功能公告」。
+ * 开放公告发布 API：供 git hook / CI / 补发脚本自动发布「站点更新公告」（新功能 + 优化升级）。
  *
  * 契约：
  *   POST /api/announcements
@@ -34,7 +34,9 @@ function loadTokenConfig() {
         t = t.trim();
         if (t) own.push({ token: t, label: 'env' });
     });
-    // 未单独配置时回退到文章发布 API 的 token，开箱即用，无需新增密钥
+    // 与文章发布 API 同一套配置习惯：未单独配置公告 token 时，
+    // 直接复用 settings.js 的 articleApi.tokens（本机/生产通常已有，无需新增密钥）。
+    // articleApi.loadApiConfig 同时兼容环境变量 ARTICLE_API_TOKENS。
     if (own.length) return { entries: own };
     return { entries: articleApi.loadApiConfig().entries };
 }
@@ -64,7 +66,7 @@ exports.publish = function (req, res) {
         repoUrl: b.repoUrl
     });
     if (!note) {
-        return res.status(400).json({ success: false, msg: 'commit 格式非法，或该提交不是新功能（feat/feature/新增 前缀）' });
+        return res.status(400).json({ success: false, msg: 'commit 格式非法，或该提交不属于新功能/优化升级公告范围' });
     }
 
     function duplicate(exist) {
