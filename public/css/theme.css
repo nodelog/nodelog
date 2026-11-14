@@ -102,9 +102,13 @@
 }
 /* 深色模式：极淡点阵背景，营造代码编辑器 / 终端网格观感（浅色保持纯净） */
 :root[data-theme="dark"] body {
-  background-image: radial-gradient(rgba(255,255,255,.045) 1px, transparent 1px);
-  background-size: 26px 26px;
-  background-position: -13px -13px;
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(1100px 560px at 50% -220px, rgba(106,166,255,.16), rgba(106,166,255,0) 70%),
+    radial-gradient(rgba(255,255,255,.045) 1px, transparent 1px);
+  background-size: auto, 26px 26px;
+  background-position: center top, -13px -13px;
+  background-repeat: no-repeat, repeat;
 }
 @media (min-width: 1280px) { :root { --wrap: 1200px; } }
 
@@ -246,10 +250,19 @@ body:not(.manager) .page-shell { padding-top: var(--space-8); padding-bottom: va
 .navbar {
     position: sticky; top: 0; z-index: var(--z-sticky);
     background: var(--surface);
+    background: color-mix(in srgb, var(--surface) 82%, transparent);
+    -webkit-backdrop-filter: saturate(180%) blur(14px);
+    backdrop-filter: saturate(180%) blur(14px);
     border: 0; border-bottom: 1px solid var(--border);
     border-radius: 0; margin-bottom: 0; min-height: 60px;
     padding-left: max(var(--space-6), calc((100vw - var(--wrap)) / 2 + var(--space-6)));
     padding-right: max(var(--space-6), calc((100vw - var(--wrap)) / 2 + var(--space-6)));
+    box-shadow: 0 1px 0 var(--border), 0 12px 30px -24px rgba(16,24,40,.50);
+}
+.navbar::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    opacity: .85;
 }
 .navbar .navbar-collapse { border: 0; padding: 0; }
 .navbar .nav { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); margin: 0; }
@@ -305,7 +318,14 @@ body:not(.manager) .page-shell { padding-top: var(--space-8); padding-bottom: va
     position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
     overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
 }
-.bg-gray, body.bg-gray { background: var(--bg); }
+.bg-gray, body.bg-gray {
+    background-color: var(--bg);
+    background-image:
+        radial-gradient(1100px 520px at 50% -220px, rgba(29,78,216,.07), rgba(29,78,216,0) 70%),
+        radial-gradient(820px 460px at 100% -140px, rgba(8,145,178,.06), rgba(8,145,178,0) 72%);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+}
 .color-white { color: var(--ink); }
 .color-gray { color: var(--muted); }
 .text-muted { color: var(--muted); font-size: var(--fs-small); }
@@ -349,7 +369,7 @@ body:not(.manager) .page-shell { padding-top: var(--space-8); padding-bottom: va
 .card {
     background: var(--surface); color: var(--ink);
     border: 1px solid var(--border); border-radius: var(--radius);
-    padding: var(--space-6); box-shadow: none;
+    padding: var(--space-6); box-shadow: var(--elev);
 }
 .post-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: var(--space-4); }
 .post-list { display: block; }
@@ -628,6 +648,79 @@ html body .layui-layer-dialog .layui-layer-content { background: var(--surface) 
     .navbar .navbar-brand::after { animation: none !important; opacity: 1 !important; }
     .sk { opacity: .7; }   /* 骨架变静态灰块，占位不消失 */
 }
+
+/* ---- 14.5 精致化升级（Refined Premium）-----------------------------------
+   在既有设计约束内升级高级感：保留终端极客身份，不引入 emoji / 紫粉渐变 /
+   霓虹发光；仅用蓝色→青色同族渐变（accent → accent-2）、柔和阴影、悬浮抬升
+   与留白节奏。本段是对原「平面卡片 = 描边 + 无阴影」指南的有意升级，用于满足
+   「更高级」诉求；硬 P0（emoji / 紫粉 / 发光）约束未被触碰。 */
+
+/* 眉标（kicker）前置装饰条 */
+.kicker { position: relative; padding-left: 14px; }
+.kicker::before {
+    content: ""; position: absolute; left: 0; top: .3em; bottom: .3em; width: 3px;
+    border-radius: 2px; background: linear-gradient(180deg, var(--accent), var(--accent-2));
+}
+
+/* 封面统一裁切 + 悬浮微缩放 */
+.post-cover { display: block; overflow: hidden; border-radius: var(--radius-sm); }
+.post-card--grid .cover { transition: transform 360ms cubic-bezier(.2,.7,.2,1); }
+.post-card--grid:hover .cover { transform: scale(1.045); }
+
+/* 首屏唯一主角：精选卡（覆盖原 transparent 版式，改为实体浮起面板） */
+.post-card--lead {
+    grid-column: 1 / -1; display: flex; flex-direction: column; gap: var(--space-4);
+    padding: var(--space-8); border: 1px solid var(--border);
+    border-radius: var(--radius); background: var(--surface); box-shadow: var(--elev);
+}
+.post-cover--lead {
+    position: relative; display: block; width: 100%; aspect-ratio: 21 / 9;
+    border-radius: var(--radius); overflow: hidden;
+    background:
+        radial-gradient(120% 150% at 0% 0%, rgba(29,78,216,.30), rgba(29,78,216,0) 58%),
+        linear-gradient(120deg, #1d4ed8 0%, #0891b2 68%, #0e7490 100%);
+}
+.post-cover--lead .cover { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 0; }
+.post-cover--lead .post-cover__shine { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(8,12,20,0) 45%, rgba(8,12,20,.30)); }
+.post-card--lead h1 { font-size: var(--fs-display); line-height: 1.28; margin-top: var(--space-6); text-wrap: auto; }
+.post-card--lead .excerpt { font-size: var(--fs-body); -webkit-line-clamp: 3; max-width: var(--measure); }
+.post-flag {
+    align-self: flex-start; display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--font-ui); font-size: var(--fs-small); letter-spacing: .04em;
+    color: var(--accent); background: var(--accent-weak);
+    border: 1px solid var(--accent-weak); border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+    padding: 5px 12px; border-radius: var(--radius-control); margin-bottom: var(--space-1);
+}
+.post-readmore {
+    display: inline-flex; align-items: center; gap: 6px; margin-top: var(--space-4);
+    font-family: var(--font-ui); font-size: var(--fs-body-sm); font-weight: 500;
+    color: var(--accent); text-decoration: none;
+    transition: gap 160ms ease, color 160ms ease;
+}
+.post-readmore:hover { color: var(--accent-hover); gap: 10px; text-decoration: none; }
+
+/* 2 列卡片网格：静止柔阴影 + 悬浮抬升 */
+.post-card--grid {
+    box-shadow: var(--elev);
+    transition: transform 220ms cubic-bezier(.2,.7,.2,1), box-shadow 220ms ease, border-color 160ms ease;
+}
+.post-card--grid:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 44px -22px rgba(16,24,40,.32);
+    border-color: var(--border-strong);
+}
+
+/* 品牌化「关于本站」侧栏 */
+.card--brand {
+    background: var(--surface);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 7%, var(--surface)), var(--surface));
+    border-color: var(--border);
+    border-color: color-mix(in srgb, var(--accent) 20%, var(--border));
+}
+.brand-mark { display: flex; align-items: center; gap: 8px; font-family: var(--font-ui); font-weight: 500; font-size: var(--fs-lead); color: var(--ink); margin-bottom: var(--space-3); }
+.brand-glyph { color: var(--accent); font-weight: 700; }
+.brand-desc { font-size: var(--fs-body-sm); color: var(--muted); line-height: 1.6; margin: 0 0 var(--space-4); }
+.brand-cta { width: 100%; }
 
 /* ---- 15. 响应式 -------------------------------------------------------- */
 @media (min-width: 768px) and (max-width: 1023px) {

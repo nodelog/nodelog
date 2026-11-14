@@ -7,13 +7,19 @@
   var _date = format(doc.createTime || doc.modifyTime, 'YYYY-MM-DD');
 %>
 <article class="post-card post-card--<%= v %>">
-    <% if (!isList && doc.cover) { %>
+    <% if (isLead) { %>
+    <a class="post-cover post-cover--lead" href="/content/detail?id=<%= doc._id %>" tabindex="-1" aria-hidden="true">
+        <% if (doc.cover) { %><img class="cover" src="<%= doc.cover %>" alt="<%= doc.name %>" width="1280" height="640" decoding="async"><% } %>
+        <span class="post-cover__shine" aria-hidden="true"></span>
+    </a>
+    <% } else if (!isList && doc.cover) { %>
     <a class="post-cover" href="/content/detail?id=<%= doc._id %>" tabindex="-1" aria-hidden="true">
         <img class="cover" src="<%= doc.cover %>" alt="<%= doc.name %>" width="640" height="360"
-             decoding="async"<% if (!isLead) { %> loading="lazy"<% } %>>
+             decoding="async" loading="lazy">
     </a>
     <% } %>
     <div class="post-body">
+        <% if (isLead) { %><span class="post-flag">精选</span><% } %>
         <% if (isLead) { %>
         <h1><a href="/content/detail?id=<%= doc._id %>"><%= doc.name %></a></h1>
         <% } else { %>
@@ -27,6 +33,7 @@
             <% if (doc.readingTime) { %><span>约 <%= doc.readingTime %> 分钟</span><% } %>
         </div>
         <% if (doc.excerpt) { %><p class="excerpt"><%= doc.excerpt %></p><% } %>
+        <% if (isLead) { %><a class="post-readmore" href="/content/detail?id=<%= doc._id %>">阅读全文 →</a><% } %>
         <% if (doc.tags && doc.tags.length) { %>
         <div class="tag-chips">
             <% doc.tags.forEach(function(t){ %><a class="chip" href="/tag/<%= encodeURIComponent(t) %>"><%= t %></a><% }); %>
