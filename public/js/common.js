@@ -92,6 +92,7 @@
 
     if (url.indexOf('/manager') === -1) loadCategoryMenu();
     ensureCategories(initCategoryPickers); // 写/编页 + 管理端编辑页的可搜索分类选择器
+    bindCategoryAuto(); // 标题输入后完全自动预选最相关分类（可手动改）
 
     /* 主导航：移动端折叠 + 分类下拉（替代 Bootstrap JS） */
     on(document, 'click', '.navbar-toggle', function () {
@@ -591,6 +592,60 @@
       }
       render('');
     });
+  }
+
+  // 从已有分类中匹配最相关的一个（完全自动预选分类用）
+  function matchCategory(title, content) {
+    if (!allCategories || !allCategories.length) return null;
+    var titleLow = (title || '').toLowerCase();
+    var textLow = ((title || '') + '\n' + (content || '')).toLowerCase();
+    var best = null, bestScore = 0;
+    allCategories.forEach(function (c) {
+      var name = (c.name || '').trim().toLowerCase();
+      if (!name || name.length < 2) return; // 跳过过短分类名，降低误命中
+      var score = 0;
+      if (titleLow.indexOf(name) !== -1) score += 10;  // 标题命中权重更高
+      if (textLow.indexOf(name) !== -1) score += 3;    // 正文命中
+      if (score > bestScore) { bestScore = score; best = c; }
+    });
+    return bestScore > 0 ? best : null;
+  }
+  // 完全自动预选分类：标题输入后若未手动选分类，自动填入最相关分类（可手动改）
+  function bindCategoryAuto() {
+    var root = qs('.js-category-picker');
+    if (!root || root.__catAutoBound) return;
+    root.__catAutoBound = true;
+    var hidden = qs('.js-category-value', root);
+    var input = qs('.js-category-input', root);
+    var menu = qs('.js-category-menu-list', root);
+    if (!hidden || !input) return;
+    var tmr;
+    function schedule() {
+      clearTimeout(tmr);
+      tmr = setTimeout(function () {
+        if (hidden.value) return;                     // 已手动选定则不覆盖
+        if (document.activeElement === input) return;  // 用户正在操作分类框则不打扰
+        var title = val(qs('.js-add-content-name')) || '';
+        var content = '';
+        if (window.__vditor && typeof window.__vditor.getValue === 'function') {
+          try { content = window.__vditor.getValue() || ''; } catch (e) {}
+        } else { content = val(qs('.js-editor')) || ''; }
+        var cat = matchCategory(title, content);
+        if (cat) {
+          hidden.value = cat._id;
+          input.value = cat.name;
+          if (menu) qsa('.category-picker__item', menu).forEach(function (it) {
+            var sel = it.getAttribute('data-id') === String(cat._id);
+            it.setAttribute('aria-selected', sel ? 'true' : 'false');
+            it.classList.toggle('is-selected', sel);
+          });
+          var hint = qs('.js-cat-hint');
+          if (hint) hint.textContent = '已自动匹配分类「' + cat.name + '」，可手动修改';
+        }
+      }, 800);
+    }
+    var titleEl = qs('.js-add-content-name');
+    if (titleEl) titleEl.addEventListener('input', schedule);
   }
 
   function loadCategoryMenu() {

@@ -22,6 +22,12 @@
         <% } %>
     </div>
 
+    <% if (doc.tags && doc.tags.length) { %>
+    <div class="tag-chips article-tags">
+        <% doc.tags.forEach(function(t){ %><a class="chip" href="/tag/<%= encodeURIComponent(t) %>"><%= t %></a><% }); %>
+    </div>
+    <% } %>
+
     <div class="card article-body js-content">
         <div class="article-content"><%- doc.renderedContent %></div>
         <% if (doc.original) { %>
