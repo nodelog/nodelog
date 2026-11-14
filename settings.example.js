@@ -23,13 +23,26 @@ module.exports = {
         pass: 'smtp-password'
     },
 
-    // ===== 风控告警通知（收件人单独配置，与上面的发件账号解耦）=====
+    // ===== 风控告警通知（收件人单独配置，与发件账号解耦）=====
     // 触发时机：敏感词命中拒发（实时、带节流）、自动化脚本每轮结果（汇总）。
     // 推荐用环境变量注入收件地址，配置文件里不落任何收件人：
     //   ALERT_RECIPIENTS=you@example.com,ops@example.com npm start
     // 未配置收件人时告警只写服务端日志，绝不发信；ALERT_ENABLED=0 可强制关闭。
+    //
+    // 【QQ / 163 / 126 邮箱必读】pass 必须是邮箱「授权码」，不是账号登录密码，
+    //   发件人 user 必须是完整邮箱地址（如 1102377905@qq.com）。否则 SMTP 报
+    //   526 / 535 Authentication failure。生成路径：邮箱网页版 → 设置 → 账号/POP3-SMTP
+    //   → 开启服务 → 生成 16 位授权码。端口：465=SSL(secure=true)，587=STARTTLS(secure=false)。
+    // 发件通道默认复用上面的 email；告警要用独立账号时，用环境变量覆盖（授权码不落文件）：
+    //   ALERT_SMTP_HOST=smtp.qq.com ALERT_SMTP_PORT=465 ALERT_SMTP_SECURE=1 \
+    //   ALERT_SMTP_USER=you@qq.com ALERT_SMTP_PASS=16位授权码 \
+    //   ALERT_RECIPIENTS=收件邮箱 npm start
+    // 排障：node scripts/moderation-automation.js probe（发测试邮件）
+    //       node scripts/moderation-automation.js smtp-try（只校验连接与认证，不发信）
     alert: {
         enabled: true,
+        // 可选：告警专用发件配置；不填则复用上面的 email。字段可只写一部分，其余自动回落。
+        // smtp: { host: 'smtp.qq.com', port: 465, secure: true, user: 'you@qq.com', pass: '授权码' },
         // 收件人数组；也可写 'a@example.com,b@example.com'。环境变量 ALERT_RECIPIENTS 优先。
         // 例：recipients: ['you@example.com']
         recipients: [],

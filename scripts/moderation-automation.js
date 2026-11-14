@@ -46,9 +46,9 @@ var LogModel = ViolationLog.ViolationLogModel;
 var WordModel = SensitiveWord.SensitiveWordModel;
 var SYSTEM_ACTOR = kit.SYSTEM_ACTOR;
 
-var COMMANDS = ['rescan', 'dispose', 'collect', 'classify', 'all', 'probe'];
+var COMMANDS = ['rescan', 'dispose', 'collect', 'classify', 'all', 'probe', 'smtp-try'];
 var opt = {
-    cmd: 'all', apply: false, noMail: false, daemon: false, promote: false,
+    cmd: 'all', apply: false, noMail: false, daemon: false, promote: false, smtpTry: false,
     limit: cfg.AUTOMATION_RESCAN_LIMIT,
     days: cfg.AUTOMATION_COLLECT_DAYS,
     interval: cfg.AUTOMATION_INTERVAL_MINUTES
@@ -59,12 +59,15 @@ process.argv.slice(2).forEach(function (a) {
     else if (a === '--no-mail') opt.noMail = true;
     else if (a === '--daemon') opt.daemon = true;
     else if (a === '--promote') opt.promote = true;
+    else if (a === '--smtp-try') opt.smtpTry = true;
     else if (a.indexOf('--limit=') === 0) opt.limit = parseInt(a.slice(8), 10) || opt.limit;
     else if (a.indexOf('--days=') === 0) opt.days = parseInt(a.slice(7), 10) || opt.days;
     else if (a.indexOf('--interval=') === 0) opt.interval = parseInt(a.slice(11), 10) || opt.interval;
     else if (a === '--help' || a === '-h') {
-        console.log('用法: node scripts/moderation-automation.js <rescan|dispose|collect|classify|all|probe> [--apply] [--no-mail] [--promote] [--limit=N] [--days=N] [--daemon] [--interval=N]\n' +
-            '  probe  仅发一封测试告警邮件，验证 SMTP 与收件人配置；不连库、不写库。');
+        console.log('用法: node scripts/moderation-automation.js <rescan|dispose|collect|classify|all|probe|smtp-try> [--apply] [--no-mail] [--promote] [--smtp-try] [--limit=N] [--days=N] [--daemon] [--interval=N]\n' +
+            '  probe      仅发一封测试告警邮件，失败时打印可照做的修复步骤；不连库、不写库。\n' +
+            '  probe --smtp-try  先自动试常见 host/port/secure 组合，再发测试邮件。\n' +
+            '  smtp-try   只做 SMTP 连接 + 认证校验（不发邮件），输出可用配置组合。');
         process.exit(0);
     }
 });
@@ -466,26 +469,68 @@ function exit(code) {
     setTimeout(function () { process.exit(code || 0); }, 150);
 }
 
-// 通道自检：只发一封测试邮件，不连库、不写库。
-if (opt.cmd === 'probe') {
+// 通道自检：打印脱敏配置、自动试端口、发测试邮件并给出可照做的修复步骤；不连库、不写库。
+function printSmtpFix(err) {
+    var ex = alert.explainSmtpError(err || alert.lastError());
+    warn('诊断结论: ' + ex.title);
+    ex.steps.forEach(function (s, i) { warn('  ' + (i + 1) + '. ' + s); });
+}
+
+function runVerify(done) {
+    log('SMTP 连接 / 认证校验中（不发邮件）…');
+    alert.verify(function (e, r) {
+        if (e) warn('校验异常: ' + e.message);
+        (r.tried || []).forEach(function (t) {
+            log('  尝试 ' + t.host + ':' + t.port + ' secure=' + t.secure +
+                ' -> ' + (t.ok ? '通过' : '失败：' + t.error));
+        });
+        if (r.ok) {
+            log('可用组合：ALERT_SMTP_HOST=' + r.recommended.host +
+                ' ALERT_SMTP_PORT=' + r.recommended.port +
+                ' ALERT_SMTP_SECURE=' + (r.recommended.secure ? 1 : 0));
+        } else if (r.reason === 'auth') {
+            printSmtpFix({message: (r.tried[0] && r.tried[0].error) || 'Authentication failure'});
+        } else {
+            warn('未找到可用组合：按上面逐条错误检查 host / 端口 / 出站防火墙。');
+        }
+        done(r);
+    });
+}
+
+if (opt.cmd === 'smtp-try') {
+    log('当前 SMTP（脱敏）: ' + JSON.stringify(alert.describe().smtp));
+    runVerify(function (r) { exit(r.ok ? 0 : 1); });
+} else if (opt.cmd === 'probe') {
     var ac = alert.getConfig();
+    log('当前告警配置（脱敏）: ' + JSON.stringify(alert.describe()));
     if (!ac.enabled) {
         warn('告警未启用：请配置 settings.alert.recipients 或环境变量 ALERT_RECIPIENTS，' +
-            '并确认 settings.email 的 SMTP 账号完整。');
+            '并确认 settings.email / ALERT_SMTP_* 的 host、user、pass 完整。');
         exit(1);
     } else {
-        alert.digest({
-            level: 'info', title: '告警通道自检', summary: '收到本邮件即表示 SMTP 与收件人配置正确。',
-            sections: [{title: '当前配置', rows: [
-                kv('收件人', ac.recipients.join(', ')),
-                kv('实时命中告警', ac.realtime ? '开启' : '关闭'),
-                kv('节流窗口', Math.round(ac.throttleMs / 60000) + ' 分钟'),
-                kv('目标库', dbName)
-            ]}]
-        }, function (e, r) {
-            log('自检结果: ' + JSON.stringify(r) + (e ? ' err=' + e.message : ''));
-            exit(r && r.sent ? 0 : 1);
-        });
+        function sendProbe() {
+            alert.digest({
+                level: 'info', title: '告警通道自检', summary: '收到本邮件即表示 SMTP 与收件人配置正确。',
+                sections: [{title: '当前配置', rows: [
+                    kv('收件人', ac.recipients.join(', ')),
+                    kv('发件主机', alert.describe().smtp.host + ':' + alert.describe().smtp.port),
+                    kv('实时命中告警', ac.realtime ? '开启' : '关闭'),
+                    kv('节流窗口', Math.round(ac.throttleMs / 60000) + ' 分钟'),
+                    kv('目标库', dbName)
+                ]}]
+            }, function (e, r) {
+                log('自检结果: ' + JSON.stringify(r) + (e ? ' err=' + e.message : ''));
+                if (r && r.sent) {
+                    log('邮件已提交给 SMTP，请检查收件箱（含垃圾邮件文件夹）。');
+                } else {
+                    printSmtpFix(e || alert.lastError());
+                    warn('修复后重跑：node scripts/moderation-automation.js probe');
+                }
+                exit(r && r.sent ? 0 : 1);
+            });
+        }
+        if (opt.smtpTry) runVerify(function () { sendProbe(); });
+        else sendProbe();
     }
 } else if (mongoose.connection.readyState === 1) {
     begin();

@@ -128,5 +128,47 @@ t('extractTags：html 正文先去标签再提取', function () {
     tags.forEach(function (x) { assert.ok(!/[<>]/.test(x)); });
 });
 
+// ---- SMTP 覆盖、自动纠错与错误诊断 ----
+t('ALERT_SMTP_* 覆盖生效，describe 不泄露密码', function () {
+    process.env.ALERT_SMTP_HOST = 'smtp.qq.com';
+    process.env.ALERT_SMTP_PORT = '465';
+    process.env.ALERT_SMTP_SECURE = '1';
+    process.env.ALERT_SMTP_USER = '1102377905@qq.com';
+    process.env.ALERT_SMTP_PASS = 'secret-auth-code';
+    var d = alert.describe();
+    assert.strictEqual(d.smtp.host, 'smtp.qq.com');
+    assert.strictEqual(d.smtp.port, 465);
+    assert.strictEqual(d.smtp.secure, true);
+    assert.strictEqual(d.smtp.user, '1102377905@qq.com');
+    assert.strictEqual(d.smtp.passSet, true);
+    assert.strictEqual(d.smtp.source, 'ALERT_SMTP_*');
+    assert.ok(JSON.stringify(d).indexOf('secret-auth-code') === -1, 'describe 不得含密码');
+});
+
+t('587 + secure=0 视为 STARTTLS；localhost 主机按发件邮箱域名推断', function () {
+    process.env.ALERT_SMTP_PORT = '587';
+    process.env.ALERT_SMTP_SECURE = '0';
+    var s = alert._resolveSmtp();
+    assert.strictEqual(s.port, 587);
+    assert.strictEqual(s.secure, false);
+    process.env.ALERT_SMTP_HOST = 'localhost';
+    assert.strictEqual(alert._resolveSmtp().host, 'smtp.qq.com');
+});
+
+t('526 Authentication failure → 授权码修复指引', function () {
+    var ex = alert.explainSmtpError(new Error('Invalid login: 526 Authentication failure[0]'));
+    assert.strictEqual(ex.kind, 'auth');
+    assert.ok(ex.steps.join(' ').indexOf('授权码') !== -1);
+    assert.ok(ex.steps.join(' ').indexOf('ALERT_SMTP_PASS') !== -1);
+});
+
+t('连接超时 / TLS 握手失败各自给出对应指引', function () {
+    assert.strictEqual(alert.explainSmtpError(new Error('connect ETIMEDOUT')).kind, 'network');
+    assert.strictEqual(alert.explainSmtpError(new Error('wrong version number SSL')).kind, 'tls');
+});
+
+['ALERT_SMTP_HOST', 'ALERT_SMTP_PORT', 'ALERT_SMTP_SECURE',
+ 'ALERT_SMTP_USER', 'ALERT_SMTP_PASS'].forEach(function (k) { delete process.env[k]; });
+
 console.log('\n结果: ' + pass + ' 通过, ' + fail + ' 失败');
 process.exit(fail ? 1 : 0);
