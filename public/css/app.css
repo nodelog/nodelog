@@ -290,7 +290,22 @@
 .admin-filter-form { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: flex-end; }
 .admin-filter-item { display: flex; flex-direction: column; gap: var(--space-1); min-width: 132px; }
 .admin-filter-item label { font-size: var(--fs-small); color: var(--muted); }
-.admin-filter-item .form-control { min-height: 36px; }
+.admin-filter-item .form-control { min-height: 36px; width: 100%; }
+
+/* 后台筛选关键词框：legacy style.css 的 input[type=search]{width:0; 圆角药丸; 搜索图标底图}
+   会把关键词输入框压成 0 宽、样式错乱，导致「看得见但点不进字 / 输不进内容」。
+   该规则特异性 (0,1,1) 高于 .form-control (0,1,0)，故 .form-control 无法抵消它；
+   这里用更高特异性的选择器显式恢复为标准输入框外观与宽度。
+   content / category / user / log 四个后台页共用同一工具栏模板，一处修全。 */
+.admin-filter-item input[type="search"].form-control {
+  width: 100%; height: 44px; min-width: 0; margin: 0;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--border-strong); border-radius: var(--radius-control);
+  background: var(--surface); color: var(--ink);
+  font-size: var(--fs-body-sm); line-height: 1.4;
+  box-shadow: none; outline: none; background-image: none;
+  -webkit-appearance: none; appearance: none; box-sizing: border-box;
+}
 .admin-filter-item--actions { flex-direction: row; gap: var(--space-2); }
 .admin-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3); }
 .admin-batch { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--border); }
