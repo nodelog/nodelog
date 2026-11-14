@@ -22,6 +22,9 @@ app.set('view engine', 'ejs');
 // 视图层全局可用的日期格式化辅助（替代旧版 EJS `| format` 过滤器，兼容 YYYY-MM-DD 等标记）
 var cmsUtils = require('./controllers/cmsUtils');
 app.locals.format = cmsUtils.format;
+// 导航单一配置源：前后台 header 统一从 app.locals.navConfig 渲染菜单项、
+// 权限可见性、aria-current 与分组；controller 只需继续传 currentMenu key。
+app.locals.navConfig = require('./navConfig');
 
 // app.use(favicon());//网站图标
 app.use(logger('dev'));//日志级别
