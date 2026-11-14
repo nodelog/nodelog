@@ -46,13 +46,14 @@ var STOPWORDS = {};
 
 // ---------------------------------------------------------------------------
 // 语义分类匹配：从已有分类中挑最相关的一个。categories 为 Category.findAll 的结果数组，
-// 每个元素需含 name（必填）与 keywords（可选）。
+// 每个元素需含 name（必填）、keywords（可选）与 parent（可选，二级分类指向父级 id）。
+// 二级架构约定：父子同分/同相关度时，优先更具体的二级（叶子）分类。
 // ---------------------------------------------------------------------------
 function matchCategory(categories, title, content) {
     if (!categories || !categories.length) return null;
     var titleLow = (title || '').toLowerCase();
     var textLow = ((title || '') + '\n' + (content || '')).toLowerCase();
-    var best = null, bestScore = 0;
+    var best = null, bestScore = 0, bestParent = null;
     categories.forEach(function (c) {
         var name = (c.name || '').trim().toLowerCase();
         if (!name || name.length < 2) return;               // 跳过过短分类名，降低误命中
@@ -83,7 +84,13 @@ function matchCategory(categories, title, content) {
                 if (tTitle) score += 30;                     // 极短触发词只在标题命中
             }
         });
-        if (score > bestScore) { bestScore = score; best = c; }
+        var cParent = c.parent ? String(c.parent) : null;
+        if (score > bestScore) {
+            bestScore = score; best = c; bestParent = cParent;
+        } else if (score === bestScore && score > 0 && !bestParent && cParent) {
+            // 父子同分：优先更具体的二级（叶子）分类，贴合「发布选二级」的站点约定
+            best = c; bestParent = cParent;
+        }
     });
     return bestScore > 0 ? best : null;
 }

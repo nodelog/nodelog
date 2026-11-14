@@ -142,6 +142,13 @@ exports.auth = function (req, res, next) {
 //   - tags 为空：用 autoClassify.extractTags 从标题/正文轻量分词取 Top5
 // ---------------------------------------------------------------------------
 exports.publish = function (req, res) {
+    // 契约兼容：文档约定请求字段为 title，内部 buildFields 取 name。二者互为别名，
+    // 优先 name（保持对同步脚本等已传 name 的调用方向后兼容），仅当 name 缺省时用 title 兜底。
+    // 放在 buildFields 之前，确保下游自动分类匹配 / 标签提取 / 去重 / 落库 / 风控全部拿到标题。
+    if (req.body && !req.body.name && req.body.title) {
+        req.body.name = req.body.title;
+    }
+
     var f = content.buildFields(req);
 
     if (!f.name) return res.status(400).json({ success: false, msg: '标题不能为空' });
@@ -278,7 +285,13 @@ exports.listCategories = function (req, res) {
             return res.status(500).json({ success: false, msg: '服务端错误' });
         }
         var data = (docs || []).map(function (c) {
-            return { id: c._id, name: c.name, slug: c.slug || '', description: c.description || '' };
+            return {
+                id: c._id,
+                name: c.name,
+                slug: c.slug || '',
+                description: c.description || '',
+                parent: c.parent ? String(c.parent) : null   // 二级架构：null=顶级，否则为父级分类 id
+            };
         });
         res.json({ success: true, data: data });
     });

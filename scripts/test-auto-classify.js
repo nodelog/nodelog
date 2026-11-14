@@ -11,7 +11,9 @@ var cats = [
     { _id: 'c1', name: '前端', keywords: '' },
     { _id: 'c2', name: '运维', keywords: 'docker,k8s,nginx,部署' },
     { _id: 'c3', name: '人工智能', keywords: 'llm,大模型,gpt' },
-    { _id: 'c4', name: '数据库', keywords: '' }
+    { _id: 'c4', name: '数据库', keywords: '' },
+    { _id: 'c5', name: '前端框架', parent: 'c1', keywords: 'react,vue' },     // 二级（前端 的子分类）
+    { _id: 'c6', name: '容器', parent: 'c2', keywords: 'k8s' }                 // 二级（运维 的子分类）
 ];
 
 var pass = 0, fail = 0;
@@ -35,6 +37,22 @@ check('无匹配返回 null', m4 === null);
 
 var m5 = ac.matchCategory([], 'React 前端', '');
 check('空分类列表返回 null', m5 === null);
+
+// 二级架构：父子同分优先二级（叶子）
+var m6 = ac.matchCategory(cats, '前端框架入门，用 react 开发', 'vue 与 react 对比');
+check('父子同名命中时优先二级「前端框架」', m6 && m6._id === 'c5');
+
+// 父子触发词同分（父级自身无额外命中）优先二级
+var tieCats = [
+    { _id: 'p1', name: '语言', keywords: 'java' },
+    { _id: 'p2', name: 'JavaWeb', parent: 'p1', keywords: 'spring' }
+];
+var m7 = ac.matchCategory(tieCats, 'java 与 spring 对比', '');
+check('父子触发词同分优先二级「JavaWeb」', m7 && m7._id === 'p2');
+
+// 父级被标题明确点名时不被二级弱匹配覆盖
+var m8 = ac.matchCategory(cats, '前端性能优化', '讲浏览器渲染与打包');
+check('父级明确命中（无二级命中）仍选顶级「前端」', m8 && m8._id === 'c1');
 
 console.log('extractTags:');
 var t1 = ac.extractTags('使用 Redis 做缓存', 'redis 是高性能的 key-value 数据库，我们用 redis 缓存热点数据，提升性能', 'markdown', 5);
