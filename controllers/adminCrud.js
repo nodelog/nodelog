@@ -90,6 +90,22 @@ function buildWhere(desc, filters, req) {
     return w;
 }
 exports.buildWhere = buildWhere;
+
+// 【写定位条件】只带归属/权限约束，绝不带 desc.soft。
+// desc.soft 是【列表可见性】过滤（如 content 的 {status:{$ne:1},draft:{$ne:true}}、
+// category/tag/log 的 {status:0}、user 的 {status:{$lt:2}}），它的语义是「哪些记录能被列出来」，
+// 不是「哪条记录允许被修改」。把它当写条件会带来两个必现故障：
+//   1) 已禁用/已软删的记录 status=1 不满足 soft，update 命中 0 条 → changed=0 →
+//      被误判成「目标不存在或无权操作」，批量改状态(恢复正常)与批量删除整片标红失败；
+//   2) 批量改状态到「正常」后再次操作、或删除已禁用记录，同样命中 0 条。
+// 权限不因此放宽：路由层 authorizeAdmin 仍在，归属仍由 scopeTerm 按 session 注入（E09）。
+// 敏感词资源此前已用 writeDesc={soft:{}} 单独绕过，这里把修正收敛到共用编排层。
+function writeScope(desc, req) {
+    var w = {};
+    if (desc && desc.owner) return kit.scopeTerm(req && req.session && req.session.user, desc.owner, w);
+    return w;
+}
+exports.writeScope = writeScope;
 // 供 adminIo.js（CSV 导入导出）复用同一套解析/错误归一化，避免第二套口径。
 exports._internal = {parseOf: parseOf, sortOf: sortOf, sendErr: sendErr, okMsg: okMsg, userErrMsg: userErrMsg};
 
@@ -174,7 +190,7 @@ exports.status = function (cfgItem) {
         var chk = kit.requireId(req.body.id);
         var status = kit.intInRange(req.body.status, cfgItem.statusRange[0], cfgItem.statusRange[1], null);
         if (!chk.ok || status === null) return res.status(400).json(kit.failBody(cfgItem.shape, '参数错误'));
-        var where = buildWhere(cfgItem.desc, {}, req);
+        var where = writeScope(cfgItem.desc, req);
         var auditMeta = {action: 'status', target: cfgItem.target, objectId: [chk.id], detail: 'changed:status'};
         function after(err, changed, oldDoc) {
             var success = !err && changed > 0;
@@ -208,7 +224,7 @@ exports.remove = function (cfgItem) {
     return function (req, res) {
         var chk = kit.requireId(req.body.id);
         if (!chk.ok) return res.status(400).json(kit.failBody(cfgItem.shape, '参数错误'));
-        var where = buildWhere(cfgItem.desc, {}, req);
+        var where = writeScope(cfgItem.desc, req);
         var auditMeta = {action: 'delete', target: cfgItem.target, objectId: [chk.id], detail: 'changed:status'};
         function proceed(oldDoc) {
             cfgItem.Model.adminSoftDelete(chk.id, where, function (err, changed) {
@@ -250,7 +266,7 @@ exports.batch = function (cfgItem) {
         if (!action || (action === 'status' && status === null)) {
             return res.status(400).json({success: false, msg: '参数错误', results: [], failed: 0});
         }
-        var where = buildWhere(cfgItem.desc, {}, req);
+        var where = writeScope(cfgItem.desc, req);
         var results = v.invalid.slice();
         var allowed = v.ids.slice();
         function writeOne(id, cb) {

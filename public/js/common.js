@@ -1144,7 +1144,15 @@
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams(data || {}).toString()
     }).then(function (r) {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
+      if (!r.ok) {
+        // 4xx/5xx 的响应体里通常有后端给出的真实原因（参数错误/未登录/非法请求来源）。
+        // 以前直接抛 'HTTP 400'，前端只能显示「网络错误」，用户无从下手。
+        return r.json().catch(function () { return null; }).then(function (body) {
+          var e = new Error((body && (body.msg || body.message)) || ('HTTP ' + r.status));
+          e.status = r.status;
+          throw e;
+        });
+      }
       return r.json();
     });
   }
@@ -1263,7 +1271,7 @@
     confirmBox('删除后无法恢复，确定删除选中的 ' + ids.length + ' 条记录吗？', function () {
       post(apiFor(res, 'batch', self), { ids: ids, action: 'delete' })
         .then(function (data) { applyBatchResult(data, ids, 'delete'); })
-        .catch(function () { toast('网络错误，批量删除未生效'); });
+        .catch(function (e) { toast((e && e.status && e.message) ? ('批量删除未生效：' + e.message) : '网络错误，批量删除未生效'); });
     });
   });
   on(document, 'click', '.js-batch-status', function () {
@@ -1278,22 +1286,32 @@
     confirmBox('确定把选中的 ' + ids.length + ' 条记录改为目标状态吗？', function () {
       post(apiFor(res, 'batch', self), { ids: ids, action: 'status', status: status })
         .then(function (data) { applyBatchResult(data, ids, 'status', status); })
-        .catch(function () { toast('网络错误，批量改状态未生效'); });
+        .catch(function (e) { toast((e && e.status && e.message) ? ('批量改状态未生效：' + e.message) : '网络错误，批量改状态未生效'); });
     });
   });
+  function clearRowError(tr) {
+    tr.classList.remove('admin-row--error');
+    tr.removeAttribute('data-batch-error');
+    var old = tr.querySelector('.admin-row-error-tag');
+    if (old && old.parentNode) old.parentNode.removeChild(old);
+  }
   function applyBatchResult(data, ids, action, status) {
     if (!data || data.success === false) { toast((data && data.msg) || '操作失败，原数据已保留'); return; }
-    var results = data.results || [];
-    var okMap = {};
-    var okN = 0;
-    results.forEach(function (r) {
-      if (r && r.ok) { okMap[String(r.id)] = r; okN++; }
+    // 响应结构异常时不要把所有行一键刷红——那会伪装成「每条都失败」，掩盖真正的问题。
+    if (!Array.isArray(data.results)) { toast('批量操作返回异常，原数据已保留，请检查服务端日志'); return; }
+    var okMap = {}, errMap = {}, okN = 0, firstErr = '';
+    data.results.forEach(function (r) {
+      if (!r) return;
+      var key = String(r.id);
+      if (r.ok) { okMap[key] = r; okN++; }
+      else { errMap[key] = r.msg || ''; if (!firstErr && r.msg) firstErr = r.msg; }
     });
     var failed = (typeof data.failed === 'number') ? data.failed : (ids.length - okN);
     ids.forEach(function (id) {
       var tr = rowOf(id);
       if (!tr) return;
       if (okMap[String(id)]) {
+        clearRowError(tr); // 重试成功要抹掉上一次的标红，避免残留假失败
         if (action === 'delete') {
           if (tr.parentNode) tr.parentNode.removeChild(tr);
         } else {
@@ -1305,16 +1323,20 @@
         tr.classList.add('admin-row--error');
         tr.setAttribute('data-batch-error', '1');
         var op = tr.querySelector('.admin-col-actions') || tr.lastElementChild;
-        if (op && !op.querySelector('.admin-row-error-tag')) {
-          var tag = document.createElement('span');
+        var tag = op && op.querySelector('.admin-row-error-tag');
+        if (op && !tag) {
+          tag = document.createElement('span');
           tag.className = 'admin-row-error-tag';
-          tag.textContent = ' 操作失败';
           op.appendChild(tag);
+        }
+        if (tag) {
+          tag.textContent = ' 操作失败';
+          tag.title = errMap[String(id)] || ''; // 悬停可见后端逐条原因
         }
       }
     });
     updateCount();
-    if (failed > 0) toast('成功 ' + okN + ' 条，失败 ' + failed + ' 条；失败记录已保留');
+    if (failed > 0) toast('成功 ' + okN + ' 条，失败 ' + failed + ' 条；失败记录已保留' + (firstErr ? '（' + firstErr + '）' : ''));
     else toast((action === 'delete' ? '已删除 ' : '已更新 ') + okN + ' 条');
   }
 

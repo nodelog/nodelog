@@ -5,10 +5,15 @@
 
 function toCount(result) {
     if (!result) return 0;
-    if (result.modifiedCount != null) return result.modifiedCount;
-    if (result.nModified != null) return result.nModified;
+    var modified = result.modifiedCount != null ? result.modifiedCount
+        : (result.nModified != null ? result.nModified : (result.n != null ? result.n : 0));
+    if (modified > 0) return modified;
+    // 命中但值没变（$set 成当前值、或对已软删记录再删一次）：MongoDB 返回
+    // matchedCount=1 / modifiedCount=0。这是「找到且有权」的幂等成功，不是「目标不存在」。
+    // 只看 modifiedCount 会把这类操作误判成失败，导致批量改状态/批量删除整批标红。
+    if (result.matchedCount != null) return result.matchedCount;
     if (result.n != null) return result.n;
-    return 0;
+    return modified;
 }
 
 function castError(id) {
