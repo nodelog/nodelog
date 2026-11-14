@@ -302,7 +302,7 @@ components:
 
 | 断点 | 导航 | 网格 | 侧栏 | 阅读行宽 |
 |---|---|---|---|---|
-| **桌面 ≥1024px**（≥1280 用 1200 容器） | 全部展开：首页 / 分类下拉 / 公告 / 写文章 / 我的文章 / 扫码登录 / 搜索框 180px / 主题切换（顺序与分组以 §6.1 为准）；`.js-search-bar` 靠右（`margin-left:auto`） | 首页 2 列 + lead 跨列；列表页单列索引 | 右侧 280px，随主列 `align-items:start` | 68ch ≈578px |
+| **桌面 ≥1024px**（≥1280 用 1200 容器，仅前台） | 左区主导航：首页 / 分类下拉 / 公告；右区工具：写文章 CTA / 搜索框 180px / 主题切换 / 账号菜单（分区见 §6.1）；`.nav-tools` 靠右（`margin-left:auto`） | 首页 2 列 + lead 跨列；列表页单列索引 | 右侧 280px，随主列 `align-items:start` | 68ch ≈578px |
 | **平板 768–1023px** | 保留「站名 + 分类 + 搜索 + 主题」4 项，其余收进 `.navbar-collapse`（Bootstrap `data-toggle`/`data-target` 钩子保留，只改 CSS）；搜索框宽 160px | 首页 2 列，lead 仍跨列 | **移到主内容下方**、页脚之前，`aside` 不删除（`#tagCloud` 依赖 DOM） | 同 68ch，`min(68ch, 100% - 48px)` |
 | **手机 <768px**（重点 375 / 390） | `.navbar-toggle` 显示，`.navbar-collapse` 收为面板；搜索框在面板内 **100% 宽独占一行**（替换 `theme.css:485` 的 130px） | 全部 1 列，lead 不跨列但保留 34px 标题 | 主内容之后、页脚之前，卡片间距 16px | `min(68ch, 100% - 32px)`，正文 17px **不缩** |
 
@@ -315,28 +315,39 @@ components:
 
 原实现的问题不是视觉，而是结构：`currentMenu` 字符串散落在 15+ 个 controller / route，两个 header 各自硬编码菜单项、链接、角色判断与高亮规则，`sensitiveWord` / `sensitive-word` 两种写法并存，后台 13 项一级平铺且与 fixed 顶栏的 `flex-wrap` 冲突。本节为收口后的唯一口径。
 
-**单一配置源**：`navConfig.js`（根目录，经 `app.js` 挂到 `app.locals.navConfig`）。每项为 `{ key, label, href, roles, aliases, hrefByRole, labelByRole, defaultCurrent }`。`key` **沿用既有 `currentMenu` 取值**，controller 与 `routes/index.js` 零改动；别名由 `aliases` 兼容。`isCurrent / visible / hrefFor / labelFor / groupOf` 为纯函数，供 EJS 直接调用。搜索框、主题切换、账号 / 退出属功能控件，**不是导航项**，不纳入配置。
+**单一配置源**：`navConfig.js`（根目录，经 `app.js` 挂到 `app.locals.navConfig`）。每项为 `{ key, label, href, zone, roles, aliases, hrefByRole, labelByRole, defaultCurrent }`。`key` **沿用既有 `currentMenu` 取值**，controller 与 `routes/index.js` 零改动；别名由 `aliases` 兼容。`isCurrent / visible / hrefFor / labelFor / groupOf` 为纯函数，供 EJS 直接调用。前台 `front.zones` 由 `groups[].zone` 派生（`primary / cta / account`），是同一份配置的索引、不是第二真源；后台 `admin.account` 定义账号菜单。搜索框、主题切换属功能控件，**不是导航项**，不纳入配置。
 
 | | 前台 `navConfig.front` | 后台 `navConfig.admin` |
 |---|---|---|
-| 分组 | 内容（首页 / 分类 / 公告）、创作（写文章 / 我的文章） | 概览；内容（文章 / 分类 / 标签 / 公告 / 链接）；社区（用户 / 评论）；治理与系统（操作日志 / 敏感词 / 违规记录 / 设置） |
-| 载体 | `header.ejs` 顶栏，工具带（账号 / 搜索 / 主题）靠右 | `manager/header.ejs` 左侧栏四组 `<details>`（原生、零 JS、可键盘折叠）；顶栏只留品牌 / 返回前台 / 账号 / 退出 |
-| 桌面 ≥1024px | 主导航按配置顺序展开：首页 → 分类 → 公告 → 写文章 → 我的文章 | 200px 侧栏 + 主内容两列；fixed 顶栏 68px 让位由 `.manager-shell` 统一承担，`.l-top-bottom` 不再各自让位 |
-| 平板 768–1023px | 沿用 §6 三断点表（分类 + 搜索 + 主题保留，其余收折叠面板） | 侧栏移到主内容上方，四组排成两列，顶栏不换行 |
-| 手机 <768px | 沿用 §6：`navbar-collapse` 面板、搜索 100% 宽独占一行 | 侧栏四组单列；顶栏隐藏用户名，避免 375px 挤压 |
+| 分区 | **三区**：`primary` 主导航（首页 / 分类 / 公告，只放内容目的地）；`cta` 创作动作（写文章，按钮而非文字链接）；`account` 账号域（我的文章 / 管理后台 / 退出登录） | 侧栏四组：概览；内容（文章 / 分类 / 标签 / 公告 / 链接）；社区（用户 / 评论）；治理与系统（操作日志 / 敏感词 / 违规记录 / 设置）；另有顶栏账号域 |
+| 载体 | `header.ejs` 顶栏两个 `<ul>`：`.nav-primary` 靠左、`.nav-tools` 靠右（CTA / 搜索 / 主题 / 账号下拉）；未登录时工具区只显示「扫码登录」 | `manager/header.ejs` 左侧栏四组 `<details>`（原生、零 JS、可键盘折叠）；顶栏左侧「品牌 + 返回前台」，右侧账号下拉 |
+| 桌面 ≥1024px | 两区横向展开，账号菜单右对齐 `.dropdown-menu--right` | **全宽流体**：200px 侧栏 + `minmax(0,1fr)` 主内容吃满视口，不套 1200 居中容器；仅 24px 安全内边距；fixed 顶栏 68px 让位由 `.manager-shell` 承担，顶栏 padding 同步覆盖前台居中值以对齐内容 |
+| 平板 768–1023px | 沿用 §6 三断点表 | 侧栏移到主内容上方，四组排成两列，顶栏不换行 |
+| 手机 <768px | 沿用 §6：`navbar-collapse` 面板、两个 `<ul>` 纵向堆叠、搜索 100% 宽独占一行 | 侧栏四组单列；账号昵称截断到 72px，避免 375px 挤压 |
+
+**账号域标准口径（回答「点用户名进后台是否合理」）**：不合理。导航是「去某个内容目的地」，账号菜单是「与当前身份相关的操作」，两者不同域，混在同一排就是不规范。四个元素的标准语义与位置如下，前后台一律遵守：
+
+| 元素 | 标准语义 | 标准位置 | 本项目落地 |
+|---|---|---|---|
+| 用户名 / 头像 | 身份标识 + **账号菜单触发器**，不是页面链接 | 顶栏最右 | `data-nav-toggle` 触发 `.dropdown-menu--right`，`href` 不再是 `/manager` |
+| 进入后台 | 显式命名、带权限的**管理入口**，不能让用户猜「点名字会去哪」 | 前台账号菜单内 | 菜单项「管理后台」→ `/manager` |
+| 返回前台 / 查看站点 | 「离开管理界面」的**反向入口**，独立可见 | 后台顶栏品牌旁 | `.manager-back-link`，不塞进账号菜单 |
+| 退出登录 | 会话操作，账号菜单**最后一项** | 账号菜单内 | `js-logout-btn` + `role="button" tabindex="0"`，不再与导航项平级 |
+
+配套：`common.js` 用统一的 `[data-nav-toggle]` 处理分类 / 账号下拉，同一时刻只开一个，点击外部或 Esc 关闭并把焦点还给触发器；登录态按「已登录块 / 未登录块」整体切换（`.js-when-logged-in` / `.js-when-logged-out`），不再逐个隐藏块内 `<a>` 留下空白占位。
 
 **权限边界（重要）**：`roles` 只决定**是否渲染入口**，不替代、不修改任何路由鉴权（`filter.authorize` / `filter.authorizeAdmin`）。管理员可见 12 项；普通用户可见 3 项（概览 / 文章 / 我的资料）。`labelByRole` 把普通用户的「用户」改为「我的资料」，因为 `/manager/user` 对非管理员只渲染本人信息（`controllers/user.js:45-46`）——这是文案与落地页对齐，**不是鉴权变更**。
 
 **链接与可访问性硬口径**：
 
-1. 所有导航项必须是真实 `href`，可深链接、可中键打开、无 JS 可用。「我的文章」为 `/content/user?page=1`，未登录时由 `common.js` 的 `.js-my-content-menu` 拦截并唤起扫码登录；禁止回退到 `href="javascript:;"` + `location.href`。「写文章」去掉遗留的 `?view=addContent`。
+1. 所有导航项必须是真实 `href`，可深链接、可中键打开、无 JS 可用。「我的文章」为 `/content/user?page=1`（在账号菜单内），未登录时由 `common.js` 的 `.js-my-content-menu` 拦截并唤起扫码登录；禁止回退到 `href="javascript:;"` + `location.href`。「写文章」是 CTA 按钮（`.btn.btn-primary.nav-cta`），不再是主导航文字链接，且去掉遗留的 `?view=addContent`。
 2. 分类下拉是 JS 动态填充，**必须有静态兜底**：`header.ejs` 预置「全部文章 → `/`」；`common.js` 在成功渲染与失败态中都保留同一入口，失败态仍按 §5 给 error + 重试，不得写成「暂无分类」。
 3. 当前项同时输出 `class="current-menu"` 与 `aria-current="page"`（前台顶栏 + 后台侧栏）；`<nav>` 有 `aria-label`；后台补 `skip-link`、`<main id="main">`、`<aside>`，退出链接补 `role="button" tabindex="0"`，Space 键垫片同时存在于前台与后台 footer。
 4. `href="javascript:;"` 只允许出现在登录 / 退出等非导航控件上，并须带 `role="button" tabindex="0"`。
 
 **非导航项定性（防止 QA 误报）**：`/manager/analytics` 是 `controllers/analytics.js` 的 **JSON 数据接口**（`res.json`），不是页面，不纳入导航；`manager/index.ejs` 的 8 张统计卡是数据概览入口，与侧栏不冲突，不视为第二套导航。
 
-**验收**：管理员 / 普通用户两种角色各渲染一次 header，核对可见项数（12 / 3）、`aria-current` 唯一命中、别名 `sensitive-word` 命中敏感词；在 375 / 768 / 834 / 1024 / 1440 五个宽度核对后台顶栏不换行、侧栏按断点切换；禁用 JavaScript 后前台主导航与分类兜底仍可到达内容页。
+**验收**：管理员 / 普通用户两种角色各渲染一次 header，核对后台可见项数（12 / 3）、`aria-current` 唯一命中、别名 `sensitive-word` 命中敏感词；前台核对三区归属（主导航仅 3 个目的地、写文章为 CTA、账号菜单含显式「管理后台」且用户名不是 `/manager` 链接）、登录 / 未登录两态只显示对应的账号块；在 375 / 768 / 834 / 1024 / 1440 五个宽度核对后台顶栏不换行、侧栏按断点切换、**内容区左右无居中留白且顶栏与内容对齐**；禁用 JavaScript 后前台主导航与分类兜底仍可到达内容页；键盘验证账号 / 分类下拉的 Enter / Space / Esc 与焦点归还。
 
 ## 7. 可访问性与动效约束（含实证违规项）
 

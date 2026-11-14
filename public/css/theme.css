@@ -663,12 +663,23 @@ section.card + section.card { margin-top: var(--space-6); }
 }
 .manager .manager-nav-link.current-menu { color: var(--accent); background: var(--accent-weak); }
 .manager .navbar { display: flex; align-items: center; justify-content: space-between; }
-.manager .navbar .navbar-header { float: none; }
+.manager .navbar .navbar-header { float: none; display: flex; align-items: center; gap: var(--space-3); }
 .manager .navbar .manager-top-tools { flex-wrap: nowrap; margin-left: auto; }
-.manager .manager-top-user {
+/* 「返回前台」：品牌旁的独立反向入口，不做成账号菜单项，避免用户找不到离开后台的路 */
+.manager .manager-back-link {
     display: inline-flex; align-items: center; min-height: 44px;
-    padding: var(--space-2) var(--space-3); font-size: var(--fs-body-sm);
-    color: var(--manager-nav-fg); opacity: .82;
+    padding: 0 var(--space-3); font-size: var(--fs-body-sm);
+    border: 1px solid var(--manager-nav-edge); border-radius: var(--radius-control);
+    text-decoration: none; opacity: .82; white-space: nowrap;
+}
+.manager .manager-back-link:hover, .manager .manager-back-link:focus {
+    opacity: 1; background: var(--manager-nav-hover); text-decoration: none;
+}
+/* 深色顶栏里的下拉浮层用 surface/ink 配色，不能被 .manager .navbar a 的白字规则染色 */
+.manager .navbar .dropdown-menu > li > a { color: var(--ink) !important; }
+.manager .navbar .dropdown-menu > li > a:hover,
+.manager .navbar .dropdown-menu > li > a:focus {
+    color: var(--ink) !important; background: var(--surface-2);
 }
 /* 深色顶栏：bootstrap 的 navbar-fixed-top 是 fixed，必须让位 68px；白字不受前台 .color-white 影响 */
 .manager .navbar { position: fixed; left: 0; right: 0; background: var(--manager-nav-bg); border-bottom-color: var(--manager-nav-line); }
@@ -827,7 +838,8 @@ html body .layui-layer-dialog .layui-layer-content { background: var(--surface) 
     .navbar { padding-left: var(--space-4); padding-right: var(--space-4); }
     .nav-tools { margin-left: 0; }
     .manager .manager-nav { grid-template-columns: minmax(0,1fr); }
-    .manager .manager-top-user { display: none; }
+    .manager .nav-account-name { max-width: 72px; }
+    .manager .manager-back-link { padding: 0 var(--space-2); }
     .manager .manager-shell { padding-left: var(--space-4); padding-right: var(--space-4); }
     .navbar .nav { flex-direction: column; align-items: stretch; gap: var(--space-1); }
     .navbar .nav > li > a { justify-content: flex-start; }
