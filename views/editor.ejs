@@ -20,27 +20,95 @@
 <script src="/vendor/vditor/dist/index.min.js"></script>
 <script>
 (function () {
-  if (typeof Vditor === 'undefined') {
-    // 兜底：Vditor 没加载出来时退回纯文本框，保证文章仍能保存
-    var $ta = document.getElementById('editor');
-    if ($ta) { $ta.style.display = 'block'; $ta.className = 'js-editor form-control'; $ta.setAttribute('rows', '20'); }
-    return;
-  }
   var $src = document.getElementById('editor');
   var $title = document.querySelector('.js-add-content-name');
   var docId = $title ? ($title.getAttribute('data-id') || 'new') : 'new';
-  var draftKey = 'nl-draft-' + docId;
+  var isNew = (docId === 'new');
+  var DRAFT_VER = 2;
+  var sid = '';
 
-  // 草稿回灌：仅当服务端内容为空（新建 / 上次未保存）时，用本地草稿覆盖
-  var initial = $src.value || '';
-  try {
-    var draft = localStorage.getItem(draftKey);
-    if (draft && initial.trim() === '') initial = draft;
-  } catch (e) {}
+  /* ---------- 草稿：结构化 + 按编辑会话隔离 + 存量自愈 ----------
+     旧实现让所有新文章共用一个固定的 nl-draft-new，只存裸文本，且只在
+     「保存成功」时清一次：浏览器里一旦留下过一份草稿（保存失败、直接关页、
+     或修复前遗留），之后每次「写新文章」都会把它无条件回灌进来。
+     这里做三件事：① 新文章草稿按会话分槽 ② 草稿带版本/归属/会话，脏数据
+     不回灌且直接删 ③ 发布成功后清全部 new 草稿并关闭后续写入。            */
+  if (isNew) {
+    try {
+      sid = sessionStorage.getItem('nl-draft-sid') || '';
+      if (!sid) {
+        sid = String(Date.now()) + '-' + Math.random().toString(36).slice(2, 8);
+        sessionStorage.setItem('nl-draft-sid', sid);
+      }
+    } catch (e) { sid = String(Date.now()); }
+  }
+  var draftKey = isNew ? ('nl-draft-new-' + sid) : ('nl-draft-' + docId);
 
+  function removeDraftKeys(match) {
+    try {
+      var keys = [], i;
+      for (i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
+      keys.forEach(function (k) { if (k && match(k)) localStorage.removeItem(k); });
+    } catch (e) {}
+  }
+
+  // 自愈：首屏即清掉旧版固定 key 的裸文本草稿（回灌元凶）与其它会话的遗留草稿。
+  // 用户无需手动清浏览器缓存，历史脏数据也不会再被灌回来。
+  removeDraftKeys(function (k) {
+    if (k === 'nl-draft-new') return true;
+    return isNew && k.indexOf('nl-draft-new-') === 0 && k !== draftKey;
+  });
+
+  // 只回灌「本版本 + 本文章 + 本会话」的结构化草稿；旧格式/脏数据一律丢弃。
+  function readDraft() {
+    try {
+      var raw = localStorage.getItem(draftKey);
+      if (!raw) return '';
+      var d;
+      try { d = JSON.parse(raw); } catch (e) { d = null; }
+      if (d && d.v === DRAFT_VER && d.doc === docId && d.sid === sid &&
+          typeof d.text === 'string' && d.text.trim() !== '') return d.text;
+      localStorage.removeItem(draftKey);
+    } catch (e) {}
+    return '';
+  }
+
+  var draftClosed = false;
   function sync(val) {
-    $src.value = val || '';
-    try { localStorage.setItem(draftKey, val || ''); } catch (e) {}
+    if ($src) $src.value = val || '';
+    if (draftClosed) return;                 // 保存成功后禁止 Vditor 延迟回调把内容写回
+    try {
+      var text = val || '';
+      if (text.trim() === '') { localStorage.removeItem(draftKey); return; }
+      localStorage.setItem(draftKey, JSON.stringify({
+        v: DRAFT_VER, doc: docId, sid: sid, ts: Date.now(), text: text
+      }));
+    } catch (e) {}
+  }
+
+  // 供 common.js 发布/保存成功后调用：清全部 new 草稿 + 本文章草稿，关闭后续写入，
+  // 并轮换会话 id —— 下一次「写新文章」必定是空白编辑器。
+  window.__nlClearDraft = function () {
+    draftClosed = true;
+    removeDraftKeys(function (k) {
+      return k === 'nl-draft-new' || k.indexOf('nl-draft-new-') === 0 || k === ('nl-draft-' + docId);
+    });
+    try { sessionStorage.removeItem('nl-draft-sid'); } catch (e) {}
+  };
+
+  var initial = ($src && $src.value) || '';
+  if (initial.trim() === '') initial = readDraft();
+
+  if (typeof Vditor === 'undefined') {
+    // 兜底：Vditor 没加载出来时退回纯文本框，保证文章仍能保存
+    if ($src) {
+      $src.style.display = 'block';
+      $src.className = 'js-editor form-control';
+      $src.setAttribute('rows', '20');
+      $src.value = initial;
+      $src.addEventListener('input', function () { sync(this.value); });
+    }
+    return;
   }
 
   // 上传：复用现有 /api/upload（base64 -> /uploads），把 {success,url} 适配成 Vditor 要求的结构。

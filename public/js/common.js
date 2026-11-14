@@ -82,6 +82,26 @@
   var beforeUnloadHandler = function () { return '您输入的内容尚未保存，确定离开此页面吗？'; };
   function setHtml(el, h) { if (el) el.innerHTML = h; }
 
+  /* 发布/保存成功后清除本地草稿。
+     编辑器脚本暴露 __nlClearDraft（关闭后续写入 + 轮换会话 id）；这里再无条件
+     扫一遍 nl-draft-* 兜底，即使编辑器脚本未就绪（Vditor 加载失败）也能清干净。
+     旧版只清单个 nl-draft-new，浏览器里已经存在的残留草稿从未被清过，
+     一进「写文章」页就回灌上次内容 —— 这次连存量一起清。 */
+  function clearDraft(id) {
+    try { if (typeof window.__nlClearDraft === 'function') window.__nlClearDraft(); } catch (e) {}
+    try {
+      var keys = [], i;
+      for (i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
+      keys.forEach(function (k) {
+        if (!k || k.indexOf('nl-draft-') !== 0) return;
+        if (k === 'nl-draft-new' || k.indexOf('nl-draft-new-') === 0 || (id && k === 'nl-draft-' + id)) {
+          localStorage.removeItem(k);
+        }
+      });
+      sessionStorage.removeItem('nl-draft-sid');
+    } catch (e) {}
+  }
+
   /* ---------------- 初始化（登录态拉取后执行）---------------- */
   function init() {
     /* 正文链接新窗口打开 */
@@ -265,9 +285,8 @@
         closeLayer();
         myMsg(data.msg);
         if (data.success) {
-          // 发布/保存成功后清除本地草稿，避免下次「写新文章」又回灌本次内容
-          // （新增文章草稿 key 固定为 nl-draft-new，不清会跨文章串稿；编辑文章则清 nl-draft-<id>）
-          try { localStorage.removeItem('nl-draft-' + (id || 'new')); } catch (e) {}
+          // 发布/保存成功：清掉本次及历史遗留的全部 new 草稿，下次写新文章必为空白
+          clearDraft(id);
           window.removeEventListener('beforeunload', beforeUnloadHandler);
           if (id != null) location.href = '/content/detail?view=contentDetail&id=' + id;
           else location.href = '/';
