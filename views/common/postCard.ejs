@@ -32,5 +32,11 @@
             <% doc.tags.forEach(function(t){ %><a class="chip" href="/tag/<%= encodeURIComponent(t) %>"><%= t %></a><% }); %>
         </div>
         <% } %>
+        <% if (isMyContent && typeof session !== 'undefined' && session && session.user && session.user._id == doc.author) { %>
+        <div class="post-actions">
+            <a class="btn btn-sm" href="/content/edit?id=<%= doc._id %>&view=editContent">编辑</a>
+            <button type="button" class="btn btn-sm btn-danger js-delete-article" data-id="<%= doc._id %>">删除</button>
+        </div>
+        <% } %>
     </div>
 </article>

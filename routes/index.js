@@ -98,6 +98,8 @@ var route = function (app) {
     app.get('/session', user.session);
     app.post('/session', user.session);
     app.get('/content/user', filter.authorize, content.findByUser);
+    // 前台作者自助删除（复用 content.delete，DAO 层按 author 归属软删，管理员豁免）
+    app.post('/content/delete', filter.authorize, content.delete);
     app.get('/content/search',content.searchFull);
     app.post('/content/search',content.findByWordJson);
     // P0 图床上传（base64 -> public/uploads）

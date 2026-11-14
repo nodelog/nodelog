@@ -8,7 +8,7 @@
 <% if (typeof docs !== 'undefined' && docs && docs.length) { %>
 <div class="post-list">
     <% docs.forEach(function(doc){ %>
-        <%- include('common/postCard', { doc: doc, variant: 'list' }) %>
+        <%- include('common/postCard', { doc: doc, variant: 'list', isMyContent: (typeof isMyContent !== 'undefined' && isMyContent) }) %>
     <% }); %>
 </div>
 <%- include('common/pagination', { page: page, totalPage: totalPage, url: _pageUrl }) %>

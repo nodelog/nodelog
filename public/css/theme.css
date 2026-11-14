@@ -424,6 +424,11 @@ a.chip:hover { border-color: var(--accent); color: var(--accent); text-decoratio
 .btn-primary, .btn.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .btn-primary:hover, .btn.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: var(--accent-ink); }
 .btn-sm { min-height: 44px; padding: var(--space-2) var(--space-4); font-size: var(--fs-body-sm); }
+.btn-danger, .btn.btn-danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+.btn-danger:hover, .btn.btn-danger:hover { background: var(--danger-ink); border-color: var(--danger-ink); color: #fff; }
+.post-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3); }
+.post-actions .btn { min-height: 36px; padding: var(--space-1) var(--space-4); }
+.article-meta .js-delete-article { min-height: 36px; padding: var(--space-1) var(--space-4); }
 .btn.col-sm-1, .btn.col-xs-12, .btn.col-sm-12 { width: auto; min-width: 96px; float: none; }
 .form-group { margin-bottom: var(--space-6); }
 .form-group > label, .form-horizontal label { display: block; margin-bottom: var(--space-2); font-size: var(--fs-body-sm); font-weight: 500; color: var(--ink); }

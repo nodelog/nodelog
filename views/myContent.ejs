@@ -8,7 +8,7 @@
     <p class="kicker">共 <%= total %> 篇</p>
 </div>
 <div class="layout">
-    <div class="layout-main"><%- include('contentPanel') %></div>
+    <div class="layout-main"><%- include('contentPanel', { isMyContent: true }) %></div>
     <%- include('common/sidebar') %>
 </div>
 <input type="hidden" class="js-current-menu" value="js-my-content-menu"/>

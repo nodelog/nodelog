@@ -17,6 +17,7 @@
         <span><%= doc.view %> 次阅读</span>
         <% if (session.user != null && session.user._id == doc.author) { %>
         <a href="/content/edit?id=<%= doc._id %>&view=editContent" class="btn btn-primary">编辑</a>
+        <button type="button" class="btn js-delete-article" data-id="<%= doc._id %>">删除</button>
         <% } else { %>
         <a href="javascript:;" class="js-open-comment-btn" role="button">发表评论</a>
         <% } %>
