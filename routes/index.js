@@ -12,6 +12,7 @@ var ai = require('./../controllers/ai');
 var analytics = require('./../controllers/analytics');
 var rateLimit = require('./../controllers/rateLimit');
 var cfgConst = require('./../controllers/adminConfig');
+var dashboard = require('./../controllers/dashboard');
 var moderation = require('./../controllers/moderation');
 var markdown = require('./../controllers/markdown');
 var openAuth = require('./../controllers/openAuth');
@@ -34,8 +35,10 @@ var route = function (app) {
     app.post('/user/reg', user.addUser);
     app.get('/user/logout', user.logout);
 
-    app.get('/manager', filter.authorize, function (req, res) {
-        res.render('manager/index', { title: req.session.site.name,currentMenu:"home"});
+    app.get('/manager', filter.authorize, dashboard.overview);
+    // 博客设置：原先误置于概览页的站点配置表单，独立成 /manager/setting（仅管理员）
+    app.get('/manager/setting', filter.authorize, filter.authorizeAdmin, function (req, res) {
+        res.render('manager/setting', { title: '博客设置', currentMenu: 'setting' });
     });
     app.post('/manager/site/update',  filter.authorize, filter.authorizeAdmin,  site.update);
     app.get('/manager/user', filter.authorize,  user.findByPage);

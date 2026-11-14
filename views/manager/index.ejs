@@ -1,47 +1,64 @@
 <%- include('header') %>
 
-<div class="jumbotron">
-<% if (session.user.role==0) {%>
-    <h3>博客配置</h3>
-    <form name="siteForm" role="form" action="javascript:;">
-        <div class="form-group">
-            <label for="">博客名称</label>
-            <input type="text" class="form-control" name="name" value="<%= session.site.name %>">
-        </div>
-        <div class="form-group">
-            <label for="">版权</label>
-            <input type="text" class="form-control" name="copyRight" value="<%= session.site.copyRight %>">
-        </div>
+<ol class="breadcrumb">
+    <li class="active">后台首页</li>
+</ol>
+<h3>概览</h3>
+<p class="nl-muted">欢迎使用 <%= session.site.name %> 管理后台，这里是全站运行概况。</p>
 
-        <div class="form-group">
-            <label for="">ICP备案</label>
-            <input type="text" class="form-control" name="icp" value="<%= session.site.icp %>">
-        </div>
-        <div class="form-group">
-            <label for="">版本</label>
-            <input type="text" class="form-control" name="version" value="<%= session.site.version %>">
-        </div>
-
-        <div class="form-group">
-            <label for="">联系电话</label>
-            <input type="text" class="form-control" name="phone" value="<%= session.site.phone %>">
-        </div>
-
-        <div class="form-group">
-            <label for="">联系地址</label>
-            <input type="text" class="form-control" name="address" value="<%= session.site.address %>">
-        </div>
-        <div class="form-group">
-            <label for="">统计代码</label>
-            <textarea type="text" class="form-control" name="statistical" rows="5">
-                <%= session.site.statistical %>
-            </textarea>
-        </div>
-
-        <button type="button" class="btn btn-default js-site-edit-save">更新配置</button>
-    </form>
-<%}else{%>
-    <h1>欢迎使用<%=session.site.name%>管理系统!</h1>
-<%}%>
+<div class="nl-stat-grid">
+    <a class="nl-stat-card" href="/manager/content/admin?page=1">
+        <div class="nl-stat-num"><%= (locals.stats && stats.content) || 0 %></div>
+        <div class="nl-stat-label">文章</div>
+    </a>
+    <a class="nl-stat-card" href="/manager/user/admin?page=1">
+        <div class="nl-stat-num"><%= (locals.stats && stats.user) || 0 %></div>
+        <div class="nl-stat-label">用户</div>
+    </a>
+    <a class="nl-stat-card" href="/manager/comment?page=1">
+        <div class="nl-stat-num"><%= (locals.stats && stats.comment) || 0 %></div>
+        <div class="nl-stat-label">评论</div>
+    </a>
+    <a class="nl-stat-card" href="/manager/category/admin?page=1">
+        <div class="nl-stat-num"><%= (locals.stats && stats.category) || 0 %></div>
+        <div class="nl-stat-label">分类</div>
+    </a>
+    <a class="nl-stat-card" href="/manager/tag?page=1">
+        <div class="nl-stat-num"><%= (locals.stats && stats.tag) || 0 %></div>
+        <div class="nl-stat-label">标签</div>
+    </a>
+    <a class="nl-stat-card" href="/manager/log/admin?page=1">
+        <div class="nl-stat-num"><%= (locals.stats && stats.log) || 0 %></div>
+        <div class="nl-stat-label">公告</div>
+    </a>
+    <a class="nl-stat-card" href="/manager/sensitive-word">
+        <div class="nl-stat-num"><%= (locals.stats && stats.sensitiveWord) || 0 %></div>
+        <div class="nl-stat-label">敏感词</div>
+    </a>
+    <a class="nl-stat-card" href="/manager/violation">
+        <div class="nl-stat-num"><%= (locals.stats && stats.violation) || 0 %></div>
+        <div class="nl-stat-label">违规记录</div>
+    </a>
 </div>
+
+<% if (session.user && session.user.role == 0) { %>
+<div class="nl-quick">
+    <h4>快捷操作</h4>
+    <a class="btn btn-default" href="/manager/setting">博客设置</a>
+    <a class="btn btn-default" href="/manager/audit/page">操作日志</a>
+</div>
+<% } %>
+
+<style>
+.nl-muted{color:#606a76;font-size:15px;margin:8px 0 0}
+.nl-stat-grid{display:flex;flex-wrap:wrap;gap:16px;margin:24px 0 8px}
+.nl-stat-card{flex:1 1 160px;min-width:150px;background:#fff;border:1px solid #e0e3e6;border-radius:12px;padding:20px 22px;text-decoration:none;color:#171b21;transition:border-color .15s,transform .15s}
+.nl-stat-card:hover{border-color:#1d4ed8;transform:translateY(-1px)}
+.nl-stat-num{font-size:34px;font-weight:500;line-height:1.15}
+.nl-stat-label{font-size:13px;color:#606a76;margin-top:6px}
+.nl-quick{margin-top:32px}
+.nl-quick h4{font-size:18px;font-weight:500;margin:0 0 12px}
+.nl-quick .btn{margin-right:8px;margin-bottom:8px}
+</style>
+
 <%- include('footer') %>
