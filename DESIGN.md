@@ -311,6 +311,33 @@ components:
 - 所有可交互元素 ≥44×44px，相邻间距 ≥8px；`.pager` 的页码点击区（现 `padding:6px 12px`）补到 44×44。
 - 固定/吸顶元素用 `env(safe-area-inset-top/bottom)`；移动端弹层用底部 ActionSheet，桌面用居中 Modal（沿用 layer，不新增组件库）。
 
+### 6.1 导航信息架构契约（前台 + 后台，Phase 4 收口）
+
+原实现的问题不是视觉，而是结构：`currentMenu` 字符串散落在 15+ 个 controller / route，两个 header 各自硬编码菜单项、链接、角色判断与高亮规则，`sensitiveWord` / `sensitive-word` 两种写法并存，后台 13 项一级平铺且与 fixed 顶栏的 `flex-wrap` 冲突。本节为收口后的唯一口径。
+
+**单一配置源**：`navConfig.js`（根目录，经 `app.js` 挂到 `app.locals.navConfig`）。每项为 `{ key, label, href, roles, aliases, hrefByRole, labelByRole, defaultCurrent }`。`key` **沿用既有 `currentMenu` 取值**，controller 与 `routes/index.js` 零改动；别名由 `aliases` 兼容。`isCurrent / visible / hrefFor / labelFor / groupOf` 为纯函数，供 EJS 直接调用。搜索框、主题切换、账号 / 退出属功能控件，**不是导航项**，不纳入配置。
+
+| | 前台 `navConfig.front` | 后台 `navConfig.admin` |
+|---|---|---|
+| 分组 | 内容（首页 / 分类 / 公告）、创作（写文章 / 我的文章） | 概览；内容（文章 / 分类 / 标签 / 公告 / 链接）；社区（用户 / 评论）；治理与系统（操作日志 / 敏感词 / 违规记录 / 设置） |
+| 载体 | `header.ejs` 顶栏，工具带（账号 / 搜索 / 主题）靠右 | `manager/header.ejs` 左侧栏四组 `<details>`（原生、零 JS、可键盘折叠）；顶栏只留品牌 / 返回前台 / 账号 / 退出 |
+| 桌面 ≥1024px | 主导航按配置顺序展开：首页 → 分类 → 公告 → 写文章 → 我的文章 | 200px 侧栏 + 主内容两列；fixed 顶栏 68px 让位由 `.manager-shell` 统一承担，`.l-top-bottom` 不再各自让位 |
+| 平板 768–1023px | 沿用 §6 三断点表（分类 + 搜索 + 主题保留，其余收折叠面板） | 侧栏移到主内容上方，四组排成两列，顶栏不换行 |
+| 手机 <768px | 沿用 §6：`navbar-collapse` 面板、搜索 100% 宽独占一行 | 侧栏四组单列；顶栏隐藏用户名，避免 375px 挤压 |
+
+**权限边界（重要）**：`roles` 只决定**是否渲染入口**，不替代、不修改任何路由鉴权（`filter.authorize` / `filter.authorizeAdmin`）。管理员可见 12 项；普通用户可见 3 项（概览 / 文章 / 我的资料）。`labelByRole` 把普通用户的「用户」改为「我的资料」，因为 `/manager/user` 对非管理员只渲染本人信息（`controllers/user.js:45-46`）——这是文案与落地页对齐，**不是鉴权变更**。
+
+**链接与可访问性硬口径**：
+
+1. 所有导航项必须是真实 `href`，可深链接、可中键打开、无 JS 可用。「我的文章」为 `/content/user?page=1`，未登录时由 `common.js` 的 `.js-my-content-menu` 拦截并唤起扫码登录；禁止回退到 `href="javascript:;"` + `location.href`。「写文章」去掉遗留的 `?view=addContent`。
+2. 分类下拉是 JS 动态填充，**必须有静态兜底**：`header.ejs` 预置「全部文章 → `/`」；`common.js` 在成功渲染与失败态中都保留同一入口，失败态仍按 §5 给 error + 重试，不得写成「暂无分类」。
+3. 当前项同时输出 `class="current-menu"` 与 `aria-current="page"`（前台顶栏 + 后台侧栏）；`<nav>` 有 `aria-label`；后台补 `skip-link`、`<main id="main">`、`<aside>`，退出链接补 `role="button" tabindex="0"`，Space 键垫片同时存在于前台与后台 footer。
+4. `href="javascript:;"` 只允许出现在登录 / 退出等非导航控件上，并须带 `role="button" tabindex="0"`。
+
+**非导航项定性（防止 QA 误报）**：`/manager/analytics` 是 `controllers/analytics.js` 的 **JSON 数据接口**（`res.json`），不是页面，不纳入导航；`manager/index.ejs` 的 8 张统计卡是数据概览入口，与侧栏不冲突，不视为第二套导航。
+
+**验收**：管理员 / 普通用户两种角色各渲染一次 header，核对可见项数（12 / 3）、`aria-current` 唯一命中、别名 `sensitive-word` 命中敏感词；在 375 / 768 / 834 / 1024 / 1440 五个宽度核对后台顶栏不换行、侧栏按断点切换；禁用 JavaScript 后前台主导航与分类兜底仍可到达内容页。
+
 ## 7. 可访问性与动效约束（含实证违规项）
 
 **必须修的 4 处实证**：

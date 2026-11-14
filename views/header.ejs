@@ -18,37 +18,38 @@
     </div>
     <div class="collapse navbar-collapse" id="example-navbar-collapse">
         <ul class="nav navbar-nav">
-            <li>
-                <a href="/" title="首页" class="color-white js-home-menu <%if((!locals.currentMenu)||currentMenu=="home"){%>current-menu<%}%>" <%if((!locals.currentMenu)||currentMenu=="home"){%>aria-current="page"<%}%>>首页</a>
-            </li>
+            <% navConfig.front.groups.forEach(function(group){ %>
+            <% group.items.forEach(function(item){ %>
+            <% var active = navConfig.isCurrent(item, locals.currentMenu); %>
+            <% if(item.type === "dropdown"){ %>
             <li class="dropdown js-category">
-                <a title="按分类浏览" class="dropdown-toggle color-white js-category-content <%if(locals.currentMenu&&currentMenu=="category"){%>current-menu<%}%>" <%if(locals.currentMenu&&currentMenu=="category"){%>aria-current="page"<%}%> data-toggle="dropdown" href="javascript:;" role="button" aria-haspopup="true" aria-expanded="false">分类 <svg class="nav-caret" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></a>
-                <ul class="dropdown-menu l-select js-category-menu" role="menu" aria-label="分类列表"></ul>
+                <a title="<%= item.title %>" class="dropdown-toggle color-white <%= item.className %> <%if(active){%>current-menu<%}%>" <%if(active){%>aria-current="page"<%}%> data-toggle="dropdown" href="javascript:;" role="button" aria-haspopup="true" aria-expanded="false"><%= item.label %> <svg class="nav-caret" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></a>
+                <ul class="dropdown-menu l-select js-category-menu" role="menu" aria-label="分类列表">
+                    <li class="js-category-fallback"><a class="l-option" href="/" title="分类列表需启用 JavaScript，此处可回首页浏览全部文章">全部文章</a></li>
+                </ul>
             </li>
+            <% }else{ %>
             <li>
-                <a href="/content/addPage?view=addContent" title="写文章" class="color-white js-post-log <%if(locals.currentMenu&&currentMenu=="content"){%>current-menu<%}%>" <%if(locals.currentMenu&&currentMenu=="content"){%>aria-current="page"<%}%>>写文章</a>
+                <a href="<%= item.href %>" title="<%= item.title %>" class="color-white <%= item.className %> <%if(active){%>current-menu<%}%>" <%if(active){%>aria-current="page"<%}%>><%= item.label %><%if(item.badge){%> <span class="badge js-log-count"></span><%}%></a>
             </li>
-            <li>
-                <a href="javascript:;" title="我发表的文章" role="button" class="color-white js-my-content-menu <%if(locals.currentMenu&&currentMenu=="mycontent"){%>current-menu<%}%>" <%if(locals.currentMenu&&currentMenu=="mycontent"){%>aria-current="page"<%}%>>我的文章</a>
-            </li>
-            <li>
-                <a href="/log?view=log&page=1" title="系统公告" class="color-white badge-father js-log <%if(locals.currentMenu&&currentMenu=="log"){%>current-menu<%}%>" <%if(locals.currentMenu&&currentMenu=="log"){%>aria-current="page"<%}%>>公告 <span class="badge js-log-count"></span></a>
-            </li>
+            <% } %>
+            <% }); %>
+            <% }); %>
             <% if(session.user != null){ %>
             <li class="js-login-toggle">
-                <a href="javascript:;" class="js-login-btn color-white" role="button" style="display: none;">登录</a>
-                <a href="/manager" title="后台管理" class="color-white"><%= session.user.realName ? session.user.realName : session.user.userName %></a>
+                <a href="javascript:;" class="js-login-btn color-white" role="button" tabindex="0" style="display: none;">登录</a>
+                <a href="/manager" title="后台管理" class="color-white" aria-label="后台管理"><%= session.user.realName ? session.user.realName : session.user.userName %></a>
             </li>
             <li class="js-login-toggle">
-                <a href="javascript:;" title="退出登录" role="button" class="color-white js-logout-btn">退出</a>
+                <a href="javascript:;" title="退出登录" role="button" tabindex="0" class="color-white js-logout-btn">退出</a>
             </li>
             <% }else{ %>
             <li class="js-login-toggle">
-                <a href="javascript:;" title="扫码登录" class="js-login-btn color-white" role="button">扫码登录</a>
+                <a href="javascript:;" title="扫码登录" class="js-login-btn color-white" role="button" tabindex="0">扫码登录</a>
                 <a href="/manager" class="color-white" style="display: none;"><span class="js-user-name"></span></a>
             </li>
             <li class="js-login-toggle">
-                <a href="javascript:;" role="button" class="color-white js-logout-btn" style="display: none;">退出</a>
+                <a href="javascript:;" role="button" tabindex="0" class="color-white js-logout-btn" style="display: none;">退出</a>
             </li>
             <% } %>
             <li class="dropdown js-search-bar search-bar">

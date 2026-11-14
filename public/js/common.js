@@ -372,10 +372,13 @@
       if (sessionUser == null) { this.blur(); if (qs('.js-login-btn')) qs('.js-login-btn').click(); }
     });
 
-    /* 我发布的 / 我的评论 */
-    on(document, 'click', '.js-my-content-menu', function () {
-      if (sessionUser == null) { if (qs('.js-login-btn')) qs('.js-login-btn').click(); return; }
-      location.href = '/content/user?page=1';
+    /* 我的文章：入口已改为真实链接（可深链接 / 中键打开 / 无 JS 可用），
+       仅未登录时拦截默认跳转并唤起扫码登录。 */
+    on(document, 'click', '.js-my-content-menu', function (e) {
+      if (sessionUser == null) {
+        e.preventDefault();
+        if (qs('.js-login-btn')) qs('.js-login-btn').click();
+      }
     });
     on(document, 'click', '.js-refresh', function () { location.reload(); });
 
@@ -763,6 +766,7 @@
     fetchCategories().then(function (docs) {
       allCategories = docs;
       var html = '<li style="padding: 5px;"><input type="text" class="form-control js-category-auto" placeholder="输入" autofocus x-webkit-speech></li>';
+      html += '<li><a href="/" class="l-option">全部文章</a></li>';
       var _url = '', _addHtml = '', _editHtml = '';
       var _categoryId = val(qs('.js-edit-content-category'));
       docs.forEach(function (tempDoc) {
@@ -800,7 +804,8 @@
       }
     }).catch(function () {
       var menu = qs('.js-category-menu');
-      if (menu) menu.innerHTML = '<li>' + NL.state('error', { title: '分类没加载出来', text: '稍后重试，或回首页浏览文章', retry: 'categories' }) + '</li>';
+      if (menu) menu.innerHTML = '<li><a href="/" class="l-option">全部文章</a></li>' +
+        '<li>' + NL.state('error', { title: '分类没加载出来', text: '稍后重试，或回首页浏览文章', retry: 'categories' }) + '</li>';
     });
 
     on(qs('.js-category-menu'), 'click', '.js-state-retry', function () {
