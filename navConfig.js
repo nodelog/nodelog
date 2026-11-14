@@ -23,11 +23,12 @@ function isAdmin(user) {
     return !!user && Number(user.role) === ROLE_ADMIN;
 }
 
-/* ---------------- 前台：内容 / 创作 两区 + 工具带 ---------------- */
+/* ---------------- 前台：主导航 / 创作动作 / 账号域 三区 ----------------
+   zone 决定界面归属，不再把三种语义混在同一排平铺链接里：
+   primary = 内容目的地；cta = 创作动作按钮；account = 与当前身份相关的操作。 */
 var frontGroups = [
     {
-        id: 'browse',
-        label: '内容',
+        id: 'browse', zone: 'primary', label: '主导航',
         items: [
             {
                 key: 'home', label: '首页', title: '首页', href: '/',
@@ -46,22 +47,39 @@ var frontGroups = [
         ]
     },
     {
-        id: 'create',
-        label: '创作',
+        id: 'create', zone: 'cta', label: '创作动作',
         items: [
             {
                 key: 'content', label: '写文章', title: '写文章',
                 href: '/content/addPage', className: 'js-post-log',
                 requiresLogin: true
-            },
+            }
+        ]
+    },
+    {
+        id: 'account', zone: 'account', label: '账号域',
+        items: [
             {
                 key: 'mycontent', label: '我的文章', title: '我发表的文章',
                 href: '/content/user?page=1', className: 'js-my-content-menu',
                 requiresLogin: true
-            }
+            },
+            { key: 'admin', label: '管理后台', title: '进入管理后台', href: '/manager' },
+            { key: 'logout', label: '退出登录', type: 'action', className: 'js-logout-btn' }
         ]
     }
 ];
+
+/* 按 zone 预索引，EJS 不必重复遍历；仍是同一份配置的派生，不产生第二真源。 */
+var frontZones = { primary: [], cta: [], account: [] };
+frontGroups.forEach(function (g) {
+    (g.items || []).forEach(function (item) { frontZones[g.zone].push(item); });
+});
+
+/* 后台账号域：用户名只作身份标识与菜单触发器，退出是菜单内的会话操作。 */
+var adminAccount = {
+    logout: { label: '退出登录', type: 'action', className: 'js-logout-btn' }
+};
 
 /* ---------------- 后台：概览 / 内容 / 社区 / 治理 四组 ---------------- */
 var adminGroups = [
@@ -161,8 +179,12 @@ function groupOf(groups, currentMenu) {
 
 module.exports = {
     ROLE_ADMIN: ROLE_ADMIN,
-    front: { groups: frontGroups },
-    admin: { groups: adminGroups, backToSite: { label: '返回前台', href: '/' } },
+    front: { groups: frontGroups, zones: frontZones },
+    admin: {
+        groups: adminGroups,
+        backToSite: { label: '返回前台', href: '/' },
+        account: adminAccount
+    },
     isCurrent: isCurrent,
     visible: visible,
     hrefFor: hrefFor,

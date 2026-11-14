@@ -123,21 +123,34 @@
         this.setAttribute('aria-expanded', open ? 'true' : 'false');
       }
     });
-    on(document, 'click', '.js-category-content', function (e) {
+    /* 顶栏下拉统一处理：分类 / 账号都由 [data-nav-toggle] 触发，同一时刻只开一个；
+       点击外部或按 Esc 关闭，并把焦点还给触发器（§7 纯键盘口径）。 */
+    function closeDropdowns(except) {
+      qsa('.dropdown.open').forEach(function (d) {
+        if (d === except) return;
+        d.classList.remove('open');
+        var t = d.querySelector('[data-nav-toggle]');
+        if (t) t.setAttribute('aria-expanded', 'false');
+      });
+    }
+    on(document, 'click', '[data-nav-toggle]', function (e) {
       e.preventDefault();
       var dd = this.closest('.dropdown');
-      if (dd) {
-        var open = dd.classList.toggle('open');
-        this.setAttribute('aria-expanded', open ? 'true' : 'false');
-      }
+      if (!dd) return;
+      var willOpen = !dd.classList.contains('open');
+      closeDropdowns(dd);
+      if (willOpen) dd.classList.add('open'); else dd.classList.remove('open');
+      this.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
     });
     on(document, 'click', function (e) {
-      if (!e.target.closest('.dropdown')) {
-        qsa('.dropdown.open').forEach(function (d) {
-          d.classList.remove('open');
-          var t = d.querySelector('[aria-expanded]'); if (t) t.setAttribute('aria-expanded', 'false');
-        });
-      }
+      if (!e.target.closest('.dropdown')) closeDropdowns(null);
+    });
+    on(document, 'keydown', function (e) {
+      if (e.key !== 'Escape' && e.key !== 'Esc') return;
+      if (!qs('.dropdown.open')) return;
+      var t = qs('.dropdown.open [data-nav-toggle]');
+      closeDropdowns(null);
+      if (t) t.focus();
     });
 
     /* 分类菜单自动筛选 */
@@ -162,7 +175,11 @@
         closeLayer(); loading();
         getJSON('/user/logout', {}).then(function () {
           sessionUser = null;
-          qsa('.js-login-toggle a').forEach(function (a) { a.style.display = (a.classList.contains('js-login-btn') ? '' : 'none'); });
+          /* 账号区按「已登录块 / 未登录块」整体切换，不再逐个隐藏 li 内的 a，
+             避免账号下拉展开态在退出后留下空白占位。 */
+          qsa('.js-login-toggle').forEach(function (el) {
+            el.style.display = el.classList.contains('js-when-logged-out') ? '' : 'none';
+          });
           NL.closeAll();
           window.removeEventListener('beforeunload', beforeUnloadHandler);
           if (url.indexOf('/manager') !== -1) location.href = '/';

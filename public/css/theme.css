@@ -311,6 +311,34 @@ body:not(.manager) .page-shell { padding-top: var(--space-8); padding-bottom: va
 :root[data-theme="dark"] .theme-toggle .i-moon { display: none; }
 :root[data-theme="dark"] .theme-toggle .i-sun { display: block; }
 
+/* ---- 4.1 顶栏三区：主导航 / 动作与工具 / 账号域 ---------------------- */
+/* ≥768px 时 .collapse.navbar-collapse 已是 flex（见 app.css），
+   两个 ul 作 flex item，工具区靠右；<768px 由 §15 改为纵向堆叠。 */
+.nav-primary { flex: 0 1 auto; }
+.nav-tools { margin-left: auto; }
+.nav-tools .js-search-bar { margin-left: 0; }
+/* CTA 是动作按钮，不是普通导航文字；必须盖过 .navbar .nav > li > a 的 muted 配色 */
+.navbar .nav > li > a.nav-cta {
+    color: var(--accent-ink); background: var(--accent);
+    border: 1px solid var(--accent); border-radius: var(--radius-control);
+    padding: 0 var(--space-4); font-weight: 500; white-space: nowrap;
+}
+.navbar .nav > li > a.nav-cta:hover,
+.navbar .nav > li > a.nav-cta:focus {
+    color: var(--accent-ink); background: var(--accent-hover);
+    border-color: var(--accent-hover);
+}
+.navbar .nav > li > a.nav-account-toggle { gap: var(--space-2); }
+.nav-account-name { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dropdown-menu--right { left: auto; right: 0; }
+.dropdown-menu > li.nav-account-head {
+    padding: var(--space-2) var(--space-4) var(--space-3);
+    color: var(--muted); font-size: var(--fs-small);
+    border-bottom: 1px solid var(--border);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.nav-login { white-space: nowrap; }
+
 /* ---- 5. 下拉 / 旧钩子兼容层 ------------------------------------------- */
 /* 前台不再引 style.css；common.js 动态生成的 DOM 全靠这一段保持可读 */
 .hide { display: none !important; }
@@ -797,6 +825,7 @@ html body .layui-layer-dialog .layui-layer-content { background: var(--surface) 
     :root { --fs-h1: 34px; --fs-h2: 28px; --fs-display: 40px; }
     .container, .wrap, .page-shell { padding-left: var(--space-4); padding-right: var(--space-4); }
     .navbar { padding-left: var(--space-4); padding-right: var(--space-4); }
+    .nav-tools { margin-left: 0; }
     .manager .manager-nav { grid-template-columns: minmax(0,1fr); }
     .manager .manager-top-user { display: none; }
     .manager .manager-shell { padding-left: var(--space-4); padding-right: var(--space-4); }
