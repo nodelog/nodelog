@@ -29,14 +29,14 @@ exports.findBySlug = function (req, res) {
             if (total <= 0) {
                 return res.render('tag', {
                     tag: tag, docs: [], title: '标签：' + tag.name,
-                    page: 1, totalPage: 1, total: 0,
+                    page: 1, totalPage: 1, total: 0, isMyContent: false,
                     url: '/tag/' + encodeURIComponent(slug) + '?'
                 });
             }
             Content.findByTag(p, tag.name, sessionUser, function (e2, docs) {
                 res.render('tag', {
                     tag: tag, docs: docs || [], title: '标签：' + tag.name,
-                    page: p, totalPage: totalPage, total: total,
+                    page: p, totalPage: totalPage, total: total, isMyContent: false,
                     url: '/tag/' + encodeURIComponent(slug) + '?'
                 });
             });
