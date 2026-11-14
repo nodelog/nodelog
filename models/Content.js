@@ -261,6 +261,12 @@ ContentDAO.prototype.getCount = function (currentUser, callback) {
         callback(err, total);
     });
 };
+// 看板用：待发布/待审核内容 = 草稿 或 私有(status=2)，即尚未对全站公开的文章
+ContentDAO.prototype.getPendingCount = function (callback) {
+    ContentModel.count({$or: [{draft: true}, {status: constants.CONTENT_SELF_STATUS}]}, function (err, total) {
+        callback(err, total || 0);
+    });
+};
 ContentDAO.prototype.getCountByCategory = function (category, currentUser, callback) {
     var term;
     if (currentUser == null) {

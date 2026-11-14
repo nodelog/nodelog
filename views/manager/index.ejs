@@ -41,6 +41,70 @@
     </a>
 </div>
 
+<div class="nl-detail-grid">
+    <!-- 最近文章 -->
+    <section class="nl-panel">
+        <div class="nl-panel-head">
+            <h4>最近文章</h4>
+            <a class="nl-more" href="/manager/content/admin?page=1">查看全部 &rsaquo;</a>
+        </div>
+        <% if (locals.recentContent && recentContent.length) { %>
+        <ul class="nl-list">
+            <% recentContent.forEach(function (d) { %>
+            <li class="nl-list-item">
+                <a class="nl-title" href="/manager/content/detail?id=<%= d._id %>"><%= d.name %></a>
+                <div class="nl-meta">
+                    <span class="nl-badge nl-badge-<%= d.status == 1 ? 'danger' : (d.status == 2 ? 'muted' : 'ok') %>"><%= d.status == 1 ? '禁用' : (d.status == 2 ? '私有' : '已发布') %></span>
+                    <span><%= d.userName || '佚名' %></span>
+                    <span class="nl-dot">&middot;</span>
+                    <span><%= d.categoryName || '未知' %></span>
+                    <span class="nl-dot">&middot;</span>
+                    <span><%= format(d.createTime) %></span>
+                </div>
+            </li>
+            <% }); %>
+        </ul>
+        <% } else { %>
+        <p class="nl-empty">暂无文章</p>
+        <% } %>
+    </section>
+
+    <!-- 待处理 -->
+    <section class="nl-panel">
+        <div class="nl-panel-head">
+            <h4>待处理</h4>
+        </div>
+        <div class="nl-todo-row">
+            <a class="nl-todo" href="/manager/violation">
+                <div class="nl-todo-num"><%= (locals.pendingViolations && pendingViolations.total) || 0 %></div>
+                <div class="nl-todo-label">违规待处理</div>
+            </a>
+            <a class="nl-todo" href="/manager/content/admin?page=1">
+                <div class="nl-todo-num"><%= (locals.pendingContent != null && pendingContent) || 0 %></div>
+                <div class="nl-todo-label">待发布内容</div>
+            </a>
+        </div>
+        <% if (locals.pendingViolations && pendingViolations.docs && pendingViolations.docs.length) { %>
+        <ul class="nl-list nl-list-sm">
+            <% pendingViolations.docs.forEach(function (v) { %>
+            <li class="nl-list-item">
+                <a class="nl-title" href="/manager/violation"><%= v.hitWord %></a>
+                <div class="nl-meta">
+                    <span><%= v.userName || '某用户' %></span>
+                    <span class="nl-dot">&middot;</span>
+                    <span><%= v.source == 'comment' ? '评论' : '文章' %><%= v.field ? ' / ' + v.field : '' %></span>
+                    <span class="nl-dot">&middot;</span>
+                    <span><%= format(v.time) %></span>
+                </div>
+            </li>
+            <% }); %>
+        </ul>
+        <% } else { %>
+        <p class="nl-empty">暂无待处理违规</p>
+        <% } %>
+    </section>
+</div>
+
 <% if (session.user && session.user.role == 0) { %>
 <div class="nl-quick">
     <h4>快捷操作</h4>
@@ -56,6 +120,32 @@
 .nl-stat-card:hover{border-color:#1d4ed8;transform:translateY(-1px)}
 .nl-stat-num{font-size:34px;font-weight:500;line-height:1.15}
 .nl-stat-label{font-size:13px;color:#606a76;margin-top:6px}
+
+.nl-detail-grid{display:flex;flex-wrap:wrap;gap:16px;margin:24px 0 8px}
+.nl-panel{flex:1 1 360px;min-width:300px;background:#fff;border:1px solid #e0e3e6;border-radius:12px;padding:18px 20px}
+.nl-panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.nl-panel-head h4{font-size:16px;font-weight:500;margin:0}
+.nl-more{font-size:13px;color:#1d4ed8;text-decoration:none}
+.nl-more:hover{text-decoration:underline}
+.nl-list{list-style:none;margin:0;padding:0}
+.nl-list-item{padding:10px 0;border-top:1px solid #f0f2f4}
+.nl-list-item:first-child{border-top:none}
+.nl-title{display:block;font-size:15px;color:#171b21;text-decoration:none;font-weight:500}
+.nl-title:hover{color:#1d4ed8}
+.nl-meta{font-size:12px;color:#606a76;margin-top:4px;display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+.nl-dot{color:#c4c9d0}
+.nl-empty{color:#9097a1;font-size:13px;padding:12px 0}
+.nl-badge{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;line-height:18px}
+.nl-badge-ok{background:#e6f4ee;color:#2f7d5d}
+.nl-badge-danger{background:#fbe9e8;color:#c32d28}
+.nl-badge-muted{background:#eef0f2;color:#606a76}
+.nl-todo-row{display:flex;gap:16px}
+.nl-todo{flex:1;background:#f7f9fb;border:1px solid #e6e9ed;border-radius:10px;padding:14px 16px;text-decoration:none;color:#171b21;transition:border-color .15s}
+.nl-todo:hover{border-color:#1d4ed8}
+.nl-todo-num{font-size:26px;font-weight:500;line-height:1.1}
+.nl-todo-label{font-size:13px;color:#606a76;margin-top:4px}
+.nl-list-sm .nl-list-item{padding:8px 0}
+
 .nl-quick{margin-top:32px}
 .nl-quick h4{font-size:18px;font-weight:500;margin:0 0 12px}
 .nl-quick .btn{margin-right:8px;margin-bottom:8px}
