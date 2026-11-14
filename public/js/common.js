@@ -639,7 +639,25 @@
     });
   }
 
-  // 从已有分类中匹配最相关的一个（完全自动预选分类用）
+  // 内置别名/触发词兜底词典（方案 B 懒人模式）：分类未单独配置 keywords 时，
+  // 按其【名称】命中下列同义触发词，让语义匹配开箱即用，无需手动为每个分类填词。
+  // 用户一旦在后台为该分类填了 keywords，则以用户配置为准（见 matchCategory）。
+  var CATEGORY_ALIAS = {
+    'ui': ['界面', '前端', '交互', '用户体验', 'ux', 'ui设计', '原型', '视觉'],
+    '前端': ['frontend', 'js', 'javascript', 'css', 'html', '网页', 'web前端', '浏览器', 'vue', 'react'],
+    '后端': ['backend', '服务端', 'server', 'api', '接口', '微服务'],
+    '运维': ['devops', '部署', '服务器', 'linux', 'docker', 'k8s', 'kubernetes', '监控', 'ci', 'cdn', 'nginx'],
+    '数据库': ['db', 'mysql', 'mongodb', 'redis', 'sql', 'nosql', 'postgres'],
+    '算法': ['algorithm', '数据结构', 'leetcode', '刷题'],
+    '人工智能': ['ai', '机器学习', '深度学习', 'ml', 'llm', '大模型', '神经网络', 'gpt'],
+    '安全': ['security', '漏洞', 'xss', 'csrf', '注入', '加密', '渗透'],
+    '移动端': ['android', 'ios', 'app', '小程序', '移动开发', 'flutter'],
+    '工具': ['tool', '效率', '插件', '脚本', 'cli', '命令行', 'ide'],
+    '架构': ['architecture', '系统设计', '高可用', '分布式', '微服务'],
+    '网络': ['network', 'http', 'tcp', 'dns', '协议']
+  };
+
+  // 从已有分类中匹配最相关的一个（完全自动预选分类用，方案 B 语义匹配）
   function matchCategory(title, content) {
     if (!allCategories || !allCategories.length) return null;
     var titleLow = (title || '').toLowerCase();
@@ -648,15 +666,38 @@
     allCategories.forEach(function (c) {
       var name = (c.name || '').trim().toLowerCase();
       if (!name || name.length < 2) return;                  // 跳过过短分类名，降低误命中
+      // 触发词来源：用户配置 keywords 优先；否则用内置别名兜底词典（仅当名称命中词典）
+      var terms = [];
+      var kwRaw = (c.keywords || '').trim();
+      if (kwRaw) {
+        kwRaw.split(/[,，\s]+/).forEach(function (s) { var t = s.trim().toLowerCase(); if (t) terms.push(t); });
+      } else if (CATEGORY_ALIAS[name]) {
+        CATEGORY_ALIAS[name].forEach(function (t) { terms.push(t.toLowerCase()); });
+      }
       // 超短拉丁缩写（UI/API/DB/JS/CSS 等）：区分度极低、正文极易偶发命中，
       // 仅在标题出现时才参与匹配，正文出现一律忽略（宁可不选也不错选）
       var isShortLatin = /^[a-z0-9]+$/.test(name) && name.length <= 3;
-      var titleHit = titleLow.indexOf(name) !== -1;
-      var bodyHit = textLow.indexOf(name) !== -1;
-      if (isShortLatin && !titleHit) return;
       var score = 0;
-      if (titleHit) score += 50;   // 标题命中绝对主导
-      if (bodyHit) score += 1;     // 正文命中低权重（中文/长词有区分度，短缩写已被上文拦截）
+      // 1) 分类【名称】本身命中（绝对主导）
+      var nameTitle = titleLow.indexOf(name) !== -1;
+      var nameBody = textLow.indexOf(name) !== -1;
+      if (!(isShortLatin && !nameTitle)) {
+        if (nameTitle) score += 50;
+        else if (nameBody) score += 1;
+      }
+      // 2) 触发词/别名命中（权重低于名称，但高于旧版纯正文子串）
+      terms.forEach(function (t) {
+        if (!t) return;
+        var tTitle = titleLow.indexOf(t) !== -1;
+        var tBody = textLow.indexOf(t) !== -1;
+        if (t.length >= 2) {
+          if (tTitle) score += 30;
+          if (tBody) score += 8;
+        } else {
+          // 极短触发词（如 js/ui）只在标题命中，避免正文噪声
+          if (tTitle) score += 30;
+        }
+      });
       if (score > bestScore) { bestScore = score; best = c; }
     });
     return bestScore > 0 ? best : null;
@@ -1442,6 +1483,25 @@
       cur.forEach(function (v, k) { params.append(k, v); });
     }
     window.location.assign('/manager/' + res + '/export?' + params.toString());
+  });
+
+  /* ---------------- 筛选表单提交（关键词/状态/排序）—— 显式接管，避免纯原生 GET 表单
+     在 SVG-in-button / type=search 等场景下静默失效（全后台 4 页共用同一表单模板，一处修全）。
+     兜底：若本脚本未加载，原生 form 仍能 GET 提交；本处理器 preventDefault 后改为程序化跳转，
+     行为与原生一致（按 action + 序列化非空字段跳转），但确定性更强。 ---------------- */
+  on(document, 'submit', '.js-admin-filter', function (e) {
+    e.preventDefault();
+    var form = this;
+    var params = new URLSearchParams();
+    Array.prototype.forEach.call(form.elements || [], function (el) {
+      if (!el.name) return;
+      if ((el.type === 'checkbox' || el.type === 'radio') && !el.checked) return;
+      var v = (el.value == null ? '' : String(el.value)).trim();
+      if (v !== '') params.append(el.name, v);
+    });
+    var base = (form.getAttribute('action') || '').trim() || location.pathname;
+    var qs = params.toString();
+    location.href = base + (qs ? '?' + qs : '');
   });
 
   /* ---------------- 初始化：进入页面先同步批量计数 ---------------- */
