@@ -1,5 +1,8 @@
-var User = require('./../models/User');
-var Site = require('./../models/Site');
+// 模型层惰性加载：csrfGuard / authorize 等守卫完全不需要数据库，
+// 顶层 require('./../models/Site') 会连带 models/mongodb.js 立即连接 MongoDB，
+// 导致「无数据库环境下调用自检 API / 单测守卫」直接崩进程。只在 initSite 真正要用时加载，
+// Node 模块缓存保证不会重复加载；app.js 的正常请求链路行为完全不变。
+function siteDao() { return require('./../models/Site'); }
 
 // 站点配置的应用级缓存：避免每个新会话都读一次 MongoDB，多个用户共享同一份配置。
 var siteCache = { value: null, expires: 0 };
@@ -48,7 +51,7 @@ exports.initSite = function (req, res, next) {
     if (siteCache.value && siteCache.expires > now) {
         return apply(siteCache.value);
     }
-    Site.findOne(function (err, obj) {
+    siteDao().findOne(function (err, obj) {
         if (err) {
             console.error('[initSite] 读取站点配置失败：', err.message);
             return next(); // 不阻塞请求，使用默认值继续
@@ -62,7 +65,7 @@ exports.initSite = function (req, res, next) {
                 phone: "13030840306",
                 address: "福建厦门"
             };
-            Site.save(obj, function (err) {
+            siteDao().save(obj, function (err) {
                 if (err) {
                     console.error('[initSite] 创建站点配置失败：', err.message);
                 } else {
@@ -112,12 +115,12 @@ exports.csrfGuard = function (req, res, next) {
     if (['POST', 'PUT', 'DELETE', 'PATCH'].indexOf(req.method) === -1) {
         return next();
     }
-    // 开放文章/公告发布 API 使用无状态 Token 鉴权（Authorization / X-API-Token），
+    // 开放文章/公告发布、告警自检 API 使用无状态 Token 鉴权（Authorization / X-API-Token），
     // 不依赖 cookie/session，不存在 CSRF 风险。带 token 的这些路径直接放行，
     // 鉴权与限流由 articleApi.auth / announcementApi.auth 负责；其余接口仍受同源校验保护。
     var p = req.path || '';
     var isOpenApi = p.indexOf('/api/articles') === 0 || p.indexOf('/api/categories') === 0
-        || p.indexOf('/api/announcements') === 0;
+        || p.indexOf('/api/announcements') === 0 || p.indexOf('/api/alert') === 0;
     if (isOpenApi && (req.headers['authorization'] || req.headers['x-api-token'])) {
         return next();
     }

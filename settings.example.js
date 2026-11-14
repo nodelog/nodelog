@@ -31,19 +31,31 @@ module.exports = {
     //
     // 【收件人 ≠ 发件账号】recipients 只是收件地址；发件账号由 email / alert.smtp /
     //   ALERT_SMTP_USER 决定，两者域名可以完全不同（收件人 @qq.com，发件可以是阿里云企业邮箱）。
-    // 【526 / 535 Authentication failure 按发件服务商排查，别看收件人域名】
-    //   - 阿里云企业邮箱（smtp.qiye.aliyun.com）：若开启「客户端授权密码 / 安全密码」，
-    //     pass 必须用该专用密码；并在管理后台确认已开启 POP3/SMTP/IMAP、账号未限制第三方客户端登录。
-    //   - QQ / Foxmail、163 / 126：pass 用「授权码」，不是登录密码。
-    //   - Gmail / Outlook：用「应用专用密码」，并开启 SMTP AUTH。
-    //   发件 user 必须是完整邮箱地址，且 From 与认证账号一致；
-    //   465=SSL(secure=true)，587=STARTTLS(secure=false)，阿里云 ECS 出站 25 常被封。
+    //   诊断永远按【发件 host / user】识别服务商，绝不看收件人域名。
+    //
+    // 【SMTP 526 / 535：不需要改这份配置，代码会自动适配】
+    //   企业邮的 "Authentication failure" 常常不是账号密码填错，而是 AUTH 机制（LOGIN/PLAIN）、
+    //   TLS 模式、465/587、密码串里的 BOM / 首尾空白、AUTH 用户名写法等【传输参数】不匹配。
+    //   services/alert.js 会自动枚举这些组合、只做认证校验，找到第一个能成功的组合后
+    //   真实发信，并把组合存到 .alert-smtp-profile.json（只存参数名，不含密码）；
+    //   后续所有告警邮件直接复用。凭据变化会自动重新探测；发送失败也会后台自愈。
+    //   服务商名称只用于兜底日志，绝不作为「配置填错了」的结论。
+    //
     // 发件通道默认复用上面的 email；临时覆盖（密码不落文件）：
-    //   ALERT_SMTP_HOST=smtp.qiye.aliyun.com ALERT_SMTP_PORT=465 ALERT_SMTP_SECURE=1 \
-    //   ALERT_SMTP_USER=you@your-domain.com ALERT_SMTP_PASS='专用密码' \
-    //   ALERT_RECIPIENTS=收件邮箱 node scripts/moderation-automation.js probe
-    // 排障：node scripts/moderation-automation.js probe（发测试邮件）
-    //       node scripts/moderation-automation.js smtp-try（只校验连接与认证，不发信）
+    //   ALERT_SMTP_HOST=... ALERT_SMTP_PORT=465 ALERT_SMTP_SECURE=1 \
+    //   ALERT_SMTP_USER=... ALERT_SMTP_PASS='...' ALERT_RECIPIENTS=... npm start
+    //
+    // 【自检到发信成功】服务端读真实配置、绝不回显密码：
+    //   npm run automation:probe       # CLI：自动探测可用参数 + 真实发一封测试邮件
+    //   GET  /api/alert/status        # 脱敏配置 + 已保存的可用参数组合
+    //   POST /api/alert/probe         # HTTP：自动探测并真实投递，返回 sent:true 才算成功
+    //   curl -sS -X POST https://your-domain/api/alert/probe \
+    //     -H 'Content-Type: application/json' -H 'Authorization: Bearer <API Token>' \
+    //     -d '{"to":"you@example.com"}'
+    //   to 必须在 recipients 白名单内（留空取第一个）；未配收件人时发给发件账号自己。
+    //   npm run test:alert-api        # 本地起 SMTP 服务跑完整链路，无需生产凭据
+    //   npm run test:automation       # 离线单测
+    // 接口限流 5 次/分钟；密码既不由接口接收，也不出现在任何响应与日志里。
     alert: {
         enabled: true,
         // 可选：告警专用发件配置；不填则复用上面的 email。字段可只写一部分，其余自动回落。

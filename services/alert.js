@@ -17,6 +17,9 @@
  * 测试：ALERT_TRANSPORT=stub 时把邮件写入 exports._stub 而不调用 SMTP，供离线单测使用。
  */
 'use strict';
+var crypto = require('crypto');
+var fs = require('fs');
+var path = require('path');
 var settings = require('../settings');
 
 var LEVEL_LABEL = {info: '提示', warn: '预警', critical: '告警'};
@@ -279,6 +282,236 @@ function shouldThrottle(key, minMs) {
     return false;
 }
 
+// ---------------------------------------------------------------------------
+// SMTP 自适应探测：账号配置一字不改，由代码找到能认证成功的【传输参数】组合。
+//
+// 企业邮（阿里云企业邮箱 smtp.qiye.aliyun.com 等）在 AUTH 阶段对以下参数极敏感，
+// 任何一项不匹配都统一回 "526 Authentication failure" / 535，并不告诉你是哪一项：
+//   ① 认证机制 LOGIN vs PLAIN（最常见，nodemailer 默认 LOGIN）
+//   ② 密码串里混入 BOM / 首尾空白 / 零宽字符（配置里填的确实是正确密码）
+//   ③ AUTH 用户名要完整邮箱还是 @ 前的 local-part
+//   ④ 465 implicit TLS 与 587 STARTTLS、证书校验严格度
+//
+// 因此：枚举候选 → 逐个 transport.verify()（只认证、不发信）→ 第一个成功的组合
+// 持久化到 .alert-smtp-profile.json（【只存参数名，绝不存密码】）→ 之后所有告警邮件
+// 直接复用，实现「一次自检、长期自愈」。profile 与凭据摘要绑定，改配置会自动重新探测。
+// ---------------------------------------------------------------------------
+var PROFILE_FILE = path.join(__dirname, '..', '.alert-smtp-profile.json');
+var activeProfile = null;
+var healing = false;
+
+function fingerprint(smtp) {
+    // 单向摘要只用于判断「凭据是否变化」，不含任何可还原的原文。
+    return crypto.createHash('sha256')
+        .update([smtp.host, smtp.port, smtp.user, smtp.pass, smtp.secure].join('\u0001'))
+        .digest('hex').slice(0, 16);
+}
+
+function readProfile(smtp) {
+    if (activeProfile && activeProfile.fp === fingerprint(smtp)) return activeProfile;
+    try {
+        var raw = JSON.parse(fs.readFileSync(PROFILE_FILE, 'utf8'));
+        if (raw && raw.fp === fingerprint(smtp) && raw.profile) {
+            activeProfile = raw;
+            return raw;
+        }
+    } catch (e) { /* 首次运行或文件损坏：直接走探测 */ }
+    return null;
+}
+
+function saveProfile(smtp, profile) {
+    activeProfile = {
+        fp: fingerprint(smtp), profile: profile, at: new Date().toISOString(),
+        provider: providerAdvice(smtp).name
+    };
+    try {
+        fs.writeFileSync(PROFILE_FILE, JSON.stringify(activeProfile, null, 2));
+    } catch (e) {
+        console.error('[alert] 保存 SMTP 探测结果失败（不影响本次发信）: ' + e.message);
+    }
+    return activeProfile;
+}
+
+function baseProfile(smtp) {
+    return {
+        port: smtp.port, secure: smtp.secure, authMethod: null,
+        userForm: 'full', passForm: 'raw', tlsLoose: false
+    };
+}
+
+function variant(smtp, over) {
+    var p = baseProfile(smtp);
+    Object.keys(over).forEach(function (k) { p[k] = over[k]; });
+    return p;
+}
+
+// 候选按「最可能成功」排序；每个元素只描述怎么用凭据，不携带任何凭据值。
+function buildProfiles(smtp) {
+    var list = [], seen = {};
+    function add(p) {
+        var key = [p.port, p.secure, p.authMethod, p.userForm, p.passForm, p.tlsLoose].join('|');
+        if (seen[key]) return;
+        seen[key] = 1;
+        p.id = 'P' + (list.length + 1);
+        list.push(p);
+    }
+    add(baseProfile(smtp));                                   // 原始参数
+    add(variant(smtp, {authMethod: 'PLAIN'}));                // 526 头号根因
+    add(variant(smtp, {authMethod: 'LOGIN'}));
+    ['trim', 'clean'].forEach(function (pf) {                // 密码里的不可见字符
+        add(variant(smtp, {passForm: pf, authMethod: 'PLAIN'}));
+        add(variant(smtp, {passForm: pf, authMethod: 'LOGIN'}));
+    });
+    ['PLAIN', 'LOGIN'].forEach(function (am) {
+        add(variant(smtp, {userForm: 'local', authMethod: am}));
+    });
+    add(variant(smtp, {tlsLoose: true}));                     // 自签证书 / 老 TLS
+    add(variant(smtp, {tlsLoose: true, authMethod: 'PLAIN'}));
+    [{port: 465, secure: true}, {port: 587, secure: false}].forEach(function (pt) {
+        ['PLAIN', 'LOGIN'].forEach(function (am) {
+            add(variant(smtp, {port: pt.port, secure: pt.secure, authMethod: am}));
+        });
+    });
+    return list;
+}
+
+function cleanText(s) {
+    return String(s == null ? '' : s)
+        .replace(/[\uFEFF\u200B-\u200D\u2060]/g, '')
+        .replace(/[\r\n\t]/g, '')
+        .trim();
+}
+
+function authFor(smtp, p) {
+    var user = String(smtp.user || '');
+    if (p.userForm === 'local') user = user.split('@')[0];
+    var pass = String(smtp.pass == null ? '' : smtp.pass);
+    if (p.passForm === 'trim') pass = pass.replace(/^[\s\uFEFF]+|[\s\uFEFF]+$/g, '');
+    if (p.passForm === 'clean') pass = cleanText(pass);
+    return {user: user, pass: pass};
+}
+
+function transportOptions(smtp, p) {
+    var o = {
+        host: smtp.host, port: p.port, secure: p.secure, auth: authFor(smtp, p),
+        // CLI 场景必须快速失败：SMTP 不可达时不要挂住整个自动化轮次。
+        connectionTimeout: 8000, greetingTimeout: 8000, socketTimeout: 12000
+    };
+    if (p.authMethod && p.authMethod !== 'auto') o.authMethod = p.authMethod;
+    if (p.tlsLoose) o.tls = {rejectUnauthorized: false};
+    return o;
+}
+
+// 对外 / 日志用的脱敏视图：只有参数名，没有账号密码值。
+function describeProfile(p) {
+    return {
+        id: p.id || '', port: p.port, secure: p.secure,
+        authMethod: p.authMethod || 'auto', userForm: p.userForm || 'full',
+        passForm: p.passForm || 'raw', tlsLoose: !!p.tlsLoose
+    };
+}
+
+function merge(a, b) {
+    var out = {};
+    Object.keys(a || {}).forEach(function (k) { out[k] = a[k]; });
+    Object.keys(b || {}).forEach(function (k) { out[k] = b[k]; });
+    return out;
+}
+
+/**
+ * 逐个候选做 SMTP 连接 + 认证校验，找到第一个可用组合；只认证，不发信。
+ * cb(null, {ok, profile, tried, fromCache, advice?})
+ */
+function findProfile(smtp, cb) {
+    if (!smtp.host || !smtp.user || !smtp.pass) {
+        return cb(null, {ok: false, reason: 'smtp-not-configured', tried: [], profile: null});
+    }
+    var mailer;
+    try { mailer = require('nodemailer'); }
+    catch (e) { return cb(e); }
+
+    var cached = readProfile(smtp);
+    var list = cached ? [cached.profile] : [];
+    buildProfiles(smtp).forEach(function (p) { list.push(p); });
+    var tried = [], i = 0, finished = false;
+    function done(r) { if (!finished) { finished = true; cb(null, r); } }
+    function next() {
+        if (finished) return;
+        if (i >= list.length) {
+            var ex = explainSmtpError(lastError || new Error('all SMTP profiles failed'), smtp);
+            var reason = ex.kind === 'auth' ? 'auth-failed'
+                : (ex.kind === 'network' ? 'network-unreachable'
+                    : (ex.kind === 'tls' ? 'tls-failed' : 'no-working-profile'));
+            return done({ok: false, reason: reason, profile: null, tried: tried, advice: ex});
+        }
+        var p = list[i++];
+        var transport;
+        try { transport = mailer.createTransport(transportOptions(smtp, p)); }
+        catch (e) {
+            tried.push(merge(describeProfile(p), {ok: false,
+                error: String(e.message || e).slice(0, 120)}));
+            return next();
+        }
+        transport.verify(function (err) {
+            if (transport.close) transport.close();
+            tried.push(merge(describeProfile(p), {
+                ok: !err, error: err ? String(err.message || err).slice(0, 120) : ''
+            }));
+            if (err) { lastError = err; return next(); }
+            saveProfile(smtp, describeProfile(p));
+            done({ok: true, profile: describeProfile(p), tried: tried,
+                fromCache: !!cached && i === 1});
+        });
+    }
+    next();
+}
+
+/**
+ * 真实发送一封测试邮件：自动探测可用 SMTP 参数组合，成功后只投递一封。
+ * cb(null, {sent, reason, messageId?, accepted?, profile, tried, advice?})
+ */
+function probeAndSend(mail, cb) {
+    if (!cb) cb = function () {};
+    if (process.env.ALERT_TRANSPORT === 'stub') {
+        stub.push(mail);
+        return cb(null, {sent: true, reason: 'sent', messageId: 'stub',
+            profile: null, tried: []});
+    }
+    var smtp = resolve().email;
+    findProfile(smtp, function (err, found) {
+        if (err) return cb(err);
+        if (!found.ok) {
+            return cb(null, {sent: false, reason: found.reason, profile: null,
+                tried: found.tried, advice: found.advice});
+        }
+        var transport;
+        try { transport = require('nodemailer').createTransport(transportOptions(smtp, found.profile)); }
+        catch (e) { return cb(e); }
+        transport.sendMail(mail, function (sErr, info) {
+            if (transport.close) transport.close();
+            if (sErr) {
+                lastError = sErr;
+                return cb(null, {sent: false, reason: 'send-failed', profile: found.profile,
+                    tried: found.tried, advice: explainSmtpError(sErr, smtp)});
+            }
+            cb(null, {sent: true, reason: 'sent', messageId: info && info.messageId,
+                accepted: info && info.accepted, profile: found.profile, tried: found.tried});
+        });
+    });
+}
+
+// 发送失败后的后台自愈：只探测参数、不发信，下一封告警即启用成功组合。
+function heal(smtp) {
+    if (healing || process.env.ALERT_TRANSPORT === 'stub') return;
+    healing = true;
+    findProfile(smtp, function (err, found) {
+        healing = false;
+        if (!err && found && found.ok) {
+            console.error('[alert] 已自动找到可用 SMTP 参数组合: ' + JSON.stringify(found.profile));
+        }
+    });
+}
+
 function deliver(mail, cb) {
     if (process.env.ALERT_TRANSPORT === 'stub') {
         stub.push(mail);
@@ -288,24 +521,16 @@ function deliver(mail, cb) {
     try {
         var mailer = require('nodemailer');
         var c = resolve();
-        var transport = mailer.createTransport({
-            host: c.email.host,
-            port: c.email.port,
-            secure: c.email.secure,
-            auth: {user: c.email.user, pass: c.email.pass},
-            // CLI 场景必须快速失败：SMTP 不可达时不要挂住整个自动化轮次。
-            connectionTimeout: 8000, greetingTimeout: 8000, socketTimeout: 10000
-        });
+        var cached = readProfile(c.email);
+        var transport = mailer.createTransport(
+            transportOptions(c.email, cached ? cached.profile : baseProfile(c.email)));
         transport.sendMail(mail, function (err) {
             if (err) {
                 lastError = err;
-                var ex = explainSmtpError(err, c.email);
                 console.error('[alert] 邮件发送失败（不阻断主流程）: ' + err.message);
-                console.error('[alert] 诊断: ' + ex.title);
-                ex.steps.forEach(function (s, i) {
-                    console.error('[alert]   ' + (i + 1) + '. ' + s);
-                });
                 console.error('[alert] 当前 SMTP（脱敏）: ' + JSON.stringify(describe().smtp));
+                // 不改配置：后台自动探测可用传输参数，下一封邮件即生效。
+                heal(c.email);
             }
             if (cb) cb(err || null);
         });
@@ -358,6 +583,7 @@ exports.digest = function (report, cb) {
 // 脱敏配置视图：绝不包含密码，供 probe / 日志排障。
 function describe() {
     var c = resolve();
+    var prof = readProfile(c.email);
     return {
         enabled: c.enabled,
         realtime: c.realtime,
@@ -367,9 +593,50 @@ function describe() {
             host: c.email.host, port: c.email.port, secure: c.email.secure,
             user: c.email.user, passSet: !!c.email.pass, source: c.email.source,
             provider: providerAdvice(c.email).name
-        }
+        },
+        // 已探测到的可用传输参数组合（脱敏），null 表示尚未自检成功。
+        profile: prof ? prof.profile : null
     };
 }
+
+/**
+ * 邮件通道自检：真实投递一封测试邮件。
+ * 收件人只允许已配置的 recipients；未配置收件人时默认发给发件账号自己，
+ * 因此「接收人需要另外配置」不影响自检，也不会把接口变成任意地址的中继。
+ */
+exports.sendTest = function (options, cb) {
+    if (!cb) cb = function () {};
+    var c = resolve();
+    var allowed = c.recipients.length ? c.recipients : [c.email.user];
+    var to = String((options && options.to) || allowed[0] || '').trim();
+    if (!to || allowed.indexOf(to) === -1) {
+        return cb(null, {sent: false, reason: 'recipient-not-allowed',
+            allowed: allowed, tried: [], profile: null});
+    }
+    var now = new Date().toISOString();
+    var mail = {
+        from: c.fromName + ' <' + c.email.user + '>',
+        to: to,
+        subject: c.prefix + ' [自检] 邮件通道测试 ' + now.slice(0, 19).replace('T', ' '),
+        text: 'NODELOG 风控告警邮件通道自检\n时间: ' + now + '\n发件账号: ' + c.email.user +
+            '\n收件人: ' + to + '\n收到本邮件即表示 SMTP 认证与投递链路已打通。',
+        html: '<div style="font:14px/1.7 -apple-system,Segoe UI,Microsoft YaHei,sans-serif;' +
+            'color:#171b21;max-width:600px;margin:0 auto;padding:24px;border:1px solid #e0e3e6;' +
+            'border-radius:12px;"><h2 style="font-size:18px;margin:0 0 12px;">邮件通道自检通过</h2>' +
+            '<p style="color:#606a76;margin:6px 0;">时间：' + esc(now) + '</p>' +
+            '<p style="color:#606a76;margin:6px 0;">发件账号：' + esc(c.email.user) + '</p>' +
+            '<p style="color:#606a76;margin:6px 0;">收件人：' + esc(to) + '</p>' +
+            '<p style="margin:16px 0 0;">收到本邮件即表示 SMTP 认证与投递链路已打通，' +
+            '后续风控预警 / 告警将走同一条通道。</p></div>'
+    };
+    probeAndSend(mail, function (err, r) {
+        if (err) {
+            return cb(null, {sent: false, reason: 'transport-error',
+                error: String(err.message || err).slice(0, 200), tried: [], profile: null});
+        }
+        cb(null, r);
+    });
+};
 
 // 候选组合：当前配置 + 推断出的服务商主机 × (465/SSL, 587/STARTTLS)。
 function candidates(smtp) {
@@ -443,6 +710,19 @@ exports.lastError = function () { return lastError; };
 exports._resolveSmtp = resolveSmtp;
 exports.isEnabled = function () { return resolve().enabled; };
 exports.resetThrottle = function () { throttle = {}; };
+exports.getProfile = function () {
+    var p = readProfile(resolve().email);
+    return p ? p.profile : null;
+};
+exports.probeAndSend = probeAndSend;
+// 给 CLI 的 smtp-try 用：只探测可用参数组合，不发信。
+exports.probeAuth = function (cb) { findProfile(resolve().email, cb); };
+exports._buildProfiles = buildProfiles;
+exports._describeProfile = describeProfile;
+exports.resetProfile = function () {
+    activeProfile = null;
+    try { fs.unlinkSync(PROFILE_FILE); } catch (e) { /* 文件不存在 */ }
+};
 exports._stub = stub;
 exports._parseRecipients = parseRecipients;
 exports._render = render;

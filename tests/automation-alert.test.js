@@ -190,5 +190,59 @@ t('连接超时 / TLS 握手失败各自给出对应指引', function () {
 ['ALERT_SMTP_HOST', 'ALERT_SMTP_PORT', 'ALERT_SMTP_SECURE',
  'ALERT_SMTP_USER', 'ALERT_SMTP_PASS'].forEach(function (k) { delete process.env[k]; });
 
+// ---- SMTP 自适应探测 + 自检 API 脱敏（离线，不连库、不真发信）----
+var alertApi = require('../controllers/alertApi');
+t('候选参数组合覆盖 PLAIN/LOGIN 与密码清洗，且不含任何凭据明文', function () {
+    process.env.ALERT_SMTP_HOST = 'smtp.qiye.aliyun.com';
+    process.env.ALERT_SMTP_PORT = '465';
+    process.env.ALERT_SMTP_SECURE = '1';
+    process.env.ALERT_SMTP_USER = 'wyc@jiangzi.xin';
+    process.env.ALERT_SMTP_PASS = 'probe-secret-xyz';
+    var list = alert._buildProfiles(alert._resolveSmtp());
+    assert.ok(list.length >= 10, '候选数量应足够覆盖常见差异');
+    assert.ok(list.some(function (p) { return p.authMethod === 'PLAIN'; }));
+    assert.ok(list.some(function (p) { return p.authMethod === 'LOGIN'; }));
+    assert.ok(list.some(function (p) { return p.passForm === 'clean'; }));
+    var txt = JSON.stringify(list);
+    assert.ok(txt.indexOf('probe-secret-xyz') === -1, '候选不得携带密码');
+    assert.ok(txt.indexOf('wyc@jiangzi.xin') === -1, '候选不得携带账号');
+});
+
+t('自检 API 响应脱敏：删敏感键 + 把错误里的明文密码打码', function () {
+    var body = alertApi._sanitize({
+        pass: 'probe-secret-xyz', token: 'abc',
+        smtp: {user: 'wyc@jiangzi.xin', passSet: true},
+        tried: [{authMethod: 'PLAIN', error: 'Invalid login: 526 probe-secret-xyz'}]
+    });
+    assert.strictEqual(body.pass, undefined);
+    assert.strictEqual(body.token, undefined);
+    assert.strictEqual(body.smtp.user, 'wyc@jiangzi.xin', '账号本身可保留');
+    assert.ok(JSON.stringify(body).indexOf('probe-secret-xyz') === -1, '不得泄露密码');
+    assert.ok(/REDACTED/.test(body.tried[0].error));
+});
+
+t('stub 通道下 sendTest 走完整自检链路并返回 sent:true', function () {
+    alert.resetThrottle();
+    alert._stub.length = 0;
+    var r = null;
+    alert.sendTest({}, function (e, x) { r = x; });
+    assert.ok(r, '应有回调结果');
+    assert.strictEqual(r.sent, true);
+    assert.strictEqual(alert._stub.length, 1);
+    assert.ok(/自检/.test(alert._stub[0].subject));
+});
+
+t('收件人白名单：任意地址不能借自检接口中继', function () {
+    var r = null;
+    alert.sendTest({to: 'attacker@evil.example.com'}, function (e, x) { r = x; });
+    assert.strictEqual(r.sent, false);
+    assert.strictEqual(r.reason, 'recipient-not-allowed');
+    assert.strictEqual(alert._stub.length, 1, '不应产生额外邮件');
+});
+
+alert.resetProfile();
+['ALERT_SMTP_HOST', 'ALERT_SMTP_PORT', 'ALERT_SMTP_SECURE',
+ 'ALERT_SMTP_USER', 'ALERT_SMTP_PASS'].forEach(function (k) { delete process.env[k]; });
+
 console.log('\n结果: ' + pass + ' 通过, ' + fail + ' 失败');
 process.exit(fail ? 1 : 0);

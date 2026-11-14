@@ -20,6 +20,8 @@ sitemap.*
 /.announce-queue/
 # 风控自动化：每轮生成的敏感词候选清单（运行产物，不入库）
 /.automation-out/
+# 邮件告警：自动探测到的可用 SMTP 传输参数组合（只含参数名，不含密码；运行产物）
+/.alert-smtp-profile.json
 # 用户上传的图片：运行时产生，不入库（保留目录占位）
 /public/uploads/*
 !/public/uploads/.gitkeep

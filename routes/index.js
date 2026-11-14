@@ -131,6 +131,13 @@ var route = function (app) {
     app.post('/api/announcements',
         rateLimit.limit({max: 120, windowMs: 60 * 1000, key: 'api-announcements'}),
         announcementApi.auth, announcementApi.publish);
+    // ==================== 邮件告警自检 API（同一套无状态 Token）====================
+    // probe 会真实投递邮件，单独限流；密码只由服务端从 settings.js 读取且响应全程脱敏。
+    var alertApi = require('./../controllers/alertApi');
+    app.get('/api/alert/status', alertApi.auth, alertApi.status);
+    app.post('/api/alert/probe',
+        rateLimit.limit({max: 5, windowMs: 60 * 1000, key: 'alert-probe'}),
+        alertApi.auth, alertApi.probe);
     // P2 运营统计
     app.get('/manager/analytics', filter.authorizeAdmin, analytics.overview);
     // 日志相关路由见上方 log.* （已清理重复的 /log 调试路由 filter.log）

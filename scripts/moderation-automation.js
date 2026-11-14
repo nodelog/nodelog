@@ -65,9 +65,9 @@ process.argv.slice(2).forEach(function (a) {
     else if (a.indexOf('--interval=') === 0) opt.interval = parseInt(a.slice(11), 10) || opt.interval;
     else if (a === '--help' || a === '-h') {
         console.log('用法: node scripts/moderation-automation.js <rescan|dispose|collect|classify|all|probe|smtp-try> [--apply] [--no-mail] [--promote] [--smtp-try] [--limit=N] [--days=N] [--daemon] [--interval=N]\n' +
-            '  probe      仅发一封测试告警邮件，失败时打印可照做的修复步骤；不连库、不写库。\n' +
-            '  probe --smtp-try  先自动试常见 host/port/secure 组合，再发测试邮件。\n' +
-            '  smtp-try   只做 SMTP 连接 + 认证校验（不发邮件），输出可用配置组合。');
+            '  probe      自动探测可用 SMTP 传输参数并真实发一封测试邮件；不连库、不写库。\n' +
+            '             等价 HTTP 接口：POST /api/alert/probe（带 API Token）。\n' +
+            '  smtp-try   只做连接 + 认证校验（不发邮件）并保存可用参数组合。');
         process.exit(0);
     }
 });
@@ -477,21 +477,21 @@ function printSmtpFix(err) {
 }
 
 function runVerify(done) {
-    log('SMTP 连接 / 认证校验中（不发邮件）…');
-    alert.verify(function (e, r) {
+    log('SMTP 连接 / 认证校验中（自动枚举传输参数，不发邮件、不改配置）…');
+    alert.probeAuth(function (e, r) {
         if (e) warn('校验异常: ' + e.message);
         (r.tried || []).forEach(function (t) {
-            log('  尝试 ' + t.host + ':' + t.port + ' secure=' + t.secure +
+            log('  尝试 ' + (t.id || '-') + ' port=' + t.port + ' secure=' + t.secure +
+                ' auth=' + t.authMethod + ' user=' + t.userForm + ' pass=' + t.passForm +
+                ' tls=' + (t.tlsLoose ? 'loose' : 'strict') +
                 ' -> ' + (t.ok ? '通过' : '失败：' + t.error));
         });
         if (r.ok) {
-            log('可用组合：ALERT_SMTP_HOST=' + r.recommended.host +
-                ' ALERT_SMTP_PORT=' + r.recommended.port +
-                ' ALERT_SMTP_SECURE=' + (r.recommended.secure ? 1 : 0));
+            log('可用传输参数组合（已保存，后续告警自动复用）: ' + JSON.stringify(r.profile));
         } else if (r.reason === 'auth') {
             printSmtpFix({message: (r.tried[0] && r.tried[0].error) || 'Authentication failure'});
         } else {
-            warn('未找到可用组合：按上面逐条错误检查 host / 端口 / 出站防火墙。');
+            warn('未找到可用组合：' + (r.reason || 'unknown'));
         }
         done(r);
     });
@@ -502,40 +502,45 @@ if (opt.cmd === 'smtp-try') {
     runVerify(function (r) { exit(r.ok ? 0 : 1); });
 } else if (opt.cmd === 'probe') {
     var ac = alert.getConfig();
+    var smtpView = alert.describe().smtp;
     log('当前告警配置（脱敏）: ' + JSON.stringify(alert.describe()));
+    log('收件人=' + (ac.recipients.join(', ') || '未配置→发给发件账号自己') +
+        ' | 发件账号=' + smtpView.user + ' | 发件主机=' + smtpView.host + ':' + smtpView.port +
+        ' | 服务商=' + smtpView.provider + ' | 密码=' + (smtpView.passSet ? '已配置（不显示）' : '未配置'));
     if (!ac.enabled) {
-        warn('告警未启用：请配置 settings.alert.recipients 或环境变量 ALERT_RECIPIENTS，' +
-            '并确认 settings.email / ALERT_SMTP_* 的 host、user、pass 完整。');
-        exit(1);
-    } else {
-        function sendProbe() {
-            var smtp = alert.describe().smtp;
-            alert.digest({
-                level: 'info', title: '告警通道自检', summary: '收到本邮件即表示 SMTP 与收件人配置正确。',
-                sections: [{title: '当前配置（收件人与发件账号是两套独立配置）', rows: [
-                    kv('收件人', ac.recipients.join(', ')),
-                    kv('发件账号', smtp.user),
-                    kv('发件主机', smtp.host + ':' + smtp.port + ' secure=' + smtp.secure),
-                    kv('发件服务商', smtp.provider),
-                    kv('发件密码', smtp.passSet ? '已配置（日志不显示）' : '未配置'),
-                    kv('实时命中告警', ac.realtime ? '开启' : '关闭'),
-                    kv('节流窗口', Math.round(ac.throttleMs / 60000) + ' 分钟'),
-                    kv('目标库', dbName)
-                ]}]
-            }, function (e, r) {
-                log('自检结果: ' + JSON.stringify(r) + (e ? ' err=' + e.message : ''));
-                if (r && r.sent) {
-                    log('邮件已提交给 SMTP，请检查收件箱（含垃圾邮件文件夹）。');
-                } else {
-                    printSmtpFix(e || alert.lastError());
-                    warn('修复后重跑：node scripts/moderation-automation.js probe');
-                }
-                exit(r && r.sent ? 0 : 1);
-            });
-        }
-        if (opt.smtpTry) runVerify(function () { sendProbe(); });
-        else sendProbe();
+        warn('尚未配置收件人 / 发件凭据：自检仍会尝试（未配收件人时发给发件账号自己）。' +
+            '生产请配置 settings.alert.recipients 或 ALERT_RECIPIENTS。');
     }
+    // 与 POST /api/alert/probe 同一条链路：自动枚举传输参数 → 找到可用组合 → 真实发一封。
+    // 不再先发一封失败再靠后台自愈，而是本轮直接探测到成功组合后投递。
+    log('自动探测可用 SMTP 传输参数（认证机制 / TLS / 端口，账号配置一字不改）…');
+    alert.sendTest({}, function (e, r) {
+        if (e) warn('自检异常: ' + e.message);
+        ((r && r.tried) || []).forEach(function (t) {
+            log('  尝试 ' + (t.id || '-') + ' port=' + t.port + ' secure=' + t.secure +
+                ' auth=' + t.authMethod + ' user=' + t.userForm + ' pass=' + t.passForm +
+                ' tls=' + (t.tlsLoose ? 'loose' : 'strict') +
+                ' -> ' + (t.ok ? '通过' : '失败：' + t.error));
+        });
+        if (r && r.profile) log('可用组合（脱敏，已持久化）: ' + JSON.stringify(r.profile));
+        log('自检结果: ' + JSON.stringify({
+            sent: !!(r && r.sent), reason: r && r.reason,
+            messageId: r && r.messageId, accepted: r && r.accepted
+        }));
+        if (r && r.sent) {
+            log('邮件已真实投递给 SMTP，请检查收件箱（含垃圾邮件文件夹）。');
+        } else {
+            warn('全部传输参数组合均失败，原因: ' + (r && r.reason));
+            var st = r && r.advice && r.advice.steps;
+            if (st && st.length) {
+                warn('备用排查项（不是「配置错误」结论）:');
+                st.forEach(function (s, i) { warn('  ' + (i + 1) + '. ' + s); });
+            } else {
+                printSmtpFix(e || alert.lastError());
+            }
+        }
+        exit(r && r.sent ? 0 : 1);
+    });
 } else if (mongoose.connection.readyState === 1) {
     begin();
 } else {
