@@ -1,6 +1,7 @@
 var async = require('async');
 var Tag = require('./../models/Tag');
 var Content = require('./../models/Content');
+var constants = require('./../models/constants');
 var cmsUtils = require('./cmsUtils');
 var kit = require('./adminKit');
 var crud = require('./adminCrud');
@@ -8,10 +9,40 @@ var io = require('./adminIo');
 
 // ---------- 前台共享接口（保持公开，绝不加鉴权；仅 findAll 已带 status:0 过滤）----------
 // 标签页：/tag/:slug （slug 或名称均可）
+// 设计原则：直接实时查询 Content，绝不使用 Tag.count 等任何缓存计数；响应头禁止缓存。
 exports.findBySlug = function (req, res) {
     var slug = req.params.slug;
     var page = parseInt(req.query.page, 10) || 1;
     var sessionUser = req.session.user;
+
+    function renderTag(tag) {
+        // 禁止任何层（浏览器/CDN/代理）缓存该动态页面，保证每次都是实时数据
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.set('Pragma', 'no-cache');
+        res.set('Expires', '0');
+        // 直接实时查：公开可见 + （已登录则含自己的草稿/待审），全部基于 Content 真实数据
+        Content.getCountByTag(tag.name, sessionUser, function (e1, total) {
+            total = total || 0;
+            var perPage = constants.PER_PAGE_COUNT || 10;
+            var totalPage = total > 0 ? Math.ceil(total / perPage) : 1;
+            var p = Math.min(Math.max(page, 1), totalPage);
+            if (total <= 0) {
+                return res.render('tag', {
+                    tag: tag, docs: [], title: '标签：' + tag.name,
+                    page: 1, totalPage: 1, total: 0,
+                    url: '/tag/' + encodeURIComponent(slug) + '?'
+                });
+            }
+            Content.findByTag(p, tag.name, sessionUser, function (e2, docs) {
+                res.render('tag', {
+                    tag: tag, docs: docs || [], title: '标签：' + tag.name,
+                    page: p, totalPage: totalPage, total: total,
+                    url: '/tag/' + encodeURIComponent(slug) + '?'
+                });
+            });
+        });
+    }
+
     Tag.findBySlug(slug, function (err, tag) {
         if (err || !tag) {
             // 回退：按名称查找（兼容未 slugify 的链接）
@@ -23,33 +54,6 @@ exports.findBySlug = function (req, res) {
         }
         renderTag(tag);
     });
-    function renderTag(tag) {
-        async.auto({
-            totalCount: function (cb) {
-                Content.getCountByTag(tag.name, sessionUser, function (e, t) { cb(null, t || 0); });
-            },
-            pageDocs: ['totalCount', function (cb, results) {
-                var pageObj = cmsUtils.page(page, results.totalCount);
-                if (pageObj.totalPage > 0) {
-                    Content.findByTag(pageObj.page, tag.name, sessionUser, function (e, docs) {
-                        cb(null, {docs: docs || [], page: pageObj.page, totalPage: pageObj.totalPage, total: results.totalCount});
-                    });
-                } else {
-                    cb(null, {docs: [], page: 1, totalPage: 0, total: 0});
-                }
-            }]
-        }, function (e, r) {
-            // 自愈：实时查到 0 篇、但标签缓存计数>0，说明计数脏了——后台静默重算，不阻塞响应（§自愈）。
-            if ((r.total || 0) === 0 && (tag.count || 0) > 0) {
-                Tag.reconcileForContent([tag.name], [tag.name], function () {});
-            }
-            res.render('tag', {
-                tag: tag, docs: r.docs, title: '标签：' + tag.name,
-                page: r.page, totalPage: r.totalPage, total: r.total,
-                url: '/tag/' + encodeURIComponent(slug) + '?'
-            });
-        });
-    }
 };
 // 标签云（JSON，供前端/首页调用）—— 响应 {docs} 结构不变（I-3/I-5）
 exports.list = function (req, res) {
