@@ -360,6 +360,27 @@
 .admin-list .jumbotron::-webkit-scrollbar-thumb { background: var(--border); border-radius: var(--radius-sm); }
 .admin-list .jumbotron::-webkit-scrollbar-track { background: transparent; }
 
+/* 后台分页：跳页输入框与按钮，对齐 .pager 既有 a/span 的 44px 高度（theme.css:553+）。
+   pager.ejs 新增 .pager-jump（label + input.js-jump-input + button.js-jump-go），
+   翻页逻辑在 common.js 的 .js-jump-go / .js-jump-input[Enter] 委托中。 */
+.pager li.pager-jump { align-items: center; gap: var(--space-1); border-color: transparent; padding: 0; }
+.pager .pager-jump-label { padding: 0 var(--space-1); color: var(--muted); font-size: var(--fs-small); }
+.pager .pager-jump input.js-jump-input {
+  width: 64px; min-height: 44px; padding: var(--space-2); box-sizing: border-box;
+  border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  background: var(--surface); color: var(--ink); font-size: var(--fs-small); text-align: center;
+  -moz-appearance: textfield;
+}
+.pager .pager-jump input.js-jump-input::-webkit-outer-spin-button,
+.pager .pager-jump input.js-jump-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.pager .pager-jump input.js-jump-input:focus { outline: none; border-color: var(--accent); }
+.pager .pager-jump .js-jump-go {
+  min-height: 44px; margin: 0; padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  background: var(--surface); color: var(--ink); font-size: var(--fs-small); cursor: pointer;
+}
+.pager .pager-jump .js-jump-go:hover { border-color: var(--accent); color: var(--accent); }
+
 /* 窄屏：隐藏次要列（列仍在 DOM，js-* 钩子与 data-* 零影响），保留关键列 + 操作首屏可见。 */
 @media (max-width: 640px) {
   /* 覆盖 Bootstrap .table 的 min-width:640px（禁改第三方文件）：让表格收缩进容器，

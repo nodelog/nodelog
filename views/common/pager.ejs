@@ -1,7 +1,12 @@
 <ul class="pager">
-    <li class="previous"><a href="####" class="js-pre-page" data-url="<%=url%>" data-page="<%= page %>"
+    <li class="previous"><a href="javascript:;" class="js-pre-page" data-url="<%=url%>" data-page="<%= page %>"
                             data-total="<%= totalPage %>">&larr; 上页</a></li>
-    <li><%= page %>/<%= totalPage %></li>
+    <li class="pager-status"><%= page %> / <%= totalPage %></li>
+    <li class="pager-jump">
+        <label class="pager-jump-label">跳到</label>
+        <input class="js-jump-input" type="number" min="1" max="<%= totalPage %>" value="<%= page %>" aria-label="跳转页码">
+        <button type="button" class="js-jump-go btn btn-sm btn-default" data-url="<%=url%>" data-total="<%= totalPage %>">页</button>
+    </li>
     <li class="next"><a href="javascript:;" class="js-next-page" data-url="<%=url%>" data-page="<%= page %>"
                         data-total="<%= totalPage %>">下页 &rarr;</a></li>
 </ul>

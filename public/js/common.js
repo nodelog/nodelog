@@ -208,7 +208,7 @@
     /* 分页上下页 */
     on(document, 'click', '.js-pre-page', function () {
       var page = parseInt(attr(this, 'data-page'), 10);
-      if (page <= 1) { myMsg('已经是最新的了'); return; }
+      if (page <= 1) { myMsg('已经是第一页'); return; }
       location.href = attr(this, 'data-url') + 'page=' + (page - 1);
     });
     on(document, 'click', '.js-next-page', function () {
@@ -216,6 +216,27 @@
       var total = parseInt(attr(this, 'data-total'), 10);
       if (page >= total) { myMsg('后面没有了'); return; }
       location.href = attr(this, 'data-url') + 'page=' + (page + 1);
+    });
+    /* 跳转到指定页码（配合 views/common/pager.ejs 的 .js-jump-input/.js-jump-go）。
+       data-url 由 adminPager 拼好（已带筛选、末尾 ? 或 &），这里只追加 page=n。 */
+    on(document, 'click', '.js-jump-go', function () {
+      var total = parseInt(attr(this, 'data-total'), 10) || 1;
+      var box = this.parentNode;
+      var input = box && box.querySelector ? box.querySelector('.js-jump-input') : null;
+      var n = parseInt(input && input.value, 10);
+      if (isNaN(n) || !n) { myMsg('请输入有效页码'); return; }
+      if (n < 1) n = 1;
+      if (n > total) n = total;
+      location.href = attr(this, 'data-url') + 'page=' + n;
+    });
+    /* 跳页输入框回车即跳转 */
+    on(document, 'keydown', '.js-jump-input', function (e) {
+      if (e && (e.key === 'Enter' || e.keyCode === 13)) {
+        e.preventDefault();
+        var box = this.parentNode;
+        var go = box && box.querySelector ? box.querySelector('.js-jump-go') : null;
+        if (go) go.click();
+      }
     });
 
     /* 添加 / 修改 / 删除分类 */

@@ -182,10 +182,6 @@
     if (!pagerEl) return;
     pagerEl.textContent = '';
     if (!totalPage || totalPage <= 1) return;
-    var p = new URLSearchParams(location.search);
-    p.delete('page');
-    var s = p.toString();
-    var base = '/manager/link?' + (s ? s + '&' : '');
 
     var ul = document.createElement('ul');
     ul.className = 'pager';
@@ -194,8 +190,7 @@
     prevLi.className = 'previous';
     var prev = document.createElement('a');
     prev.href = 'javascript:;';
-    prev.className = 'js-pre-page';
-    prev.setAttribute('data-url', base);
+    prev.className = 'js-link-pre';
     prev.setAttribute('data-page', String(currentPage));
     prev.setAttribute('data-total', String(totalPage));
     prev.textContent = '← 上页';
@@ -210,8 +205,7 @@
     nextLi.className = 'next';
     var next = document.createElement('a');
     next.href = 'javascript:;';
-    next.className = 'js-next-page';
-    next.setAttribute('data-url', base);
+    next.className = 'js-link-next';
     next.setAttribute('data-page', String(currentPage));
     next.setAttribute('data-total', String(totalPage));
     next.textContent = '下页 →';
@@ -282,6 +276,19 @@
       if (t.classList.contains('js-add-link')) { e.preventDefault(); togglePanel(); return; }
       if (t.classList.contains('js-link-cancel')) { e.preventDefault(); togglePanel(false); resetForm(); return; }
       if (t.classList.contains('js-link-retry')) { e.preventDefault(); loadList(currentPage); return; }
+
+      if (t.classList.contains('js-link-pre')) {
+        e.preventDefault();
+        if (currentPage > 1) loadList(currentPage - 1);
+        else toast('已经是第一页');
+        return;
+      }
+      if (t.classList.contains('js-link-next')) {
+        e.preventDefault();
+        if (currentPage < totalPage) loadList(currentPage + 1);
+        else toast('后面没有了');
+        return;
+      }
 
       if (t.classList.contains('js-link-update')) {
         e.preventDefault();
