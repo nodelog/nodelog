@@ -20,10 +20,15 @@ exports.import = function (cfgItem) {
     return function (req, res) {
         var raw = req.body && (req.body.csv != null ? req.body.csv : req.body.content);
         if (typeof raw !== 'string' || !raw.trim()) return importFail(res, 400, 'CSV 内容不能为空');
-        if (Buffer.byteLength(raw, 'utf8') > cfgConst.IMPORT_MAX_BYTES) return importFail(res, 413, '文件超过 2MB');
+        // 文案由配置值派生，避免环境变量改了阈值但提示仍是写死的「2MB / 1000 行」（第二真源）。
+        var maxRows = cfgItem.maxRows || cfgConst.IMPORT_MAX_ROWS;
+        var maxMB = Math.round(cfgConst.IMPORT_MAX_BYTES / (1024 * 1024) * 10) / 10;
+        if (Buffer.byteLength(raw, 'utf8') > cfgConst.IMPORT_MAX_BYTES) {
+            return importFail(res, 413, '文件超过 ' + maxMB + 'MB');
+        }
         var rows = kit.csv.decode(raw);
         var dataRows = rows.slice(1);
-        if (dataRows.length > (cfgItem.maxRows || cfgConst.IMPORT_MAX_ROWS)) return importFail(res, 413, '超过 1000 行');
+        if (dataRows.length > maxRows) return importFail(res, 413, '超过 ' + maxRows + ' 行');
         if (!rows.length || JSON.stringify(rows[0]) !== JSON.stringify(cfgItem.columns)) {
             return importFail(res, 400, '表头不匹配');
         }

@@ -86,7 +86,8 @@ exports.parseListQuery = function (q, spec) {
     if (!isFinite(pageSize) || isNaN(pageSize) || pageSize < 1) pageSize = spec.pageSize || cfg.PAGE_SIZE;
     if (pageSize > cfg.MAX_PAGE_SIZE) pageSize = cfg.MAX_PAGE_SIZE;
     var sortBy = exports.oneOf(q.sortBy, spec.sortWhitelist || [], spec.defaultSortBy || 'createTime');
-    var order = exports.oneOf(q.order, ['asc', 'desc'], 'desc');
+    // 默认方向可由资源声明（desc.defaultOrder / cfg.defaultOrder）覆盖；不声明仍为 desc。
+    var order = exports.oneOf(q.order, ['asc', 'desc'], spec.defaultOrder || 'desc');
 
     var filters = {};
     var error = null;
@@ -120,6 +121,14 @@ exports.parseListQuery = function (q, spec) {
             var d = parseDate(q[key]);
             if (d === undefined) error = '日期参数错误';
             else if (d !== null) filters[key] = d;
+        }
+    });
+    // 资源自定义筛选（如 category 的 parent / violation 的 source、disposition）：
+    // 由 desc.extraFilters 显式声明后才会进入 filters，杜绝各资源另写一套私有解析。
+    // 统一按「短文本、去控制字符、trim」处理；值语义由 desc.extra() 自行解释。
+    (spec.extraFilters || []).forEach(function (key) {
+        if (q[key] !== undefined && q[key] !== '') {
+            filters[key] = exports.str(q[key], 200, false) || '';
         }
     });
     return {page: page, pageSize: pageSize, sortBy: sortBy, order: order, filters: filters, error: error};

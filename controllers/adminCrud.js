@@ -110,11 +110,15 @@ exports.writeScope = writeScope;
 exports._internal = {parseOf: parseOf, sortOf: sortOf, sendErr: sendErr, okMsg: okMsg, userErrMsg: userErrMsg};
 
 function parseOf(cfgItem, query) {
+    var desc = cfgItem.desc || {};
     return kit.parseListQuery(query, {
         sortWhitelist: cfgItem.sortWhitelist || ['createTime'],
         defaultSortBy: cfgItem.defaultSortBy || 'createTime',
         statusRange: cfgItem.statusRange || [0, 2],
-        pageSize: cfgItem.pageSize || cfgConst.PAGE_SIZE
+        pageSize: cfgItem.pageSize || cfgConst.PAGE_SIZE,
+        // 资源可在 desc 上声明额外筛选键与默认排序方向（框架级扩展点，缺省零影响）。
+        extraFilters: desc.extraFilters || [],
+        defaultOrder: cfgItem.defaultOrder || desc.defaultOrder
     });
 }
 function sortOf(parsed) {

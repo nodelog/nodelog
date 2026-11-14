@@ -16,7 +16,8 @@
     "automation:classify": "node scripts/moderation-automation.js classify --apply",
     "automation:probe": "node scripts/moderation-automation.js probe",
     "test:automation": "node tests/automation-alert.test.js",
-    "test:alert-api": "node scripts/test-alert-api.js"
+    "test:alert-api": "node scripts/test-alert-api.js",
+    "admin:verify": "node scripts/verify-admin-framework.js"
   },
   "dependencies": {
     "async": "^1.5.2",

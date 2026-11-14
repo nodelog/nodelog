@@ -9,6 +9,13 @@
   var _extra = (typeof extraParams !== 'undefined' && extraParams) ? extraParams : null;
   var _keys = ['keyword', 'status', 'categoryId', 'tag', 'author', 'role', 'result',
     'action', 'actor', 'target', 'objectId', 'from', 'to', 'sortBy', 'order', 'pageSize'];
+  // 资源通过 desc.extraFilters 声明的自定义筛选键（如 parent / source / disposition）
+  // 自动并入翻页 URL，无需各页再用 extraParams 手工补；未声明的键不会被拼入，避免注入。
+  if (typeof filters !== 'undefined' && filters) {
+    Object.keys(filters).forEach(function (k) {
+      if (_keys.indexOf(k) === -1 && /^[a-zA-Z][a-zA-Z0-9]*$/.test(k)) _keys.push(k);
+    });
+  }
   var _pairs = [];
   _keys.forEach(function (k) {
     if (typeof locals[k] !== 'undefined' && locals[k] !== '' && locals[k] !== null) {

@@ -16,7 +16,8 @@
     return '';
   }
   var _sortBy = lv('sortBy');
-  var _order = lv('order') || 'desc';
+  // 默认方向可由资源声明（bar.defaultOrder，与 desc.defaultOrder 保持一致）；缺省降序。
+  var _order = lv('order') || bar.defaultOrder || 'desc';
   var _status = lv('status');
   function sel(name, list, cur, blankLabel) {
     var h = '<select class="form-control" name="' + name + '" id="f-' + name + '">';

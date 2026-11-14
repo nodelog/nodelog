@@ -1515,7 +1515,11 @@
               if (o.p != null) opt.setAttribute('data-p', String(o.p)); // 父级 id，供编辑时防环
               input.appendChild(opt);
             });
-          } else { input = document.createElement('input'); input.type = 'text'; }
+          } else {
+            input = document.createElement('input');
+            // 字段类型与 adminFramework.FIELD_KINDS 对齐；未知类型安全降级为 text。
+            input.type = ['number', 'date', 'password'].indexOf(f.k) !== -1 ? f.k : 'text';
+          }
           input.name = f.n;
           input.className = 'form-control';
           if (f.max) input.maxLength = parseInt(f.max, 10);

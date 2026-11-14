@@ -7,6 +7,9 @@ var io = require('./adminIo');
 
 var categoryDesc = {soft: {status: 0}, search: ['name', 'slug'], dateField: 'createTime',
     sortWhitelist: ['order', 'name', 'createTime'], defaultSortBy: 'order', defaultOrder: 'asc',
+    // 框架扩展点：声明 parent 为合法筛选键，parseListQuery 才会把它放进 filters，
+    // 同时 adminPager 会自动把它拼进翻页 URL（此前二者皆缺，筛选为不可达死功能）。
+    extraFilters: ['parent'],
     // 后台「按父分类筛选」：__none__ → 仅顶级分类(parent=null)；具体 id → 该父级下的子分类。
     extra: function (filters) {
         if (filters && filters.parent === '__none__') return {parent: null};
