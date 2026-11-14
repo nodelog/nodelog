@@ -532,7 +532,9 @@ if (opt.cmd === 'smtp-try') {
         if (r && r.sent) {
             log('邮件已真实投递给 SMTP，请检查收件箱（含垃圾邮件文件夹）。');
         } else {
-            warn('全部传输参数组合均失败，原因: ' + (r && r.reason));
+            warn('失败原因: ' + (r && r.reason) +
+                (r && r.reason === 'server-side-rejection'
+                    ? '（服务端连续返回同一认证错误，已提前停止重试以免触发邮箱安全检测）' : ''));
             var st = r && r.advice && r.advice.steps;
             if (st && st.length) {
                 warn('备用排查项（不是「配置错误」结论）:');

@@ -158,14 +158,42 @@ exports.probe = function (req, res) {
             res.status(body.sent ? 200 : 502).json(sanitize(body));
         }
         // 认证类全失败时补一次「错误密码」对照，让结论有可验证依据而不是猜测。
-        if (!body.sent && r && (r.reason === 'auth-failed' || r.reason === 'no-working-profile')) {
+        function withControl(ctl) {
+            body.control = ctl || null;
+            var first = (r.tried || []).filter(function (t) { return !t.ok && t.code; })[0];
+            var same = !!(first && ctl && ctl.code && String(first.code) === String(ctl.code));
+            if (same) {
+                body.diagnosis = {
+                    conclusion: 'server-side-rejection',
+                    title: '服务端对任何密码都返回同一错误码 ' + first.code + '，凭据内容未参与校验',
+                    detail: '不是 settings.js 填写问题，也不是 nodemailer 传输参数问题；' +
+                        '阿里邮箱在账号 / 访问策略层拒绝 AUTH。',
+                    actions: [
+                        '邮箱管理后台 → 安全设置：确认未开启「禁止使用三方客户端」（新购域默认开启）',
+                        '若已开启「三方客户端安全密码」：必须在 webmail 生成专用密码，登录密码不可用',
+                        '管理后台 → 访问控制：确认 SMTP 协议已开启、策略包含该发件地址、未限制当前服务器 IP 或客户端类型',
+                        '同一 IP 连续认证失败会触发安全检测并临时限制客户端登录，停止重试后一段时间自动恢复',
+                        '认证用户名需为完整邮箱地址且无多余空格'
+                    ],
+                    officialDoc: 'https://help.aliyun.com/document_detail/602363.html'
+                };
+            } else if (ctl && ctl.wrongPasswordAccepted === false) {
+                body.diagnosis = {
+                    conclusion: 'credential-rejected',
+                    title: '错误密码与真实凭据返回不同结果：凭据确实被校验',
+                    detail: '需使用邮箱登录密码或邮箱侧签发的三方客户端安全密码。',
+                    actions: ['用环境变量 ALERT_SMTP_PASS 注入邮箱侧签发的专用密码即可，无需改代码']
+                };
+            }
+            respond();
+        }
+        if (!body.sent && r &&
+            /auth-failed|server-side-rejection|no-working-profile/.test(r.reason || '')) {
             try {
-                return alert.authControl(function (ctl) {
-                    body.control = ctl || null;
-                    respond();
-                });
+                return alert.authControl(withControl);
             } catch (e) {
                 body.control = {error: String(e.message || e).slice(0, 120)};
+                return respond();
             }
         }
         body.control = null;

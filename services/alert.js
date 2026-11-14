@@ -386,7 +386,8 @@ function buildProfiles(smtp) {
     });
     add(variant(smtp, {tlsLoose: true}));                     // 自签证书 / 老 TLS
     add(variant(smtp, {tlsLoose: true, authMethod: 'PLAIN'}));
-    [{port: 465, secure: true}, {port: 587, secure: false}, {port: 25, secure: false}]
+    // 不试 25：云厂商默认封出站 25，只会白等超时并增加失败认证次数。
+    [{port: 465, secure: true}, {port: 587, secure: false}]
         .forEach(function (pt) {
             ['PLAIN', 'LOGIN'].forEach(function (am) {
                 add(variant(smtp, {port: pt.port, secure: pt.secure, authMethod: am}));
@@ -491,16 +492,18 @@ function findProfile(smtp, cb) {
     buildProfiles(smtp).forEach(function (p) { list.push(p); });
     var tried = [], i = 0, finished = false;
     var firstAuthError = null;   // 备选主机连接失败不能盖掉最关键的 526
+    var sameAuthCount = 0, lastAuthCode = '';
     function done(r) { if (!finished) { finished = true; cb(null, r); } }
+    function fail(reasonOverride) {
+        var ex = explainSmtpError(firstAuthError || lastError || new Error('all SMTP profiles failed'), smtp);
+        var reason = reasonOverride || (ex.kind === 'auth' ? 'auth-failed'
+            : (ex.kind === 'network' ? 'network-unreachable'
+                : (ex.kind === 'tls' ? 'tls-failed' : 'no-working-profile')));
+        done({ok: false, reason: reason, profile: null, tried: tried, advice: ex});
+    }
     function next() {
         if (finished) return;
-        if (i >= list.length) {
-            var ex = explainSmtpError(firstAuthError || lastError || new Error('all SMTP profiles failed'), smtp);
-            var reason = ex.kind === 'auth' ? 'auth-failed'
-                : (ex.kind === 'network' ? 'network-unreachable'
-                    : (ex.kind === 'tls' ? 'tls-failed' : 'no-working-profile'));
-            return done({ok: false, reason: reason, profile: null, tried: tried, advice: ex});
-        }
+        if (i >= list.length) return fail();
         var p = list[i++];
         var transport;
         try { transport = mailer.createTransport(transportOptions(smtp, p)); }
@@ -519,7 +522,22 @@ function findProfile(smtp, cb) {
             }));
             if (err) {
                 lastError = err;
-                if (!firstAuthError && explainSmtpError(err, smtp).kind === 'auth') firstAuthError = err;
+                var isAuth = explainSmtpError(err, smtp).kind === 'auth';
+                if (isAuth && !firstAuthError) firstAuthError = err;
+                if (isAuth) {
+                    var code = String(err.responseCode || err.message || '');
+                    sameAuthCount = (code && code === lastAuthCode) ? sameAuthCount + 1 : 1;
+                    lastAuthCode = code;
+                    // 官方 526 成因之一：同一 IP 频繁认证失败触发安全检测，临时限制客户端登录。
+                    // 连续 3 次完全相同的认证拒绝 = 账号/访问策略级拒绝，继续枚举只会加剧锁定。
+                    // ALERT_SMTP_FORCE_FULL=1 可强制跑完全部候选（仅排障用）。
+                    if (sameAuthCount >= 3 && process.env.ALERT_SMTP_FORCE_FULL !== '1') {
+                        return fail('server-side-rejection');
+                    }
+                } else {
+                    sameAuthCount = 0;
+                    lastAuthCode = '';
+                }
                 return next();
             }
             saveProfile(smtp, describeProfile(p));
