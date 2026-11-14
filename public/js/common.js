@@ -265,6 +265,9 @@
         closeLayer();
         myMsg(data.msg);
         if (data.success) {
+          // 发布/保存成功后清除本地草稿，避免下次「写新文章」又回灌本次内容
+          // （新增文章草稿 key 固定为 nl-draft-new，不清会跨文章串稿；编辑文章则清 nl-draft-<id>）
+          try { localStorage.removeItem('nl-draft-' + (id || 'new')); } catch (e) {}
           window.removeEventListener('beforeunload', beforeUnloadHandler);
           if (id != null) location.href = '/content/detail?view=contentDetail&id=' + id;
           else location.href = '/';
@@ -356,6 +359,48 @@
       location.href = '/content/user?page=1';
     });
     on(document, 'click', '.js-refresh', function () { location.reload(); });
+
+    /* 作者前台自助删除自己的文章：正文页 + 我的文章列表通用（后端按 author 归属软删） */
+    on(document, 'click', '.js-delete-article', function () {
+      if (sessionUser == null) { if (qs('.js-login-btn')) qs('.js-login-btn').click(); return; }
+      var btn = this;
+      var id = attr(btn, 'data-id');
+      if (!id) return;
+      NL.alert('确定要删除这篇文章吗？删除后可在后台恢复。', {
+        confirmText: '删除',
+        cancelText: '取消',
+        onConfirm: function () {
+          btn.disabled = true;
+          var oldText = btn.textContent;
+          btn.textContent = '删除中…';
+          postForm('/content/delete', { id: id }).then(function (r) {
+            if (r && r.success) {
+              NL.toast('删除成功');
+              var card = btn.closest('.post-card');
+              if (card) { // 列表页：就地移除
+                card.parentNode && card.parentNode.removeChild(card);
+                var kicker = qs('.kicker');
+                if (kicker) kicker.textContent = kicker.textContent.replace(/\d+/, function (n) {
+                  return String(Math.max(0, parseInt(n, 10) - 1));
+                });
+                if (!document.querySelector('.post-card')) location.reload();
+              } else { // 正文页：删除后回到「我的文章」
+                location.href = '/content/user?page=1';
+              }
+            } else {
+              btn.disabled = false;
+              btn.textContent = oldText;
+              NL.alert(r && r.msg ? r.msg : '删除失败', { confirmText: '知道了' });
+            }
+          }).catch(function () {
+            btn.disabled = false;
+            btn.textContent = oldText;
+            NL.alert('网络错误，删除失败', { confirmText: '知道了' });
+          });
+        }
+      });
+    });
+
 
     /* 搜索：回车跳转 + 实时建议 */
     on(document, 'keydown keyup focus click change', '.js-search', function (e) {
