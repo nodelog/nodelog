@@ -50,21 +50,25 @@ exports.findById = function (req, res) {
         },
         render: ["getContent", function (callback) {
             if (!doc) return callback(null);
-            if (doc.contentType === 'markdown') {
-                doc.renderedContent = markdown.render(doc.content);
-                if (!doc.excerpt) doc.excerpt = markdown.excerpt(doc.content, 120);
-            } else {
-                doc.renderedContent = doc.content;
-                if (!doc.excerpt) doc.excerpt = markdown.excerpt(doc.content ? doc.content.replace(/<[^>]*>/g, '') : '', 120);
-            }
-            if (String(view).indexOf('editContent') !== -1 &&
-                doc.contentType !== 'markdown' && html2md.isHtml(doc.content)) {
-                doc.htmlBackup = doc.content;
-                doc.content = html2md.convert(doc.content);
-                doc.contentType = 'markdown';
-                doc.legacyHtmlPending = true;
-            }
-            callback(null);
+            // 详情页此前漏掉 enrichDocs：categoryName/userName/realName/email 全为 undefined，
+            // 模板一律回退「未分类 / 佚名」。单文档包成数组复用同一补全逻辑（含分类名回填）。
+            Content.enrichDocs([doc], function () {
+                if (doc.contentType === 'markdown') {
+                    doc.renderedContent = markdown.render(doc.content);
+                    if (!doc.excerpt) doc.excerpt = markdown.excerpt(doc.content, 120);
+                } else {
+                    doc.renderedContent = doc.content;
+                    if (!doc.excerpt) doc.excerpt = markdown.excerpt(doc.content ? doc.content.replace(/<[^>]*>/g, '') : '', 120);
+                }
+                if (String(view).indexOf('editContent') !== -1 &&
+                    doc.contentType !== 'markdown' && html2md.isHtml(doc.content)) {
+                    doc.htmlBackup = doc.content;
+                    doc.content = html2md.convert(doc.content);
+                    doc.contentType = 'markdown';
+                    doc.legacyHtmlPending = true;
+                }
+                callback(null);
+            });
         }]
     }, function (err) {
         if (doc == null) { res.redirect("/error"); return; }
