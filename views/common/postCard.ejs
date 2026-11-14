@@ -7,9 +7,9 @@
   var _date = format(doc.createTime || doc.modifyTime, 'YYYY-MM-DD');
 %>
 <article class="post-card post-card--<%= v %>">
-    <% if (isLead) { %>
+    <% if (isLead && doc.cover) { %>
     <a class="post-cover post-cover--lead" href="/content/detail?id=<%= doc._id %>" tabindex="-1" aria-hidden="true">
-        <% if (doc.cover) { %><img class="cover" src="<%= doc.cover %>" alt="<%= doc.name %>" width="1280" height="640" decoding="async"><% } %>
+        <img class="cover" src="<%= doc.cover %>" alt="<%= doc.name %>" width="1280" height="640" decoding="async">
         <span class="post-cover__shine" aria-hidden="true"></span>
     </a>
     <% } else if (!isList && doc.cover) { %>
