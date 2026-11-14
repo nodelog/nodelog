@@ -7,6 +7,7 @@ var constants = require('../../models/constants');
 var matcher = require('./moderationMatcher');
 var cfg = require('../adminConfig');
 var kit = require('../adminKit');
+var alert = require('../../services/alert');
 var ObjectId = require('mongoose').Types.ObjectId;
 
 var BLOCK_MSG = '内容包含违规信息，请修改后重试';
@@ -17,16 +18,31 @@ var UNAVAILABLE_MSG = '内容校验暂不可用，请稍后重试';
 // L4 实时兜底（§6.2）：读库内最新 status/muteUntil（session 里的 user 可能是旧的）。
 // cb(err|null, state)：state={active, reason:'ok'|'muted'|'stopped'|'banned', user}。
 // DB 错误 → cb(err)，由调用方归一化 500，不静默放行（§10.4）。
+function classify(doc, fallbackUser, cb) {
+    // User.findById 过滤 status<2：封禁(2) → null。
+    if (!doc) return cb(null, {active: false, reason: 'banned', user: fallbackUser});
+    if (doc.status === constants.USER_DELETE_STATUS) {
+        return cb(null, {active: false, reason: 'banned', user: doc});
+    }
+    if (doc.status === constants.USER_UNABLE_STATUS) {
+        return cb(null, {active: false, reason: 'stopped', user: doc});
+    }
+    if (doc.muteUntil && new Date(doc.muteUntil).getTime() > Date.now()) {
+        return cb(null, {active: false, reason: 'muted', user: doc});
+    }
+    cb(null, {active: true, reason: 'ok', user: doc});
+}
+
 function readActive(req, cb) {
+    // 开放 API（W6）：无 session，auth 已按 token 解析出完整 User 文档并挂 req._moderationActor。
+    // 直接复用同一套状态判定，避免「无 session → 一律 banned」把合法 API 发文全打回。
+    var actor = req && req._moderationActor;
+    if (actor && actor._id) return classify(actor, actor, cb);
     var u = req && req.session && req.session.user;
     if (!u || !u._id) return cb(null, {active: false, reason: 'banned'});
     User.findById(u._id, function (err, doc) {
         if (err) return cb(err);
-        // findById 过滤 status<2：封禁(2) → null；停用(1) → 仍返回 doc。
-        if (!doc) return cb(null, {active: false, reason: 'banned', user: u});
-        if (doc.status === constants.USER_UNABLE_STATUS) return cb(null, {active: false, reason: 'stopped', user: doc});
-        if (doc.muteUntil && new Date(doc.muteUntil).getTime() > Date.now()) return cb(null, {active: false, reason: 'muted', user: doc});
-        cb(null, {active: true, reason: 'ok', user: doc});
+        classify(doc, u, cb);
     });
 }
 
@@ -64,10 +80,49 @@ function recordViolation(req, source, decision, state, cb) {
     });
 }
 
+// 命中告警（W6）：fire-and-forget，节流键按「来源 + 命中词」聚合，30 分钟内同词只发一封。
+// 只带字段名/命中词/账号名/计数，绝不带正文、邮箱、IP（与 ViolationLog 的最小必要口径一致）。
+function alertHit(req, source, decision, state, traceId) {
+    try {
+        var u = state.user || {};
+        alert.notify({
+            level: 'warn',
+            title: '敏感词命中，已自动拒发',
+            summary: '发布/编辑请求在业务写入前被风控守卫拦截，内容未落库。',
+            key: 'hit:' + source + ':' + decision.hitWord,
+            rows: [
+                {k: '来源', v: source === 'content' ? '文章' : '评论'},
+                {k: '命中字段', v: decision.field},
+                {k: '命中词', v: decision.hitWord},
+                {k: '操作账号', v: u.userName || u.realName || '(API/未登录)'},
+                {k: '自动留痕', v: '违规记录 + 用户违规计数 + 审计（trace=' + traceId + '）'},
+                {k: '后续处置', v: '需人工在后台「违规记录」页签发警告/禁言/停用/封禁'}
+            ]
+        });
+    } catch (e) {
+        console.error('[moderationGuard] alert.notify failed: ' + (e && e.message ? e.message : e));
+    }
+}
+
 // matcher/词库异常（§4.6）：默认 open 放行 + console.error + 一条 matcher_unavailable 审计；
 // 切 closed 则拒发（键集合仍由调用方组装为 {success,msg}）。
 function onUnavailable(req, source, err, cb) {
     console.error('[moderationGuard] matcher_unavailable: ' + (err && err.message ? err.message : err));
+    try {
+        alert.notify({
+            level: 'critical',
+            title: '敏感词匹配器不可用',
+            summary: '词库加载/解析失败，当前按 MODERATION_FAIL_MODE 降级，请尽快检查词库与数据库连接。',
+            key: 'matcher_unavailable',
+            rows: [
+                {k: '降级模式', v: cfg.MODERATION_FAIL_MODE === 'closed' ? 'closed（拒发）' : 'open（放行）'},
+                {k: '触发来源', v: source},
+                {k: '错误信息', v: String(err && err.message ? err.message : err).slice(0, 200)}
+            ]
+        });
+    } catch (e) {
+        console.error('[moderationGuard] alert.notify(matcher_unavailable) failed: ' + (e && e.message ? e.message : e));
+    }
     kit.audit(req, {action: 'moderation', target: source, objectId: [],
         detail: 'matcher_unavailable', result: false}, function () {
         cb(null, cfg.MODERATION_FAIL_MODE === 'closed'
@@ -98,6 +153,7 @@ ModerationGuard.prototype.enforce = function (req, fields, source, cb) {
             if (err2) return onUnavailable(req, source, err2, cb);
             if (!decision || !decision.hit) return cb(null, {allowed: true, reason: 'clean'});
             recordViolation(req, source, decision, state, function (traceId) {
+                alertHit(req, source, decision, state, traceId);
                 cb(null, {allowed: false, msg: BLOCK_MSG, reason: 'hit',
                     traceId: traceId, decision: decision});
             });

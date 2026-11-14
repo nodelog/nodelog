@@ -14,13 +14,31 @@ module.exports = {
     // MongoDB 连接串（mongoose 使用）
     url: 'mongodb://127.0.0.1:27017/ctit',
 
-    // 邮件服务（评论通知使用，nodemailer）
+    // 邮件服务（评论通知 + 风控告警共用同一套 SMTP，nodemailer）
     email: {
         host: 'smtp.example.com',
         port: 465,           // 非加密 25，SSL 465，STARTTLS 587
         secure: true,        // 端口 465 时 true
         user: 'sender@example.com',
         pass: 'smtp-password'
+    },
+
+    // ===== 风控告警通知（收件人单独配置，与上面的发件账号解耦）=====
+    // 触发时机：敏感词命中拒发（实时、带节流）、自动化脚本每轮结果（汇总）。
+    // 推荐用环境变量注入收件地址，配置文件里不落任何收件人：
+    //   ALERT_RECIPIENTS=you@example.com,ops@example.com npm start
+    // 未配置收件人时告警只写服务端日志，绝不发信；ALERT_ENABLED=0 可强制关闭。
+    alert: {
+        enabled: true,
+        // 收件人数组；也可写 'a@example.com,b@example.com'。环境变量 ALERT_RECIPIENTS 优先。
+        // 例：recipients: ['you@example.com']
+        recipients: [],
+        // 同一事件（相同 key）在该时间窗内只发一次，防命中刷屏；0 = 不去重
+        throttleMinutes: 30,
+        // 实时命中告警开关；关掉后只保留自动化脚本的每轮汇总邮件（ALERT_REALTIME=0 同效）
+        realtime: true,
+        subjectPrefix: '[NODELOG 风控]',
+        fromName: 'NODELOG 风控'
     },
 
     // ===== LINK ONE 开放平台（扫码登录 + 公众号 JS-SDK 签名，不含支付）=====

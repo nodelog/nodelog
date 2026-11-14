@@ -22,6 +22,8 @@ var Category = require('./../models/Category.js');
 var User = require('./../models/User.js');
 var Tag = require('./../models/Tag.js');
 var markdown = require('./markdown');
+var autoClassify = require('./../services/autoClassify');   // 分类语义匹配 + 标签提取
+var guard = require('./moderation/moderationGuard');          // W6：与后台编辑器同一套风控守卫
 
 var constants = require('./../models/constants');
 var OID_RE = /^[a-f\d]{24}$/i;
@@ -124,6 +126,10 @@ exports.auth = function (req, res, next) {
         if (u.status !== constants.USER_ENABLE_STATUS) {
             return res.status(403).json({ success: false, msg: '作者账号已停用：' + authorName });
         }
+        // W6：无 session 链路也必须遵守禁言期（后台由 guard.assertActive 兜底，API 在 auth 先挡一次）。
+        if (u.muteUntil && new Date(u.muteUntil).getTime() > Date.now()) {
+            return res.status(403).json({ success: false, msg: '作者账号处于禁言期：' + authorName });
+        }
         req.apiAuthor = u;
         req.apiTokenEntry = entry;
         next();
@@ -132,6 +138,8 @@ exports.auth = function (req, res, next) {
 
 // ---------------------------------------------------------------------------
 // POST /api/articles  发布（或存草稿）一篇文章
+//   - category 为空：用 autoClassify.matchCategory 语义匹配（与后台编辑器同源）
+//   - tags 为空：用 autoClassify.extractTags 从标题/正文轻量分词取 Top5
 // ---------------------------------------------------------------------------
 exports.publish = function (req, res) {
     var f = content.buildFields(req);
@@ -147,25 +155,35 @@ exports.publish = function (req, res) {
     if (visibility === 'draft') { draft = true; }
     else if (visibility === 'private') { status = constants.CONTENT_SELF_STATUS; } // 2
 
-    // 分类解析：支持 ObjectId 或分类名；未提供则归为未分类(null)
-    function resolveCategory(done) {
-        var cat = req.body.category;
-        if (cat == null || cat === '') return done(null, null);
-        if (OID_RE.test(String(cat))) return done(null, String(cat));
-        Category.findByName(String(cat), function (err, obj) {
-            if (err) return done(err);
-            if (!obj) return done(null, '__NOT_FOUND__');
-            return done(null, String(obj._id));
-        });
-    }
-
-    resolveCategory(function (catErr, catId) {
+    // 一次性加载分类，用于：①显式分类名→id 解析 ②空分类时语义自动匹配
+    Category.findAll(function (catErr, cats) {
         if (catErr) {
             console.error('[articleApi.publish] 分类查询失败：' + catErr.message);
             return res.status(500).json({ success: false, msg: '服务端错误' });
         }
-        if (catId === '__NOT_FOUND__') {
-            return res.status(400).json({ success: false, msg: '分类不存在：' + req.body.category });
+        cats = cats || [];
+
+        // 解析分类：显式提供（ObjectId 或名称）→ 按原逻辑；为空 → 语义自动匹配
+        var provided = req.body.category;
+        var catId = null;
+        if (provided == null || provided === '') {
+            var m = autoClassify.matchCategory(cats, f.name, f.content);
+            catId = m ? String(m._id) : null;                 // 匹配不到则未分类(null)
+        } else if (OID_RE.test(String(provided))) {
+            catId = String(provided);
+        } else {
+            var hit = null;
+            var pname = String(provided).trim();
+            for (var i = 0; i < cats.length; i++) {
+                if (cats[i].name && cats[i].name.trim() === pname) { hit = cats[i]; break; }
+            }
+            if (!hit) return res.status(400).json({ success: false, msg: '分类不存在：' + provided });
+            catId = String(hit._id);
+        }
+
+        // 标签：为空时自动从标题/正文提取 Top5（带停用词过滤）
+        if (!f.tags || !f.tags.length) {
+            f.tags = autoClassify.extractTags(f.name, f.content, f.contentType, 5);
         }
 
         f.category = catId;                       // null 或 ObjectId 字符串
@@ -209,22 +227,40 @@ exports.publish = function (req, res) {
                 status: status
             };
 
-            Content.save(obj, function (saveErr, saved) {
-                if (saveErr || !saved) {
-                    console.error('[articleApi.publish] 保存失败：' + (saveErr && saveErr.message));
-                    return res.status(500).json({ success: false, msg: '发表文章失败' });
+            // W6（开放 API 风控）：与后台 content.add 同一套 8 字段守卫，且覆盖自动生成的标签。
+            // 开放 API 无 session：auth 已把解析出的 User 文档挂 req._moderationActor，
+            // guard.readActive 会优先使用它，避免「无 session → banned」把合法请求全打回。
+            req._moderationActor = req.apiAuthor;
+            var modFields = {
+                name: f.name, content: f.content, excerpt: f.excerpt, tags: f.tags,
+                seoTitle: f.seo.title, seoKeywords: f.seo.keywords, seoDescription: f.seo.description
+            };
+            guard.enforce(req, modFields, 'content', function (gErr, verdict) {
+                if (gErr) {
+                    console.error('[articleApi.publish] 风控守卫异常: ' + gErr.message);
+                    return res.status(500).json({ success: false, msg: '服务端错误' });
                 }
-                Tag.reconcileForContent([], f.tags, function () {
-                    return res.status(201).json({
-                        success: true,
-                        msg: draft ? '草稿已保存' : '发表成功',
-                        id: saved._id,
-                        slug: saved.slug || '',
-                        url: articleUrl(saved._id),
-                        status: status,
-                        draft: draft,
-                        visibility: visibility,
-                        publishedAt: saved.createTime
+                if (!verdict.allowed) {
+                    // 命中/停用/禁言：零业务写、零成功审计、零标签重算；违规留痕与告警由 guard 完成。
+                    return res.status(403).json({ success: false, msg: verdict.msg, reason: verdict.reason });
+                }
+                Content.save(obj, function (saveErr, saved) {
+                    if (saveErr || !saved) {
+                        console.error('[articleApi.publish] 保存失败：' + (saveErr && saveErr.message));
+                        return res.status(500).json({ success: false, msg: '发表文章失败' });
+                    }
+                    Tag.reconcileForContent([], f.tags, function () {
+                        return res.status(201).json({
+                            success: true,
+                            msg: draft ? '草稿已保存' : '发表成功',
+                            id: saved._id,
+                            slug: saved.slug || '',
+                            url: articleUrl(saved._id),
+                            status: status,
+                            draft: draft,
+                            visibility: visibility,
+                            publishedAt: saved.createTime
+                        });
                     });
                 });
             });

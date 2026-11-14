@@ -36,6 +36,13 @@ exports.MODERATION_MAX_WORD_CHARS = pickInt('MODERATION_MAX_WORD_CHARS', 64, 1, 
 exports.MODERATION_WORD_BOUNDARY = pickEnum('MODERATION_WORD_BOUNDARY', 'false', ['true', 'false']) === 'true';
 exports.MODERATION_FAIL_MODE = pickEnum('MODERATION_FAIL_MODE', 'open', ['open', 'closed']);
 
+// 自动化运维（scripts/moderation-automation.js）阈值：同样支持同名环境变量覆盖。
+exports.AUTOMATION_VIOLATION_THRESHOLD = pickInt('AUTOMATION_VIOLATION_THRESHOLD', 5, 1, 1000); // 累计违规次数 → 自动禁言
+exports.AUTOMATION_RESCAN_LIMIT = pickInt('AUTOMATION_RESCAN_LIMIT', 500, 1, 100000);       // 单轮复扫文档上限
+exports.AUTOMATION_COLLECT_DAYS = pickInt('AUTOMATION_COLLECT_DAYS', 30, 1, 3650);        // 违规热词统计窗口
+exports.AUTOMATION_HOT_HITS = pickInt('AUTOMATION_HOT_HITS', 3, 1, 10000);                  // 热词判定次数
+exports.AUTOMATION_INTERVAL_MINUTES = pickInt('AUTOMATION_INTERVAL_MINUTES', 30, 1, 1440);  // --daemon 轮次间隔
+
 // 派生不变量（配置错启动即炸）：默认页大小不超上限；分块重叠必须 > 最长词，否则切断词漏检。
 if (exports.PAGE_SIZE > exports.MAX_PAGE_SIZE) throw new Error('[adminConfig] PAGE_SIZE 不得大于 MAX_PAGE_SIZE');
 if (exports.MODERATION_CHUNK_OVERLAP <= exports.MODERATION_MAX_WORD_CHARS) {
