@@ -3,7 +3,11 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "start": "node ./bin/www"
+    "start": "node ./bin/www",
+    "announce:backfill": "node scripts/announce-release.js --backfill",
+    "announce:dry-run": "node scripts/announce-release.js --backfill --dry-run",
+    "announce:feature": "node scripts/announce-release.js --backfill --scope=feature",
+    "announce:optimizations": "node scripts/announce-release.js --backfill --scope=optimization"
   },
   "dependencies": {
     "async": "^1.5.2",
