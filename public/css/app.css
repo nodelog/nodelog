@@ -292,12 +292,14 @@
 .admin-filter-item label { font-size: var(--fs-small); color: var(--muted); }
 .admin-filter-item .form-control { min-height: 36px; width: 100%; }
 
-/* 后台筛选关键词框：legacy style.css 的 input[type=search]{width:0; 圆角药丸; 搜索图标底图}
-   会把关键词输入框压成 0 宽、样式错乱，导致「看得见但点不进字 / 输不进内容」。
-   该规则特异性 (0,1,1) 高于 .form-control (0,1,0)，故 .form-control 无法抵消它；
-   这里用更高特异性的选择器显式恢复为标准输入框外观与宽度。
-   content / category / user / log 四个后台页共用同一工具栏模板，一处修全。 */
-.admin-filter-item input[type="search"].form-control {
+/* 关键词 / 检索输入框：legacy style.css 的 input[type=search]{width:0; 圆角药丸; 搜索图标底图}
+   会把这类输入框压成 0 宽、样式错乱，导致「看得见但点不进字 / 输不进内容」。
+   该规则特异性 (0,1,1) 高于 .form-control (0,1,0)，故 .form-control 无法抵消它。
+   这里用更高特异性的 .form-control[type="search"] (0,2,1) 显式恢复为标准输入框外观与宽度，
+   覆盖后台工具栏（content/category/user/log/violation 共用 adminToolbar 模板）、前端搜索页等所有
+   用 class="form-control" 的检索框；导航栏搜索用 .search-input 且 .navbar input[type="search"].search-input
+   特异性更高 (0,3,1)，仍保持 180px，不受影响。 */
+.form-control[type="search"] {
   width: 100%; height: 44px; min-width: 0; margin: 0;
   padding: var(--space-2) var(--space-4);
   border: 1px solid var(--border-strong); border-radius: var(--radius-control);
