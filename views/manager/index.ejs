@@ -215,51 +215,94 @@
 } %>
 
 <style>
-.nl-muted{color:#606a76;font-size:15px;margin:8px 0 0}
-.nl-stat-grid{display:flex;flex-wrap:wrap;gap:16px;margin:24px 0 8px}
-.nl-stat-card{flex:1 1 160px;min-width:150px;background:#fff;border:1px solid #e0e3e6;border-radius:12px;padding:20px 22px;text-decoration:none;color:#171b21;transition:border-color .15s,transform .15s}
-.nl-stat-card:hover{border-color:#1d4ed8;transform:translateY(-1px)}
-.nl-stat-num{font-size:34px;font-weight:500;line-height:1.15}
-.nl-stat-label{font-size:13px;color:#606a76;margin-top:6px}
+/* ===== NODELOG 后台概览 · 统一设计令牌（浅/深色自动适配，禁止裸 hex） ===== */
+.nl-muted{color:var(--muted);font-size:var(--fs-body-sm);margin:8px 0 0}
 
+/* 统计卡：浮起 + 悬浮抬升 + 顶部渐变揭示线 */
+.nl-stat-grid{display:flex;flex-wrap:wrap;gap:16px;margin:24px 0 8px}
+.nl-stat-card{
+  position:relative;overflow:hidden;flex:1 1 160px;min-width:150px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:20px 22px;text-decoration:none;
+  color:var(--ink);box-shadow:var(--elev);
+  transition:transform .2s cubic-bezier(.2,.7,.2,1),border-color .15s,box-shadow .2s ease;
+}
+.nl-stat-card::before{
+  content:"";position:absolute;left:0;right:0;top:0;height:3px;
+  background:linear-gradient(90deg,var(--accent),var(--accent-2));
+  transform:scaleX(0);transform-origin:left;transition:transform .25s ease;
+}
+.nl-stat-card:hover{transform:translateY(-3px);border-color:var(--accent);
+  box-shadow:0 18px 40px -22px rgba(16,24,40,.30)}
+.nl-stat-card:hover::before{transform:scaleX(1)}
+.nl-stat-num{
+  font-size:34px;font-weight:500;line-height:1.15;
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;color:var(--accent);
+}
+.nl-stat-label{font-size:13px;color:var(--muted);margin-top:6px}
+
+/* 详情面板：浮起 + 悬浮描边高亮 */
 .nl-detail-grid{display:flex;flex-wrap:wrap;gap:16px;margin:24px 0 8px}
-.nl-panel{flex:1 1 360px;min-width:300px;background:#fff;border:1px solid #e0e3e6;border-radius:12px;padding:18px 20px}
-.nl-panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px;flex-wrap:wrap}
-.nl-panel-head h4{font-size:16px;font-weight:500;margin:0}
-.nl-more{font-size:13px;color:#1d4ed8;text-decoration:none}
+.nl-panel{
+  flex:1 1 360px;min-width:300px;background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--radius);
+  padding:18px 20px;box-shadow:var(--elev);
+  transition:border-color .15s,box-shadow .2s ease;
+}
+.nl-panel:hover{border-color:color-mix(in srgb,var(--accent) 40%,var(--border));
+  box-shadow:0 16px 38px -24px rgba(16,24,40,.28)}
+.nl-panel-head{display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:10px;gap:8px;flex-wrap:wrap}
+.nl-panel-head h4{position:relative;padding-left:12px;font-size:16px;font-weight:500;margin:0}
+.nl-panel-head h4::before{content:"";position:absolute;left:0;top:.25em;bottom:.25em;
+  width:3px;border-radius:2px;background:linear-gradient(180deg,var(--accent),var(--accent-2))}
+.nl-more{font-size:13px;color:var(--accent);text-decoration:none}
 .nl-more:hover{text-decoration:underline}
 .nl-list{list-style:none;margin:0;padding:0}
-.nl-list-item{padding:10px 0;border-top:1px solid #f0f2f4}
+.nl-list-item{padding:10px 0;border-top:1px solid var(--border)}
 .nl-list-item:first-child{border-top:none}
-.nl-title{display:block;font-size:15px;color:#171b21;text-decoration:none;font-weight:500}
-.nl-title:hover{color:#1d4ed8}
-.nl-meta{font-size:12px;color:#606a76;margin-top:4px;display:flex;flex-wrap:wrap;align-items:center;gap:4px}
-.nl-dot{color:#c4c9d0}
-.nl-empty{color:#9097a1;font-size:13px;padding:12px 0}
-.nl-badge{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;line-height:18px}
-.nl-badge-ok{background:#e6f4ee;color:#2f7d5d}
-.nl-badge-danger{background:#fbe9e8;color:#c32d28}
-.nl-badge-muted{background:#eef0f2;color:#606a76}
+.nl-title{display:block;font-size:15px;color:var(--ink);text-decoration:none;font-weight:500}
+.nl-title:hover{color:var(--accent)}
+.nl-meta{font-size:12px;color:var(--muted);margin-top:4px;display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+.nl-dot{color:var(--muted);opacity:.6}
+.nl-empty{color:var(--muted);font-size:13px;padding:12px 0}
+.nl-badge{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;line-height:18px;font-weight:500}
+.nl-badge-ok{background:var(--success-tint);color:var(--success-ink)}
+.nl-badge-danger{background:var(--danger-tint);color:var(--danger-ink)}
+.nl-badge-muted{background:var(--surface-2);color:var(--muted)}
 .nl-todo-row{display:flex;gap:16px}
-.nl-todo{flex:1;background:#f7f9fb;border:1px solid #e6e9ed;border-radius:10px;padding:14px 16px;text-decoration:none;color:#171b21;transition:border-color .15s}
-.nl-todo:hover{border-color:#1d4ed8}
-.nl-todo-num{font-size:26px;font-weight:500;line-height:1.1}
-.nl-todo-label{font-size:13px;color:#606a76;margin-top:4px}
+.nl-todo{flex:1;background:var(--surface-2);border:1px solid var(--border);
+  border-radius:10px;padding:14px 16px;text-decoration:none;color:var(--ink);
+  transition:border-color .15s,transform .15s,box-shadow .15s}
+.nl-todo:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:var(--elev)}
+.nl-todo-num{font-size:26px;font-weight:500;line-height:1.1;
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:var(--accent)}
+.nl-todo-label{font-size:13px;color:var(--muted);margin-top:4px}
 .nl-list-sm .nl-list-item{padding:8px 0}
 
+/* 运营趋势 */
 .nl-trend{margin-top:16px}
 .nl-range{display:flex;gap:6px}
-.nl-range a{font-size:12px;color:#606a76;text-decoration:none;padding:3px 10px;border:1px solid #e0e3e6;border-radius:999px;transition:all .15s}
-.nl-range a.on{background:#1d4ed8;color:#fff;border-color:#1d4ed8}
+.nl-range a{font-size:12px;color:var(--muted);text-decoration:none;
+  padding:3px 10px;border:1px solid var(--border);border-radius:999px;transition:all .15s}
+.nl-range a:hover{border-color:var(--accent);color:var(--accent)}
+.nl-range a.on{background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  color:var(--accent-ink);border-color:transparent}
 .nl-charts{display:flex;flex-wrap:wrap;gap:16px;margin-top:6px}
 .nl-chart{flex:1 1 200px;min-width:160px}
-.nl-chart-title{font-size:13px;color:#606a76;margin-bottom:6px}
-.nl-chart-title b{color:#171b21;font-weight:600}
+.nl-chart-title{font-size:13px;color:var(--muted);margin-bottom:6px}
+.nl-chart-title b{color:var(--ink);font-weight:600}
 .nl-bars{display:flex;align-items:flex-end;gap:2px;height:64px;padding-top:4px}
-.nl-bar{flex:1;min-width:2px;background:#1d4ed8;border-radius:2px 2px 0 0;opacity:.82;transition:opacity .15s}
-.nl-bar:hover{opacity:1}
-.nl-axis{display:flex;justify-content:space-between;font-size:11px;color:#9097a1;margin-top:6px}
+.nl-bar{flex:1;min-width:2px;border-radius:2px 2px 0 0;opacity:.85;
+  background:linear-gradient(180deg,var(--accent),var(--accent-2));
+  transition:opacity .15s,filter .15s}
+.nl-bar:hover{opacity:1;filter:saturate(1.2)}
+.nl-axis{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:6px}
 
+/* 快捷操作 */
 .nl-quick{margin-top:32px}
 .nl-quick h4{font-size:18px;font-weight:500;margin:0 0 12px}
 .nl-quick .btn{margin-right:8px;margin-bottom:8px}
