@@ -31,7 +31,7 @@ exports.findByPage = function (req, res) {
         if (req.query.manager === "true") {
             view = "manager/content"; url = "/manager/content?manager=true&"; title = "文章管理"; currentMenu = "content";
         }
-        res.render(view, {docs: docs, title: title, login: login, page: page, totalPage: totalPage, total: total, url: url, currentMenu: currentMenu});
+        res.render(view, {docs: docs, title: title, login: login, page: page, totalPage: totalPage, total: total, url: url, currentMenu: currentMenu, isMyContent: false});
     });
 };
 
