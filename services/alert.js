@@ -106,20 +106,61 @@ function resolveSmtp() {
     };
 }
 
-// SMTP 错误 → 可直接照做的中文修复建议（不再只丢一句 "526 Authentication failure"）。
-function explainSmtpError(err) {
+// 按【发件主机 / 发件账号】识别服务商。
+// 关键：收件人（settings.alert.recipients）与发件账号（smtp.user）是两套独立配置，
+// 绝不能从收件人域名推断发件服务商——收件人是 @qq.com，发件完全可能是阿里云企业邮箱。
+function providerAdvice(smtp) {
+    var host = String((smtp && smtp.host) || '').toLowerCase();
+    var user = String((smtp && smtp.user) || '').toLowerCase();
+    var domain = (/@([^\s@]+)$/.exec(user) || [])[1] || '';
+    var common = [
+        '认证 user 必须是完整邮箱地址，且 From 与认证账号一致（当前发件账号：' + (user || '未配置') + '）',
+        '不改 settings.js 可临时覆盖：ALERT_SMTP_HOST / ALERT_SMTP_PORT / ALERT_SMTP_SECURE / ALERT_SMTP_USER / ALERT_SMTP_PASS',
+        '当前发件主机：' + (host || '未配置') + (smtp && smtp.port ? ':' + smtp.port : '') +
+            '；465=SSL(secure=true)，587=STARTTLS(secure=false)'
+    ];
+    var name, specific;
+    if (/qiye\.aliyun|aliyun|mxhichina/.test(host)) {
+        name = '阿里云企业邮箱';
+        specific = [
+            '若管理后台开启了「客户端授权密码 / 安全密码」，SMTP 的 pass 必须填该专用密码，而不是邮箱登录密码；在管理后台 → 安全设置 / 账号管理里查看或重新生成',
+            '确认管理后台已为该账号开启 POP3/SMTP/IMAP 服务，账号未停用、未限制「第三方客户端登录」',
+            '确认账号没有被安全策略拦截（异地登录、IP 白名单、二次验证），必要时在邮箱侧重置专用密码',
+            '阿里云 ECS 出站 25 端口通常被封，请固定使用 465（SSL）或 587（STARTTLS）'
+        ];
+    } else if (/qq\.com|foxmail/.test(host) || domain === 'qq.com' || domain === 'foxmail.com') {
+        name = 'QQ / Foxmail 邮箱';
+        specific = ['必须使用「授权码」而非登录密码：邮箱网页版 → 设置 → 账号/POP3-SMTP → 开启服务 → 生成 16 位授权码'];
+    } else if (/163\.com|126\.com|yeah\.net/.test(host) || /^(163|126)\.com$/.test(domain)) {
+        name = '网易邮箱';
+        specific = ['必须使用「客户端授权密码」而非登录密码，且已开启 SMTP/POP3 服务'];
+    } else if (/gmail/.test(host) || domain === 'gmail.com') {
+        name = 'Gmail';
+        specific = ['需使用「应用专用密码」，且 Google 账号已开启两步验证'];
+    } else if (/office365|outlook|hotmail/.test(host)) {
+        name = 'Microsoft 365 / Outlook';
+        specific = ['需使用「应用密码」，且租户已为该邮箱开启 SMTP AUTH'];
+    } else {
+        name = '企业 / 自建邮箱（未识别服务商）';
+        specific = [
+            '向邮箱服务商确认是否需要「客户端专用密码 / 授权码」，以及是否已开启 SMTP 服务',
+            '确认账号未被限制第三方客户端登录（多数企业邮默认只允许网页版）'
+        ];
+    }
+    return {name: name, steps: specific.concat(common)};
+}
+
+// SMTP 错误 → 可直接照做的中文修复建议（按发件服务商给，不再只丢一句 "526 Authentication failure"）。
+function explainSmtpError(err, smtp) {
     var msg = String(err && (err.message || err) || '');
     var code = String(err && (err.code || err.responseCode) || '');
+    var cur = smtp || resolveSmtp();
     if (/526|535|Authentication failure|Invalid login|BadCredentials|Username and Password not accepted|登录失败|认证失败/i.test(msg)) {
+        var p = providerAdvice(cur);
         return {
             kind: 'auth',
-            title: 'SMTP 认证失败（用户名/密码不被接受）',
-            steps: [
-                'QQ / 163 / 126 邮箱必须用「授权码」，不是账号登录密码：邮箱网页版 → 设置 → 账号 / POP3-SMTP → 开启服务并生成授权码',
-                '发件人 user 必须是完整邮箱地址（如 1102377905@qq.com），不能只填 QQ 号或昵称',
-                '确认该邮箱已开启 SMTP/POP3 服务，且授权码未过期 / 未被重新生成',
-                '不改 settings.js 也可覆盖：ALERT_SMTP_PASS=授权码 ALERT_SMTP_USER=完整邮箱 ALERT_SMTP_HOST=smtp.qq.com ALERT_SMTP_PORT=465 node scripts/moderation-automation.js probe'
-            ]
+            title: 'SMTP 认证失败（' + p.name + '）：账号或密码不被接受',
+            steps: p.steps
         };
     }
     if (/ETIMEDOUT|ECONNREFUSED|ENOTFOUND|EHOSTUNREACH|ESOCKET|timeout/i.test(msg + ' ' + code)) {
@@ -127,9 +168,9 @@ function explainSmtpError(err) {
             kind: 'network',
             title: 'SMTP 服务器连不上',
             steps: [
-                '检查 host/port 是否正确（QQ：smtp.qq.com，465 SSL 或 587 STARTTLS）',
-                '云服务器常封禁出站 25 端口，改用 465/587；检查安全组与防火墙出站规则',
-                '可用 --smtp-try 让脚本自动试常见端口组合'
+                '检查 host/port 是否正确（当前：' + (cur.host || '未配置') + ':' + cur.port + '）',
+                '云服务器常封禁出站 25 端口，改用 465（SSL）或 587（STARTTLS）；检查安全组与防火墙出站规则',
+                '可用 node scripts/moderation-automation.js smtp-try 自动试常见端口组合'
             ]
         };
     }
@@ -138,9 +179,10 @@ function explainSmtpError(err) {
             kind: 'tls',
             title: 'TLS/SSL 握手失败，通常是端口与 secure 不匹配',
             steps: [
-                '465 配 secure=true（implicit TLS），587 配 secure=false（STARTTLS）',
-                '脚本已按端口自动纠正；若仍失败可显式设 ALERT_SMTP_SECURE=0 或 1',
-                '可用 --smtp-try 让脚本自动试常见端口组合'
+                '465 配 secure=true（implicit TLS），587 配 secure=false（STARTTLS）；当前 ' +
+                    (cur.host || '未配置') + ':' + cur.port + ' secure=' + cur.secure,
+                '脚本仅在未显式声明 secure 时按端口纠正；若仍失败可显式设 ALERT_SMTP_SECURE=0 或 1',
+                '可用 node scripts/moderation-automation.js smtp-try 自动试常见端口组合'
             ]
         };
     }
@@ -257,7 +299,7 @@ function deliver(mail, cb) {
         transport.sendMail(mail, function (err) {
             if (err) {
                 lastError = err;
-                var ex = explainSmtpError(err);
+                var ex = explainSmtpError(err, c.email);
                 console.error('[alert] 邮件发送失败（不阻断主流程）: ' + err.message);
                 console.error('[alert] 诊断: ' + ex.title);
                 ex.steps.forEach(function (s, i) {
@@ -323,7 +365,8 @@ function describe() {
         throttleMinutes: Math.round(c.throttleMs / 60000),
         smtp: {
             host: c.email.host, port: c.email.port, secure: c.email.secure,
-            user: c.email.user, passSet: !!c.email.pass, source: c.email.source
+            user: c.email.user, passSet: !!c.email.pass, source: c.email.source,
+            provider: providerAdvice(c.email).name
         }
     };
 }
@@ -379,7 +422,7 @@ exports.verify = function (cb) {
             if (transport.close) transport.close();
             if (!err) { recommended = cand; return next(); }
             // 认证失败换端口/主机无意义，直接收尾并交给 explainSmtpError 给授权码指引。
-            if (explainSmtpError(err).kind === 'auth') {
+            if (explainSmtpError(err, smtp).kind === 'auth') {
                 return cb(null, {ok: false, reason: 'auth', recommended: null, tried: tried});
             }
             next();
@@ -395,6 +438,7 @@ exports.getConfig = function () {
 };
 exports.describe = describe;
 exports.explainSmtpError = explainSmtpError;
+exports.providerAdvice = providerAdvice;
 exports.lastError = function () { return lastError; };
 exports._resolveSmtp = resolveSmtp;
 exports.isEnabled = function () { return resolve().enabled; };

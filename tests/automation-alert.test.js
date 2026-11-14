@@ -155,11 +155,31 @@ t('587 + secure=0 视为 STARTTLS；localhost 主机按发件邮箱域名推断'
     assert.strictEqual(alert._resolveSmtp().host, 'smtp.qq.com');
 });
 
-t('526 Authentication failure → 授权码修复指引', function () {
-    var ex = alert.explainSmtpError(new Error('Invalid login: 526 Authentication failure[0]'));
-    assert.strictEqual(ex.kind, 'auth');
-    assert.ok(ex.steps.join(' ').indexOf('授权码') !== -1);
-    assert.ok(ex.steps.join(' ').indexOf('ALERT_SMTP_PASS') !== -1);
+t('526 认证失败 → 按发件服务商给指引（阿里云企业邮箱 / QQ 分流）', function () {
+    var err = new Error('Invalid login: 526 Authentication failure[0]');
+    var ali = alert.explainSmtpError(err, {
+        host: 'smtp.qiye.aliyun.com', port: 465, secure: true, user: 'you@your-domain.com'
+    });
+    assert.strictEqual(ali.kind, 'auth');
+    assert.ok(/阿里云企业邮箱/.test(ali.title));
+    assert.ok(ali.steps.join(' ').indexOf('客户端授权密码') !== -1);
+    assert.ok(ali.steps.join(' ').indexOf('QQ') === -1, '不得误判成 QQ 授权码');
+    var qq = alert.explainSmtpError(err, {
+        host: 'smtp.qq.com', port: 465, secure: true, user: 'me@qq.com'
+    });
+    assert.ok(/QQ/.test(qq.title));
+    assert.ok(qq.steps.join(' ').indexOf('授权码') !== -1);
+});
+
+t('收件人是 qq.com 不影响发件服务商判断', function () {
+    process.env.ALERT_RECIPIENTS = 'someone@qq.com';
+    var smtp = alert._resolveSmtp();
+    smtp.host = 'smtp.qiye.aliyun.com';
+    var ex = alert.explainSmtpError(new Error('526 Authentication failure'), smtp);
+    assert.ok(/阿里云企业邮箱/.test(ex.title));
+    assert.strictEqual(alert.providerAdvice(smtp).name, '阿里云企业邮箱');
+    assert.strictEqual(typeof alert.describe().smtp.provider, 'string');
+    delete process.env.ALERT_RECIPIENTS;
 });
 
 t('连接超时 / TLS 握手失败各自给出对应指引', function () {

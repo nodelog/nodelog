@@ -29,14 +29,19 @@ module.exports = {
     //   ALERT_RECIPIENTS=you@example.com,ops@example.com npm start
     // 未配置收件人时告警只写服务端日志，绝不发信；ALERT_ENABLED=0 可强制关闭。
     //
-    // 【QQ / 163 / 126 邮箱必读】pass 必须是邮箱「授权码」，不是账号登录密码，
-    //   发件人 user 必须是完整邮箱地址（如 1102377905@qq.com）。否则 SMTP 报
-    //   526 / 535 Authentication failure。生成路径：邮箱网页版 → 设置 → 账号/POP3-SMTP
-    //   → 开启服务 → 生成 16 位授权码。端口：465=SSL(secure=true)，587=STARTTLS(secure=false)。
-    // 发件通道默认复用上面的 email；告警要用独立账号时，用环境变量覆盖（授权码不落文件）：
-    //   ALERT_SMTP_HOST=smtp.qq.com ALERT_SMTP_PORT=465 ALERT_SMTP_SECURE=1 \
-    //   ALERT_SMTP_USER=you@qq.com ALERT_SMTP_PASS=16位授权码 \
-    //   ALERT_RECIPIENTS=收件邮箱 npm start
+    // 【收件人 ≠ 发件账号】recipients 只是收件地址；发件账号由 email / alert.smtp /
+    //   ALERT_SMTP_USER 决定，两者域名可以完全不同（收件人 @qq.com，发件可以是阿里云企业邮箱）。
+    // 【526 / 535 Authentication failure 按发件服务商排查，别看收件人域名】
+    //   - 阿里云企业邮箱（smtp.qiye.aliyun.com）：若开启「客户端授权密码 / 安全密码」，
+    //     pass 必须用该专用密码；并在管理后台确认已开启 POP3/SMTP/IMAP、账号未限制第三方客户端登录。
+    //   - QQ / Foxmail、163 / 126：pass 用「授权码」，不是登录密码。
+    //   - Gmail / Outlook：用「应用专用密码」，并开启 SMTP AUTH。
+    //   发件 user 必须是完整邮箱地址，且 From 与认证账号一致；
+    //   465=SSL(secure=true)，587=STARTTLS(secure=false)，阿里云 ECS 出站 25 常被封。
+    // 发件通道默认复用上面的 email；临时覆盖（密码不落文件）：
+    //   ALERT_SMTP_HOST=smtp.qiye.aliyun.com ALERT_SMTP_PORT=465 ALERT_SMTP_SECURE=1 \
+    //   ALERT_SMTP_USER=you@your-domain.com ALERT_SMTP_PASS='专用密码' \
+    //   ALERT_RECIPIENTS=收件邮箱 node scripts/moderation-automation.js probe
     // 排障：node scripts/moderation-automation.js probe（发测试邮件）
     //       node scripts/moderation-automation.js smtp-try（只校验连接与认证，不发信）
     alert: {

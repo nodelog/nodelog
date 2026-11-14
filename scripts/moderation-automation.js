@@ -471,7 +471,7 @@ function exit(code) {
 
 // 通道自检：打印脱敏配置、自动试端口、发测试邮件并给出可照做的修复步骤；不连库、不写库。
 function printSmtpFix(err) {
-    var ex = alert.explainSmtpError(err || alert.lastError());
+    var ex = alert.explainSmtpError(err || alert.lastError(), alert.describe().smtp);
     warn('诊断结论: ' + ex.title);
     ex.steps.forEach(function (s, i) { warn('  ' + (i + 1) + '. ' + s); });
 }
@@ -509,11 +509,15 @@ if (opt.cmd === 'smtp-try') {
         exit(1);
     } else {
         function sendProbe() {
+            var smtp = alert.describe().smtp;
             alert.digest({
                 level: 'info', title: '告警通道自检', summary: '收到本邮件即表示 SMTP 与收件人配置正确。',
-                sections: [{title: '当前配置', rows: [
+                sections: [{title: '当前配置（收件人与发件账号是两套独立配置）', rows: [
                     kv('收件人', ac.recipients.join(', ')),
-                    kv('发件主机', alert.describe().smtp.host + ':' + alert.describe().smtp.port),
+                    kv('发件账号', smtp.user),
+                    kv('发件主机', smtp.host + ':' + smtp.port + ' secure=' + smtp.secure),
+                    kv('发件服务商', smtp.provider),
+                    kv('发件密码', smtp.passSet ? '已配置（日志不显示）' : '未配置'),
                     kv('实时命中告警', ac.realtime ? '开启' : '关闭'),
                     kv('节流窗口', Math.round(ac.throttleMs / 60000) + ' 分钟'),
                     kv('目标库', dbName)
