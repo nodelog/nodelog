@@ -42,14 +42,16 @@ exports.adminPage = crud.list({
         cb(null, enriched);
       });
     },
-    // 向视图注入「父分类下拉选项」（新增/编辑表单 + 筛选器共用），携带 p=父级 id 供前端防环。
+    // 向视图注入「父分类下拉选项」（新增/编辑表单 + 筛选器共用）。
+    // 关键：只列【顶级分类】作为父级候选，二级分类绝不能当父级（本站是严格两级结构）。
+    // decorate 已全量建表解析父名，这里复用同一份 findAll 结果即可，不额外查询。
     locals: function (docs, filters, req, cb) {
       Category.findAll(function (err, all) {
         if (err) return cb(err);
+        var tops = (all || []).filter(function (c) { return !c.parent; })  // 仅顶级
+          .sort(function (a, b) { return (a.order || 0) - (b.order || 0) || (a.name || '').localeCompare(b.name || ''); });
         var opts = [{v: '', t: '（顶级分类）'}];
-        (all || []).forEach(function (c) {
-          opts.push({v: String(c._id), t: c.name, p: c.parent ? String(c.parent) : ''});
-        });
+        tops.forEach(function (c) { opts.push({v: String(c._id), t: c.name, p: ''}); });
         cb(null, {parentOptions: opts});
       });
     }
