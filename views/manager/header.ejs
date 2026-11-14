@@ -5,39 +5,41 @@
 </head>
 <body class="bg-gray js-body manager">
 <%- include('../common/icons') %>
-<nav class="navbar nav-bg navbar-fixed-top bottom-border" role="navigation">
+<a class="skip-link" href="#main">跳到主内容</a>
+<nav class="navbar nav-bg navbar-fixed-top bottom-border" role="navigation" aria-label="后台顶栏">
     <div class="navbar-header">
-        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#example-navbar-collapse">
-            <span class="sr-only">展开导航</span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-        </button>
         <a class="navbar-brand" href="/manager"><%=session.site.name %> · 管理</a>
     </div>
-    <div class="collapse navbar-collapse" id="example-navbar-collapse">
-        <ul class="nav navbar-nav">
-            <li><a href="/manager" class="color-white <%if(locals.currentMenu&&currentMenu=="home"){%>current-menu<%}%>">概览</a></li>
-            <% if(session.user != null){ %>
-            <li><a href="<%= session.user.role == 0 ? '/manager/content/admin?page=1' : '/manager/content?manager=true&page=1' %>" class="color-white <%if(locals.currentMenu&&currentMenu=="content"){%>current-menu<%}%>">文章</a></li>
-            <li><a href="<%= session.user.role == 0 ? '/manager/user/admin?page=1' : '/manager/user?page=1' %>" class="color-white <%if(locals.currentMenu&&currentMenu=="user"){%>current-menu<%}%>">用户</a></li>
-            <% if(session.user.role == 0){ %>
-            <li><a href="/manager/category/admin?page=1" class="color-white <%if(locals.currentMenu&&currentMenu=="category"){%>current-menu<%}%>">分类</a></li>
-            <li><a href="/manager/log/admin?page=1" class="color-white <%if(locals.currentMenu&&currentMenu=="log"){%>current-menu<%}%>">公告</a></li>
-            <li><a href="/manager/link" class="color-white <%if(locals.currentMenu&&currentMenu=="link"){%>current-menu<%}%>">链接</a></li>
-            <li><a href="/manager/tag?page=1" class="color-white <%if(locals.currentMenu&&currentMenu=="tag"){%>current-menu<%}%>">标签</a></li>
-            <li><a href="/manager/comment?page=1" class="color-white <%if(locals.currentMenu&&currentMenu=="comment"){%>current-menu<%}%>">评论</a></li>
-            <li><a href="/manager/audit/page" class="color-white <%if(locals.currentMenu&&currentMenu=="audit"){%>current-menu<%}%>">操作日志</a></li>
-            <li><a href="/manager/sensitive-word" class="color-white <%if(locals.currentMenu&&(currentMenu=="sensitiveWord"||currentMenu=="sensitive-word")){%>current-menu<%}%>">敏感词</a></li>
-            <li><a href="/manager/violation" class="color-white <%if(locals.currentMenu&&currentMenu=="violation"){%>current-menu<%}%>">违规记录</a></li>
-            <li><a href="/manager/setting" class="color-white <%if(locals.currentMenu&&currentMenu=="setting"){%>current-menu<%}%>">设置</a></li>
-            <% } %>
-            <li><a href="javascript:;" class="color-white js-logout-btn" title="退出登录">退出</a></li>
-            <% } %>
-        </ul>
-    </div>
+    <ul class="nav navbar-nav manager-top-tools">
+        <li><a href="<%= navConfig.admin.backToSite.href %>" class="color-white" title="返回前台"><%= navConfig.admin.backToSite.label %></a></li>
+        <% if(session.user != null){ %>
+        <li><span class="manager-top-user"><%= session.user.realName ? session.user.realName : session.user.userName %></span></li>
+        <li><a href="javascript:;" role="button" tabindex="0" class="color-white js-logout-btn" title="退出登录">退出</a></li>
+        <% } %>
+    </ul>
 </nav>
 
-<div class="l-top-bottom">
-    <article class="l-padding-horizontal">
-        <div class="bg-white jumbotron clear-margin">
+<div class="manager-shell">
+    <aside class="manager-sidebar" aria-label="后台侧栏">
+        <nav class="manager-nav" role="navigation" aria-label="后台主导航">
+            <% var currentGroup = navConfig.groupOf(navConfig.admin.groups, locals.currentMenu); %>
+            <% navConfig.admin.groups.forEach(function(group){ %>
+            <% var shown = group.items.filter(function(item){ return navConfig.visible(item, session.user); }); %>
+            <% if(shown.length){ %>
+            <details class="manager-nav-group" <% if(currentGroup && currentGroup.id === group.id){ %>open<% } %>>
+                <summary class="manager-nav-group-title"><%= group.label %></summary>
+                <ul class="manager-nav-list">
+                    <% shown.forEach(function(item){ %>
+                    <% var active = navConfig.isCurrent(item, locals.currentMenu); %>
+                    <li><a href="<%= navConfig.hrefFor(item, session.user) %>" class="manager-nav-link <% if(active){ %>current-menu<% } %>" <% if(active){ %>aria-current="page"<% } %>><%= navConfig.labelFor(item, session.user) %></a></li>
+                    <% }); %>
+                </ul>
+            </details>
+            <% } %>
+            <% }); %>
+        </nav>
+    </aside>
+    <main class="manager-main" id="main" tabindex="-1">
+        <div class="l-top-bottom">
+            <article class="l-padding-horizontal">
+                <div class="bg-white jumbotron clear-margin">

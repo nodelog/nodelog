@@ -586,8 +586,56 @@ section.card + section.card { margin-top: var(--space-6); }
 .panel-body { padding: var(--space-6); }
 /* 后台（views/manager/** 仍 include common/meta.ejs，加载 style.css + docs.min.css）：
    这些规则是历史兼容层，前台重构不能删。theme.css 在它们之后加载，故同权重可覆盖。 */
-.manager .l-top-bottom { max-width: var(--wrap); margin: 0 auto; padding-top: 68px; }
-.manager .l-padding-horizontal { padding-left: var(--space-6); padding-right: var(--space-6); }
+/* 后台布局：顶栏只放品牌 / 返回前台 / 账号 / 退出，主导航移到左侧分组侧栏。
+   fixed 顶栏的 68px 让位改由 .manager-shell 统一承担，避免原先 .l-top-bottom
+   与 flex-wrap 顶栏在中等宽度换行后互相挤压、遮挡内容。 */
+.manager .manager-shell {
+    display: grid;
+    grid-template-columns: 200px minmax(0, 1fr);
+    gap: var(--space-6);
+    max-width: calc(var(--wrap) + 2 * var(--space-6));
+    margin: 0 auto;
+    padding: 68px var(--space-6) var(--space-8);
+}
+.manager .l-top-bottom { max-width: none; margin: 0; padding-top: 0; }
+.manager .l-padding-horizontal { padding-left: 0; padding-right: 0; }
+.manager .manager-sidebar { position: sticky; top: 76px; align-self: start; }
+.manager .manager-nav-group {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); margin-bottom: var(--space-3);
+}
+.manager .manager-nav-group > summary {
+    display: flex; align-items: center; justify-content: space-between;
+    min-height: 44px; padding: var(--space-2) var(--space-4);
+    background: var(--surface-2); color: var(--muted);
+    font-size: var(--fs-body-sm); font-weight: 500; cursor: pointer;
+    list-style: none;
+}
+.manager .manager-nav-group > summary::-webkit-details-marker { display: none; }
+.manager .manager-nav-group > summary::after {
+    content: ""; width: 7px; height: 7px;
+    border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+    transform: rotate(45deg); transition: transform 150ms ease;
+}
+.manager .manager-nav-group[open] > summary::after { transform: rotate(225deg); }
+.manager .manager-nav-list { list-style: none; margin: 0; padding: var(--space-2); }
+.manager .manager-nav-link {
+    display: flex; align-items: center; min-height: 44px;
+    padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm);
+    color: var(--ink); font-size: var(--fs-body-sm); text-decoration: none;
+}
+.manager .manager-nav-link:hover, .manager .manager-nav-link:focus {
+    color: var(--ink); background: var(--surface-2); text-decoration: none;
+}
+.manager .manager-nav-link.current-menu { color: var(--accent); background: var(--accent-weak); }
+.manager .navbar { display: flex; align-items: center; justify-content: space-between; }
+.manager .navbar .navbar-header { float: none; }
+.manager .navbar .manager-top-tools { flex-wrap: nowrap; margin-left: auto; }
+.manager .manager-top-user {
+    display: inline-flex; align-items: center; min-height: 44px;
+    padding: var(--space-2) var(--space-3); font-size: var(--fs-body-sm);
+    color: var(--manager-nav-fg); opacity: .82;
+}
 /* 深色顶栏：bootstrap 的 navbar-fixed-top 是 fixed，必须让位 68px；白字不受前台 .color-white 影响 */
 .manager .navbar { position: fixed; left: 0; right: 0; background: var(--manager-nav-bg); border-bottom-color: var(--manager-nav-line); }
 .manager .navbar .navbar-brand,
@@ -733,11 +781,19 @@ html body .layui-layer-dialog .layui-layer-content { background: var(--surface) 
     .aside { grid-template-columns: repeat(2, minmax(0,1fr)); align-items: start; }
     .prose-single, .error-page, .timeline { max-width: min(var(--measure), 100%); }
     .article-detail, .article-body { max-width: 100%; }
+    /* 后台：侧栏从左侧移到内容上方，四组排成两列，主导航不再占据顶栏宽度 */
+    .manager .manager-shell { grid-template-columns: minmax(0,1fr); gap: var(--space-4); }
+    .manager .manager-sidebar { position: static; }
+    .manager .manager-nav { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: var(--space-3); align-items: start; }
+    .manager .manager-nav-group { margin-bottom: 0; }
 }
 @media (max-width: 767px) {
     :root { --fs-h1: 34px; --fs-h2: 28px; --fs-display: 40px; }
     .container, .wrap, .page-shell { padding-left: var(--space-4); padding-right: var(--space-4); }
     .navbar { padding-left: var(--space-4); padding-right: var(--space-4); }
+    .manager .manager-nav { grid-template-columns: minmax(0,1fr); }
+    .manager .manager-top-user { display: none; }
+    .manager .manager-shell { padding-left: var(--space-4); padding-right: var(--space-4); }
     .navbar .nav { flex-direction: column; align-items: stretch; gap: var(--space-1); }
     .navbar .nav > li > a { justify-content: flex-start; }
     .js-search-bar { margin-left: 0; width: 100%; }

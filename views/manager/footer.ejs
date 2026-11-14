@@ -1,7 +1,21 @@
         </div>
     </article>
+    </div>
+    </main>
 </div>
 <%- include('../common/links') %>
+<script>
+/* 与前台 footer.ejs 同一套键盘契约：<a href="javascript:;" role="button"> 的 Space 键。
+   Enter 由浏览器对链接原生触发，无需重复绑定。 */
+document.addEventListener('keydown', function (e) {
+    if (e.key !== ' ' && e.key !== 'Spacebar') return;
+    var el = e.target;
+    if (el && el.getAttribute && el.getAttribute('role') === 'button' && el.getAttribute('href') === 'javascript:;') {
+        e.preventDefault();
+        el.click();
+    }
+});
+</script>
 <!-- 去框架化：dataFormat（纯 Date 垫片）+ ui.js（原生弹层/Toast 替代 layer）+ common.js（原生 DOM/fetch 替代 jQuery）。不再加载 jQuery / Bootstrap / layer / bootstrap-switch。 -->
 <script src="/js/dataFormat.js"></script>
 <script defer src="/js/ui.js"></script>
