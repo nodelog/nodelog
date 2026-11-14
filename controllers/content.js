@@ -113,7 +113,11 @@ var findByName = function (name, callback) {
 // 命中即早返回，重名检查/归属早拒绝/Content.save/update/Tag 重算/成功审计全不可达（§5.5 零副作用）。
 exports.add = function (req, res) {
     var id = req.body.id;
+    // 前台 URLSearchParams 会把 JS null 序列化为字符串 "null"，归一化以保证「新增」分支正确命中
+    // （否则发表新文章会被误判为编辑分支 → requireId("null") 校验失败 → 报「参数错误」）
+    if (id === 'null' || id === '') id = null;
     var oldName = req.body.oldName;
+    if (oldName === 'null') oldName = null;
     var f = buildFields(req);
     var isModifyRoute = req.path === '/manager/content/modify';
     var meta = contentMeta('create', null, 'changed:name,content,tags', true);
