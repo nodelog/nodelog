@@ -92,8 +92,9 @@ exports.add = function (req, res) {
     var parent = (req.body.parent && req.body.parent !== '0' && req.body.parent !== '') ? req.body.parent : null;
     var description = (req.body.description || '').trim();
     var cover = req.body.cover || '';
+    var keywords = (req.body.keywords || '').trim();
     var order = kit.intInRange(req.body.order, -1000000, 1000000, 0); // C08 越界归一化
-    var meta = categoryMeta('create', null, 'changed:name,slug,parent,order,status');
+    var meta = categoryMeta('create', null, 'changed:name,slug,parent,order,keywords,status');
     function done(body, ok, id) {
         meta.result = !!ok;
         if (id) meta.objectId = [String(id)];
@@ -105,7 +106,7 @@ exports.add = function (req, res) {
         if (err) return done({success: false, msg: '添加分类失败'}, false);
         if (obj != null) return done({success: false, msg: '分类已经存在'}, false);
         Category.save({name: name, slug: slug, parent: parent, description: description,
-            cover: cover, order: order, status: 0, createTime: new Date(), modifyTime: new Date()},
+            cover: cover, keywords: keywords, order: order, status: 0, createTime: new Date(), modifyTime: new Date()},
             function (e, saved) {
                 if (e) {
                     var n = kit.normalizeDaoError(e, 'category.add');
@@ -123,8 +124,9 @@ exports.update = function (req, res) {
     var parent = (req.body.parent && req.body.parent !== '0' && req.body.parent !== '') ? req.body.parent : null;
     var description = (req.body.description || '').trim();
     var cover = req.body.cover || '';
+    var keywords = (req.body.keywords || '').trim();
     var order = kit.intInRange(req.body.order, -1000000, 1000000, 0);
-    var meta = categoryMeta('update', chk.ok ? chk.id : null, 'changed:name,slug,parent,order');
+    var meta = categoryMeta('update', chk.ok ? chk.id : null, 'changed:name,slug,parent,order,keywords');
     function done(body, ok) { meta.result = !!ok; finish(req, res, meta, body); }
     if (!chk.ok) return res.status(400).json({success: false, msg: '参数错误'});
     if (!name) return done({success: false, msg: '分类名称不能为空'}, false);
@@ -134,7 +136,7 @@ exports.update = function (req, res) {
         if (err) return done({success: false, msg: '修改分类失败'}, false);
         if (obj != null) return done({success: false, msg: '分类名称已经存在'}, false);
         Category.update(chk.id, {name: name, slug: slug, parent: parent,
-            description: description, cover: cover, order: order}, function (e) {
+            description: description, cover: cover, keywords: keywords, order: order}, function (e) {
             if (e) {
                 var n = kit.normalizeDaoError(e, 'category.update');
                 return done({success: false, msg: n.status === 500 ? '修改分类失败' : n.msg}, false);
@@ -164,7 +166,7 @@ exports.batch = crud.batch({
 });
 exports['import'] = io.import({
     Model: Category, target: 'category',
-    columns: ['name', 'slug', 'parent', 'description', 'cover', 'order', 'status'],
+    columns: ['name', 'slug', 'parent', 'description', 'cover', 'order', 'status', 'keywords'],
     rowToDoc: function (cells, ctx) {
         var name = kit.csv.sanitize(cells[0]);
         if (!name) throw new Error('分类名称不能为空');
@@ -176,6 +178,7 @@ exports['import'] = io.import({
             cover: kit.csv.sanitize(cells[4]),
             order: kit.intInRange(cells[5], -1000000, 1000000, 0),
             status: kit.intInRange(cells[6], 0, 1, 0),
+            keywords: kit.csv.sanitize(cells[7]),
             createTime: new Date(), modifyTime: new Date()
         };
     },
@@ -195,6 +198,6 @@ exports['export'] = io.export({
     columns: ['name', 'slug', 'parent', 'description', 'cover', 'order', 'status'],
     docToRow: function (d) {
         return [d.name, d.slug || '', d.parent ? String(d.parent) : '', d.description || '',
-            d.cover || '', d.order || 0, d.status];
+            d.cover || '', d.order || 0, d.status, d.keywords || ''];
     }
 });

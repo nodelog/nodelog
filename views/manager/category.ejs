@@ -18,6 +18,7 @@
       add: { label: '新增分类', api: '/manager/category/add', editApi: '/manager/category/modify', fields: [
         {n:'name', t:'名称', k:'text', req:1, max:60},
         {n:'slug', t:'标识', k:'text', max:60},
+        {n:'keywords', t:'触发词(逗号分隔,用于自动分类)', k:'text', max:200},
         {n:'order', t:'排序', k:'text', max:12, d:'0'}
       ]}
   } }) %>
@@ -30,6 +31,7 @@
         <th class="admin-col-check" aria-label="选择"></th>
         <th>编号</th>
         <th>名称</th>
+        <th>触发词</th>
         <th>标识</th>
         <th>排序</th>
         <th>创建时间</th>
@@ -45,11 +47,12 @@
         <% var _st = (d.status === 1 || String(d.status) === '1') ? '1' : '0'; %>
         <% var _stTxt = _st === '1' ? '禁用' : '正常'; %>
         <% var _href = safeHref('/manager/category/detail?id=' + _id); %>
-        <tr data-id="<%= _id %>" data-name="<%= _nm %>" data-slug="<%= d.slug || '' %>" data-order="<%= d.order == null ? 0 : d.order %>" data-status="<%= _st %>">
+        <tr data-id="<%= _id %>" data-name="<%= _nm %>" data-slug="<%= d.slug || '' %>" data-order="<%= d.order == null ? 0 : d.order %>" data-keywords="<%= d.keywords || '' %>" data-status="<%= _st %>">
           <td><input type="checkbox" class="js-batch-check" value="<%= _id %>" aria-label="选择 <%= _nm %>"></td>
           <td><%= i + 1 %></td>
-          <td><a href="<%= _href %>"><%= _nm %></a></td>
-          <td><%= d.slug || '' %></td>
+        <td><a href="<%= _href %>"><%= _nm %></a></td>
+        <td><%= d.keywords || '' %></td>
+        <td><%= d.slug || '' %></td>
           <td><%= d.order == null ? 0 : d.order %></td>
           <td><%= format(d.createTime) %></td>
           <td><%= format(d.modifyTime) %></td>

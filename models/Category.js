@@ -14,7 +14,8 @@ var CategorySchema = new Schema({
     parent: {type: ObjectId, default: null},             // 父分类（层级）
     description: {type: String},                         // 分类描述（SEO/列表）
     cover: {type: String},                              // 封面图
-    order: {type: Number, default: 0}                   // 排序
+    order: {type: Number, default: 0},                  // 排序
+    keywords: {type: String, default: ''}               // 触发词/别名（方案B：语义匹配用，逗号/空格分隔）
 }, {
     collection: "category"
 });
@@ -96,6 +97,7 @@ CategoryDAO.prototype.update = function (id, fields, callback) {
     if (fields.description !== undefined) set.description = fields.description;
     if (fields.cover !== undefined) set.cover = fields.cover;
     if (fields.order !== undefined) set.order = fields.order;
+    if (fields.keywords !== undefined) set.keywords = fields.keywords;
     CategoryModel.update({"_id": id}, {$set: set}, function (err) {
         callback(err);
     });
