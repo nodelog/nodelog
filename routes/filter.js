@@ -112,6 +112,14 @@ exports.csrfGuard = function (req, res, next) {
     if (['POST', 'PUT', 'DELETE', 'PATCH'].indexOf(req.method) === -1) {
         return next();
     }
+    // 开放文章发布 API 使用无状态 Token 鉴权（Authorization / X-API-Token），
+    // 不依赖 cookie/session，不存在 CSRF 风险。带 token 的这些路径直接放行，
+    // 鉴权与限流由 articleApi.auth 负责；其余接口仍受同源校验保护。
+    var p = req.path || '';
+    var isOpenApi = p.indexOf('/api/articles') === 0 || p.indexOf('/api/categories') === 0;
+    if (isOpenApi && (req.headers['authorization'] || req.headers['x-api-token'])) {
+        return next();
+    }
     var origin = req.headers.origin;
     var referer = req.headers.referer;
     if (!origin && !referer) {

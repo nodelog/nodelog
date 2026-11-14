@@ -46,5 +46,21 @@ module.exports = {
 
         // 生成 og:url 时使用的站点域名（反向代理场景取 X-Forwarded-Host 优先）
         siteHost: process.env.SITE_HOST || 'blog.jiangzi.xin'
+    },
+
+    // ===== 开放文章发布 API（供外部系统 / AI 工具自动发文）=====
+    // 启用方式二选一：① 用环境变量（推荐，密钥不落文件）：
+    //   ARTICLE_API_TOKENS=abcd...32hex,efgh...32hex ARTICLE_API_AUTHOR=admin npm start
+    // ② 或在下面直接配置（settings.js 已被 gitignore，不会入库）。
+    // token 建议用 `node scripts/gen-api-token.js` 生成（32 位十六进制）。
+    // author 为「发布作者」的用户名（必须是站内已存在的启用账号，role 不限）。
+    // 调用方也可在请求体里用 author 字段临时覆盖某一篇的作者。
+    articleApi: {
+        // 每个 token 可单独绑定 author / 备注 label / 作用域 scopes（当前未强制校验 scopes）
+        tokens: [
+            // { token: 'replace-with-a-32-hex-token', author: 'admin', label: 'ai-tool', scopes: [] }
+        ],
+        // 未给 token 单独指定 author 时使用的默认作者
+        defaultAuthor: ''
     }
 };

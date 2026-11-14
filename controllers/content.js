@@ -25,10 +25,12 @@ function buildFields(req) {
         : String(req.body.tags || '').split(',');
     // 归一化：去首尾空格、合并中间连续空白，防止「看不见的空格」让标签匹配失效（上游 8f68829 修复，不得回退）
     tags = tags.map(function (t) { return String(t == null ? '' : t).trim().replace(/\s+/g, ' '); }).filter(Boolean);
+    // 兼容三种来源：老表单的 seo[title]、历史 seoTitle、以及开放 API 的对象式 seo {title,keywords,description}
+    var seoObj = (req.body.seo && typeof req.body.seo === 'object') ? req.body.seo : {};
     var seo = {
-        title: req.body['seo[title]'] || req.body.seoTitle || '',
-        keywords: req.body['seo[keywords]'] || '',
-        description: req.body['seo[description]'] || ''
+        title: req.body['seo[title]'] || req.body.seoTitle || (seoObj.title || ''),
+        keywords: req.body['seo[keywords]'] || (seoObj.keywords || ''),
+        description: req.body['seo[description]'] || (seoObj.description || '')
     };
     var readingTime = contentType === 'markdown' ? Math.max(1, Math.ceil(content.length / 350)) : 0;
     return {
@@ -37,6 +39,10 @@ function buildFields(req) {
         draft: draft, contentType: contentType, readingTime: readingTime
     };
 }
+
+// 开放文章 API（controllers/articleApi.js）复用同一套字段归一化逻辑，保证
+// 标签/阅读时长/内容格式/SEO 解析与后台编辑器完全一致，避免两套口径漂移。
+exports.buildFields = buildFields;
 
 // 审计收尾：主写/重算完成后才回响应，审计失败只 warn 不改响应键集合（§3.6）。
 function finish(req, res, meta, body) {

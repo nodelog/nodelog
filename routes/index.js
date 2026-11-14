@@ -116,6 +116,12 @@ var route = function (app) {
     app.get('/tags', tag.list);
     // P2 AI 辅助（仅管理员，且需配置 AI_API_KEY）
     app.post('/api/ai/summary', filter.authorizeAdmin, ai.summary);
+    // ==================== 开放文章发布 API（供外部系统 / AI 工具调用）====================
+    // 无状态 Token 鉴权，不走 session/cookie，故 csrfGuard 对带 token 的这些路径放行（见 filter.csrfGuard）。
+    var articleApi = require('./../controllers/articleApi');
+    app.post('/api/articles', rateLimit.limit({max: 60, windowMs: 60 * 1000, key: 'api-articles'}), articleApi.auth, articleApi.publish);
+    app.get('/api/articles/:id', articleApi.auth, articleApi.getArticle);
+    app.get('/api/categories', articleApi.auth, articleApi.listCategories);
     // P2 运营统计
     app.get('/manager/analytics', filter.authorizeAdmin, analytics.overview);
     // 日志相关路由见上方 log.* （已清理重复的 /log 调试路由 filter.log）
