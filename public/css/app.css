@@ -261,6 +261,21 @@
 }
 .category-picker__empty { padding: 10px; color: #9aa0a6; font-size: 13px; }
 
+/* 分类层级展示：选择器分组标题 + 二级缩进；前端导航下拉分组标题 */
+.category-picker__group {
+  padding: 8px 10px 2px; font-size: 11.5px; font-weight: 700; letter-spacing: .04em;
+  color: var(--text-weak, #8a9099);
+}
+.category-picker__item.cat-indent { padding-left: 26px; }
+.category-picker__item.cat-indent::before {
+  content: '└'; margin-right: 6px; color: var(--border, #cdd2d8);
+}
+.cat-group__title {
+  display: block; padding: 6px 12px; font-size: 12px; font-weight: 700;
+  color: #8a9099; background: rgba(0,0,0,.03); cursor: default; line-height: 1.4;
+}
+.dropdown-menu.l-select .cat-indent { padding-left: 28px; }
+
 /* ---- 标签输入 + 预览 ---- */
 .tag-field { display: flex; gap: 8px; align-items: stretch; }
 .tag-field .js-tags-value { flex: 1 1 auto; }

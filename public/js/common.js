@@ -609,6 +609,21 @@
     fetchCategories().then(function (list) { cb(list); }).catch(function () { cb([]); });
   }
 
+  // 从分类列表构建「父 -> 子」森林，供层级展示（前端导航下拉 / 写作页选择器 / 后台表格）。
+  // /category/all 返回的分类 parent 已是字符串 id（或 null），无需再 toObject。
+  function buildCategoryForest(list) {
+    var arr = (list || []);
+    var map = {}, tops = [];
+    arr.forEach(function (c) { map[String(c._id)] = c; c.__children = []; });
+    arr.forEach(function (c) {
+      var p = c.parent || null;
+      var pid = p ? String(p) : null;
+      if (pid && map[pid]) map[pid].__children.push(c);
+      else tops.push(c);
+    });
+    return { map: map, tops: tops };
+  }
+
   // 可搜索分类选择器（替代原生 <select>）：输入框即筛选，下拉点选，选中值写入隐藏 .js-category-value
   function initCategoryPickers() {
     qsa('.js-category-picker').forEach(function (root) {
@@ -621,13 +636,24 @@
         var f = (filter || '').trim().toLowerCase();
         var cur = hidden.value;
         var html = '';
-        allCategories.forEach(function (c, i) {
-          if (f !== '' && (c.name || '').toLowerCase().indexOf(f) === -1) return;
+        var idx = 0;
+        var forest = buildCategoryForest(allCategories);
+        function matchName(c) { return f === '' || (c.name || '').toLowerCase().indexOf(f) !== -1; }
+        function opt(c, indent) {
           var isSel = (String(c._id) === String(cur));
-          html += '<li class="category-picker__item' + (isSel ? ' is-selected' : '') + '"'
+          html += '<li class="category-picker__item' + (indent ? ' cat-indent' : '') + (isSel ? ' is-selected' : '') + '"'
             + ' role="option" aria-selected="' + (isSel ? 'true' : 'false') + '"'
-            + ' tabindex="-1" id="cat-opt-' + i + '"'
+            + ' tabindex="-1" id="cat-opt-' + (idx++) + '"'
             + ' data-id="' + c._id + '" data-name="' + c.name + '">' + c.name + '</li>';
+        }
+        forest.tops.forEach(function (top) {
+          var children = top.__children || [];
+          var topHit = matchName(top);
+          var shown = children.filter(matchName);
+          if (!topHit && !shown.length) return;            // 分组标题与子项都不匹配则整组跳过
+          html += '<li class="category-picker__group" role="presentation">' + top.name + '</li>';
+          if (topHit && !children.length) opt(top, false);   // 无子项的一级分类本身可选
+          shown.forEach(function (ch) { opt(ch, true); });
         });
         if (!html) html = '<li class="category-picker__empty">无匹配分类</li>';
         menu.innerHTML = html;
@@ -786,16 +812,39 @@
       html += '<li><a href="/" class="l-option">全部文章</a></li>';
       var _url = '', _addHtml = '', _editHtml = '';
       var _categoryId = val(qs('.js-edit-content-category'));
-      docs.forEach(function (tempDoc) {
-        var _id = tempDoc._id, _name = tempDoc.name;
-        _url = '/content/category?categoryId=' + _id + '&page=1';
-        html += '<li><a href="' + _url + '" class="l-option">' + _name + '</a></li>';
-        if (url.indexOf('content/addPage') !== -1) {
-          _addHtml += '<option class="l-option" value="' + _id + '">' + _name + '</option>';
-        } else if (url.indexOf('view=editContent') !== -1) {
-          _editHtml += (_id != _categoryId)
-            ? '<option class="l-option" value="' + _id + '">' + _name + '</option>'
-            : '<option value="' + _id + '" selected>' + _name + '</option>';
+      var forest = buildCategoryForest(docs);
+      forest.tops.forEach(function (top) {
+        var topId = top._id, topName = top.name;
+        var children = top.__children || [];
+        var topUrl = '/content/category?categoryId=' + topId + '&page=1';
+        if (!children.length) {
+          // 无子分类的一级分类：直接作为可点链接
+          html += '<li><a href="' + topUrl + '" class="l-option">' + topName + '</a></li>';
+          if (url.indexOf('content/addPage') !== -1) {
+            _addHtml += '<option value="' + topId + '">' + topName + '</option>';
+          } else if (url.indexOf('view=editContent') !== -1) {
+            _editHtml += (topId != _categoryId)
+              ? '<option value="' + topId + '">' + topName + '</option>'
+              : '<option value="' + topId + '" selected>' + topName + '</option>';
+          }
+        } else {
+          // 有子分类：一级作为分组标题（不可点），二级缩进为链接
+          html += '<li class="js-cat-group"><span class="cat-group__title">' + topName + '</span></li>';
+          _addHtml += '<optgroup label="' + topName + '">'
+          _editHtml += '<optgroup label="' + topName + '">'
+          children.forEach(function (ch) {
+            var chUrl = '/content/category?categoryId=' + ch._id + '&page=1';
+            html += '<li><a href="' + chUrl + '" class="l-option cat-indent">' + ch.name + '</a></li>';
+            if (url.indexOf('content/addPage') !== -1) {
+              _addHtml += '<option value="' + ch._id + '">' + ch.name + '</option>';
+            } else if (url.indexOf('view=editContent') !== -1) {
+              _editHtml += (ch._id != _categoryId)
+                ? '<option value="' + ch._id + '">' + ch.name + '</option>'
+                : '<option value="' + ch._id + '" selected>' + ch.name + '</option>';
+            }
+          });
+          _addHtml += '</optgroup>';
+          _editHtml += '</optgroup>';
         }
       });
       var menu = qs('.js-category-menu');

@@ -31,6 +31,7 @@
         <th class="admin-col-check" aria-label="选择"></th>
         <th>编号</th>
         <th>名称</th>
+        <th>父分类</th>
         <th>触发词</th>
         <th>标识</th>
         <th>排序</th>
@@ -51,6 +52,7 @@
           <td><input type="checkbox" class="js-batch-check" value="<%= _id %>" aria-label="选择 <%= _nm %>"></td>
           <td><%= i + 1 %></td>
         <td><a href="<%= _href %>"><%= _nm %></a></td>
+        <td><%= d.parentName || '—' %></td>
         <td><%= d.keywords || '' %></td>
         <td><%= d.slug || '' %></td>
           <td><%= d.order == null ? 0 : d.order %></td>

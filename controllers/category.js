@@ -20,7 +20,22 @@ exports.adminPage = crud.list({
     Model: Category, desc: categoryDesc, target: 'category', statusRange: [0, 1],
     sortWhitelist: categoryDesc.sortWhitelist, defaultSortBy: categoryDesc.defaultSortBy,
     view: 'manager/category', urlPrefix: '/manager/category/admin',
-    title: '分类管理', currentMenu: 'category'
+    title: '分类管理', currentMenu: 'category',
+    // 跨页解析父分类名称：后台分页 9 条/页，父分类可能落在其它页，故全量建表（避免逐条 N+1）。
+    decorate: function (docs, cb) {
+      Category.findAll(function (err, all) {
+        if (err) return cb(err);
+        var map = {};
+        (all || []).forEach(function (c) { map[String(c._id)] = c.name; });
+        var enriched = docs.map(function (d) {
+          var o = d.toObject ? d.toObject() : d;
+          var p = o.parent || null;
+          o.parentName = p ? (map[String(p)] || '—') : '—';
+          return o;
+        });
+        cb(null, enriched);
+      });
+    }
 });
 
 function finish(req, res, meta, body) {
