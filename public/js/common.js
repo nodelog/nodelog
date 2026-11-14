@@ -602,10 +602,16 @@
     var best = null, bestScore = 0;
     allCategories.forEach(function (c) {
       var name = (c.name || '').trim().toLowerCase();
-      if (!name || name.length < 2) return; // 跳过过短分类名，降低误命中
+      if (!name || name.length < 2) return;                  // 跳过过短分类名，降低误命中
+      // 超短拉丁缩写（UI/API/DB/JS/CSS 等）：区分度极低、正文极易偶发命中，
+      // 仅在标题出现时才参与匹配，正文出现一律忽略（宁可不选也不错选）
+      var isShortLatin = /^[a-z0-9]+$/.test(name) && name.length <= 3;
+      var titleHit = titleLow.indexOf(name) !== -1;
+      var bodyHit = textLow.indexOf(name) !== -1;
+      if (isShortLatin && !titleHit) return;
       var score = 0;
-      if (titleLow.indexOf(name) !== -1) score += 10;  // 标题命中权重更高
-      if (textLow.indexOf(name) !== -1) score += 3;    // 正文命中
+      if (titleHit) score += 50;   // 标题命中绝对主导
+      if (bodyHit) score += 1;     // 正文命中低权重（中文/长词有区分度，短缩写已被上文拦截）
       if (score > bestScore) { bestScore = score; best = c; }
     });
     return bestScore > 0 ? best : null;
