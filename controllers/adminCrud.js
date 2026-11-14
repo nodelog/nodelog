@@ -150,6 +150,14 @@ exports.list = function (cfgItem) {
                     Object.keys(parsed.filters).forEach(function (k) { locals[k] = parsed.filters[k]; });
                     locals.sortBy = parsed.sortBy;
                     locals.order = parsed.order;
+                    if (cfgItem.locals) {
+                        // 可选 locals 钩子：异步注入额外渲染变量（如分类父级下拉选项）。
+                        return cfgItem.locals(result.docs, parsed.filters, req, function (e, extra) {
+                            if (e) return sendErr(res, e, 'list.locals', 'success', false);
+                            if (extra) Object.assign(locals, extra);
+                            res.render(cfgItem.view, locals);
+                        });
+                    }
                     res.render(cfgItem.view, locals);
                 }
                 if (!cfgItem.decorate) return respond();

@@ -50,6 +50,12 @@
       <%- sel('status', bar.status, _status, '全部状态') %>
     </div>
     <% } %>
+    <% if (bar.parentFilter) { %>
+    <div class="admin-filter-item">
+      <label for="f-parent">父分类</label>
+      <%- sel('parent', bar.parentFilter, lv('parent'), '全部父分类') %>
+    </div>
+    <% } %>
     <% if (bar.extra === 'audit') { %>
     <div class="admin-filter-item">
       <label for="f-action">动作</label>

@@ -618,7 +618,8 @@
     arr.forEach(function (c) {
       var p = c.parent || null;
       var pid = p ? String(p) : null;
-      if (pid && map[pid]) map[pid].__children.push(c);
+      // 自父(self-parent)直接降为顶级，避免森林塌成空（成环防护的第一道，编辑表单已第二道拦截）。
+      if (pid && map[pid] && pid !== String(c._id)) map[pid].__children.push(c);
       else tops.push(c);
     });
     return { map: map, tops: tops };
@@ -1490,6 +1491,7 @@
             (f.o || []).forEach(function (o) {
               var opt = document.createElement('option');
               opt.value = String(o.v); opt.textContent = String(o.t);
+              if (o.p != null) opt.setAttribute('data-p', String(o.p)); // 父级 id，供编辑时防环
               input.appendChild(opt);
             });
           } else { input = document.createElement('input'); input.type = 'text'; }
@@ -1502,6 +1504,25 @@
           wrap.appendChild(input);
           form.appendChild(wrap);
         });
+        // 编辑分类时：从「父分类」下拉中移除自身及其所有后代，避免人为制造循环引用
+        // （一旦成环，前端 buildCategoryForest 会无 tops，整个下拉/选择器被清空）。
+        var psel = form.elements['parent'];
+        if (edit && tr && psel) {
+          var selfId = id;
+          var childMap = {};
+          Array.prototype.forEach.call(psel.options, function (o) {
+            var p = o.getAttribute('data-p');
+            if (p) { (childMap[p] = childMap[p] || []).push(o.value); }
+          });
+          var banned = {};
+          (function collect(pid) {
+            banned[pid] = true;
+            (childMap[pid] || []).forEach(function (c) { collect(c); });
+          })(selfId);
+          Array.prototype.slice.call(psel.options).forEach(function (o) {
+            if (o.value && banned[o.value]) o.remove();
+          });
+        }
         var err = document.createElement('p');
         err.className = 'admin-form-error';
         err.setAttribute('role', 'alert');

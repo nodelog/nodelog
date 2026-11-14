@@ -8,16 +8,24 @@
 <% var safeHref = function (u) { u = String(u == null ? '' : u).trim(); return (/^https?:\/\//i.test(u) || /^\/(?!\/)/.test(u)) ? u : '#'; }; %>
 <h3>分类管理</h3>
 <div class="admin-list">
+<%
+  // 父分类下拉选项（服务端注入）：新增/编辑表单用 parentOptions（含「顶级分类」空项），
+  // 筛选器用 parentFilterOpts（额外「仅顶级分类」= __none__，空白=全部）。
+  var parentOpts = (typeof parentOptions !== 'undefined') ? parentOptions : [];
+  var parentFilterOpts = [{v:'__none__', t:'仅顶级分类'}].concat(parentOpts.filter(function (o) { return o.v !== ''; }));
+%>
   <%- include('../common/adminToolbar', { bar: {
       res: 'category', base: '/manager/category/admin',
       keyword: true,
       status: [{v:'0',t:'正常'},{v:'1',t:'禁用'}],
       sort: [{v:'order',t:'排序'},{v:'name',t:'名称'},{v:'createTime',t:'创建时间'}],
+      parentFilter: parentFilterOpts,
       batch: true, batchStatuses: [{v:'0',t:'正常'},{v:'1',t:'禁用'}],
       io: true,
       add: { label: '新增分类', api: '/manager/category/add', editApi: '/manager/category/modify', fields: [
         {n:'name', t:'名称', k:'text', req:1, max:60},
         {n:'slug', t:'标识', k:'text', max:60},
+        {n:'parent', t:'父分类（留空=顶级）', k:'select', o: parentOpts},
         {n:'keywords', t:'触发词(逗号分隔,用于自动分类)', k:'text', max:200},
         {n:'order', t:'排序', k:'text', max:12, d:'0'}
       ]}
@@ -48,7 +56,7 @@
         <% var _st = (d.status === 1 || String(d.status) === '1') ? '1' : '0'; %>
         <% var _stTxt = _st === '1' ? '禁用' : '正常'; %>
         <% var _href = safeHref('/manager/category/detail?id=' + _id); %>
-        <tr data-id="<%= _id %>" data-name="<%= _nm %>" data-slug="<%= d.slug || '' %>" data-order="<%= d.order == null ? 0 : d.order %>" data-keywords="<%= d.keywords || '' %>" data-status="<%= _st %>">
+        <tr data-id="<%= _id %>" data-name="<%= _nm %>" data-slug="<%= d.slug || '' %>" data-order="<%= d.order == null ? 0 : d.order %>" data-keywords="<%= d.keywords || '' %>" data-parent="<%= d.parent ? String(d.parent) : '' %>" data-status="<%= _st %>">
           <td><input type="checkbox" class="js-batch-check" value="<%= _id %>" aria-label="选择 <%= _nm %>"></td>
           <td><%= i + 1 %></td>
         <td><a href="<%= _href %>"><%= _nm %></a></td>

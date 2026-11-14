@@ -6,7 +6,13 @@ var crud = require('./adminCrud');
 var io = require('./adminIo');
 
 var categoryDesc = {soft: {status: 0}, search: ['name', 'slug'], dateField: 'createTime',
-    sortWhitelist: ['order', 'name', 'createTime'], defaultSortBy: 'order', defaultOrder: 'asc'};
+    sortWhitelist: ['order', 'name', 'createTime'], defaultSortBy: 'order', defaultOrder: 'asc',
+    // 后台「按父分类筛选」：__none__ → 仅顶级分类(parent=null)；具体 id → 该父级下的子分类。
+    extra: function (filters) {
+        if (filters && filters.parent === '__none__') return {parent: null};
+        if (filters && filters.parent) return {parent: filters.parent};
+        return {};
+    }};
 // 方案D：纯增量后台 JSON 列表端点（GET /manager/category/list），复用本文件 categoryDesc。
 // 不传 view → crud.list 走纯 JSON；desc.soft 原样保留；statusRange 沿用 category.status/batch 的 [0,1]。
 exports.adminList = crud.list({
@@ -34,6 +40,17 @@ exports.adminPage = crud.list({
           return o;
         });
         cb(null, enriched);
+      });
+    },
+    // 向视图注入「父分类下拉选项」（新增/编辑表单 + 筛选器共用），携带 p=父级 id 供前端防环。
+    locals: function (docs, filters, req, cb) {
+      Category.findAll(function (err, all) {
+        if (err) return cb(err);
+        var opts = [{v: '', t: '（顶级分类）'}];
+        (all || []).forEach(function (c) {
+          opts.push({v: String(c._id), t: c.name, p: c.parent ? String(c.parent) : ''});
+        });
+        cb(null, {parentOptions: opts});
       });
     }
 });
