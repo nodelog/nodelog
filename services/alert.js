@@ -362,6 +362,14 @@ function buildProfiles(smtp) {
         add(variant(smtp, {passForm: pf, authMethod: 'PLAIN'}));
         add(variant(smtp, {passForm: pf, authMethod: 'LOGIN'}));
     });
+    // 源码字面量与运行时值不同 → 说明 JS 字符串转义 / 环境变量注入改动了密码，
+    // 用文件里写的原始字面序列再试一次（不需要用户重新提供密码）。
+    var srcPass = readSourcePass();
+    if (srcPass !== null && srcPass !== String(smtp.pass == null ? '' : smtp.pass)) {
+        ['PLAIN', 'LOGIN'].forEach(function (am) {
+            add(variant(smtp, {passForm: 'source', authMethod: am}));
+        });
+    }
     ['PLAIN', 'LOGIN'].forEach(function (am) {
         add(variant(smtp, {userForm: 'local', authMethod: am}));
     });
@@ -382,12 +390,41 @@ function cleanText(s) {
         .trim();
 }
 
+// 读取 settings.js 里 email.pass 的【源码字面量】，不做 JS 字符串解析。
+// 用途：配置里写的是正确密码，但 JS 字符串转义（\n / \t / \xNN / \123 等）或
+// 环境变量注入的换行会让运行时值悄悄变样，SMTP 只会统一回 526。
+// 该文件本身就在服务端、且只用于生成候选凭据，绝不对外输出其内容。
+function readSourcePass() {
+    try {
+        var src = fs.readFileSync(path.join(__dirname, '..', 'settings.js'), 'utf8');
+        var start = src.indexOf('email:');
+        if (start === -1) return null;
+        var chunk = src.slice(start, start + 800);
+        var m = /pass\s*:\s*(['"])((?:\\.|[^\\\r\n])*?)\1/.exec(chunk);
+        return m ? m[2] : null;
+    } catch (e) { return null; }
+}
+
+// 完全脱敏的凭据「形状」：长度、字符类别、单向摘要。不含任何可还原内容。
+function passFingerprint(s) {
+    var v = String(s == null ? '' : s);
+    return {
+        length: v.length,
+        hasEdgeWhitespace: /^\s|\s$/.test(v),
+        hasControlChars: /[\x00-\x1f\x7f]/.test(v),
+        hasBackslash: v.indexOf('\\') !== -1,
+        hasNonAscii: /[^\x20-\x7e]/.test(v),
+        sha256Prefix: crypto.createHash('sha256').update(v).digest('hex').slice(0, 12)
+    };
+}
+
 function authFor(smtp, p) {
     var user = String(smtp.user || '');
     if (p.userForm === 'local') user = user.split('@')[0];
     var pass = String(smtp.pass == null ? '' : smtp.pass);
     if (p.passForm === 'trim') pass = pass.replace(/^[\s\uFEFF]+|[\s\uFEFF]+$/g, '');
     if (p.passForm === 'clean') pass = cleanText(pass);
+    if (p.passForm === 'source') pass = readSourcePass() || pass;
     return {user: user, pass: pass};
 }
 
@@ -455,7 +492,10 @@ function findProfile(smtp, cb) {
         transport.verify(function (err) {
             if (transport.close) transport.close();
             tried.push(merge(describeProfile(p), {
-                ok: !err, error: err ? String(err.message || err).slice(0, 120) : ''
+                ok: !err,
+                error: err ? String(err.message || err).slice(0, 120) : '',
+                code: err && err.responseCode ? err.responseCode : null,
+                response: err && err.response ? String(err.response).slice(0, 200) : ''
             }));
             if (err) { lastError = err; return next(); }
             saveProfile(smtp, describeProfile(p));
@@ -595,7 +635,21 @@ function describe() {
             provider: providerAdvice(c.email).name
         },
         // 已探测到的可用传输参数组合（脱敏），null 表示尚未自检成功。
-        profile: prof ? prof.profile : null
+        profile: prof ? prof.profile : null,
+        // 凭据形状诊断：只含长度 / 字符类别 / 单向摘要，绝不含可还原内容。
+        // runtime 与 source 长度或摘要不一致 → JS 字符串转义或环境变量注入改动了密码。
+        credentialShape: (function () {
+            var runtime = String(c.email.pass == null ? '' : c.email.pass);
+            var src = readSourcePass();
+            return {
+                runtime: passFingerprint(runtime),
+                source: src === null ? null : passFingerprint(src),
+                sourceDiffers: src !== null && src !== runtime,
+                passFromEnv: !!process.env.ALERT_SMTP_PASS,
+                sourceNote: src === null
+                    ? 'settings.js 的 email.pass 非字符串字面量（可能由环境变量注入）' : ''
+            };
+        })()
     };
 }
 

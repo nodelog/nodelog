@@ -63,7 +63,12 @@ function resolveToken(req) {
 function redact(s) {
     var out = String(s == null ? '' : s);
     try {
-        var candidates = [alert._resolveSmtp().pass, process.env.ALERT_SMTP_PASS];
+        var smtp = alert._resolveSmtp();
+        var candidates = [smtp.pass, process.env.ALERT_SMTP_PASS];
+        // AUTH PLAIN 会把 \0user\0pass 编码进同一行，精确打码该串（不误伤其它 base64）
+        if (smtp.user && smtp.pass) {
+            candidates.push(Buffer.from('\0' + smtp.user + '\0' + smtp.pass).toString('base64'));
+        }
         candidates.forEach(function (p) {
             if (p && String(p).length > 2) out = out.split(String(p)).join('[REDACTED]');
         });
