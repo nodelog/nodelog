@@ -302,7 +302,7 @@ components:
 
 | 断点 | 导航 | 网格 | 侧栏 | 阅读行宽 |
 |---|---|---|---|---|
-| **桌面 ≥1024px**（≥1280 用 1200 容器） | 全部展开：首页 / 分类下拉 / 写文章 / 我的文章 / 公告 / 登录注册 / 搜索框 180px / 主题切换；`.js-search-bar` 靠右（`margin-left:auto`） | 首页 2 列 + lead 跨列；列表页单列索引 | 右侧 280px，随主列 `align-items:start` | 68ch ≈578px |
+| **桌面 ≥1024px**（≥1280 用 1200 容器） | 全部展开：首页 / 分类下拉 / 公告 / 写文章 / 我的文章 / 扫码登录 / 搜索框 180px / 主题切换（顺序与分组以 §6.1 为准）；`.js-search-bar` 靠右（`margin-left:auto`） | 首页 2 列 + lead 跨列；列表页单列索引 | 右侧 280px，随主列 `align-items:start` | 68ch ≈578px |
 | **平板 768–1023px** | 保留「站名 + 分类 + 搜索 + 主题」4 项，其余收进 `.navbar-collapse`（Bootstrap `data-toggle`/`data-target` 钩子保留，只改 CSS）；搜索框宽 160px | 首页 2 列，lead 仍跨列 | **移到主内容下方**、页脚之前，`aside` 不删除（`#tagCloud` 依赖 DOM） | 同 68ch，`min(68ch, 100% - 48px)` |
 | **手机 <768px**（重点 375 / 390） | `.navbar-toggle` 显示，`.navbar-collapse` 收为面板；搜索框在面板内 **100% 宽独占一行**（替换 `theme.css:485` 的 130px） | 全部 1 列，lead 不跨列但保留 34px 标题 | 主内容之后、页脚之前，卡片间距 16px | `min(68ch, 100% - 32px)`，正文 17px **不缩** |
 
