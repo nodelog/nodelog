@@ -1,0 +1,9 @@
+#!/bin/sh
+# commit 完成后自动发布「新功能」公告。
+# 启用（每个 clone 执行一次）：git config core.hooksPath .githooks
+# 只有 feat/feature/新增 前缀的提交会发布；失败会落入 .announce-queue/ 待下次自动重试，
+# 且本钩子永远返回 0，不会让 git commit 失败。
+root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+command -v node >/dev/null 2>&1 || exit 0
+node "$root/scripts/announce-release.js" --head --quiet || true
+exit 0

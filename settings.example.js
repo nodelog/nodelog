@@ -62,5 +62,17 @@ module.exports = {
         ],
         // 未给 token 单独指定 author 时使用的默认作者
         defaultAuthor: ''
+    },
+
+    // ===== 新功能公告自动发布 API（git commit / CI 调用，见 scripts/announce-release.js）=====
+    // 推荐用环境变量注入，专用 token 与文章发文权限隔离：
+    //   ANNOUNCEMENT_API_TOKENS=abcd...32hex npm start
+    // 未配置本节时，接口自动回退复用上面的 ARTICLE_API_TOKENS（开箱即用）。
+    // 调用方（本机 / CI）需设置：ANNOUNCE_API_BASE=https://blog.jiangzi.xin
+    //                          ANNOUNCE_API_TOKEN=<同一个 token>
+    announcementApi: {
+        tokens: [
+            // { token: 'replace-with-a-32-hex-token', label: 'git-hook' }
+        ]
     }
 };

@@ -9,7 +9,10 @@ var LogSchema = new Schema({
     content:{type:'Object',required: true},
     createTime: { type: Date, default: Date.now},
     modifyTime: {type: Date, default: Date.now},
-    status: {type: 'Number', default: 0, required: true, min: 0, max: 1}
+    status: {type: 'Number', default: 0, required: true, min: 0, max: 1},
+    // 自动发布公告的来源 commit（全 40 位小写 hex）。人工公告无此字段，不受影响。
+    // 用于 /api/announcements 的幂等查重，避免 hook 与 CI 重复发同一条公告。
+    commitHash: {type: 'String', default: ''}
 }, {
     collection: "log"
 });
@@ -27,6 +30,13 @@ LogDAO.prototype.save = function (obj, callback) {
 };
 LogDAO.prototype.findByName = function (name, callback) {
     LogModel.findOne({"name": name, "status": constants.LOG_ENABLE_STATUS}, function (err, obj) {
+        callback(err, obj);
+    });
+};
+// 自动公告幂等查重：按完整 commit hash 精确匹配，只认未下架(status=0)公告。
+// 已下架的公告不阻止重发，便于管理员撤下后由 hook/CI 再补一条。
+LogDAO.prototype.findByCommitHash = function (hash, callback) {
+    LogModel.findOne({"commitHash": hash, "status": constants.LOG_ENABLE_STATUS}, function (err, obj) {
         callback(err, obj);
     });
 };

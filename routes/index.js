@@ -122,6 +122,12 @@ var route = function (app) {
     app.post('/api/articles', rateLimit.limit({max: 60, windowMs: 60 * 1000, key: 'api-articles'}), articleApi.auth, articleApi.publish);
     app.get('/api/articles/:id', articleApi.auth, articleApi.getArticle);
     app.get('/api/categories', articleApi.auth, articleApi.listCategories);
+    // ==================== 新功能公告自动发布 API（git hook / CI / 补发脚本）====================
+    // 按 commitHash 幂等：重复 POST 不会产生第二条公告。无状态 Token，已由 csrfGuard 放行。
+    var announcementApi = require('./../controllers/announcementApi');
+    app.post('/api/announcements',
+        rateLimit.limit({max: 120, windowMs: 60 * 1000, key: 'api-announcements'}),
+        announcementApi.auth, announcementApi.publish);
     // P2 运营统计
     app.get('/manager/analytics', filter.authorizeAdmin, analytics.overview);
     // 日志相关路由见上方 log.* （已清理重复的 /log 调试路由 filter.log）

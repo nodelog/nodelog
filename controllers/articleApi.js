@@ -55,6 +55,10 @@ function loadApiConfig() {
     return { entries: entries, defaultAuthor: envAuthor };
 }
 
+// 供公告发布 API 复用同一套无状态 Token（不改变本文件的任何既有行为）
+exports.loadApiConfig = loadApiConfig;
+exports.resolveToken = resolveToken;
+
 function siteBase() {
     var host = (settings && settings.openPlatform && settings.openPlatform.siteHost)
         || process.env.SITE_HOST || 'blog.jiangzi.xin';

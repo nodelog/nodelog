@@ -1,0 +1,29 @@
+# 新功能公告的兜底通道：任何来源的 push（其他电脑、网页改动、PR 合并）都会补齐公告。
+# 与本地 post-commit hook 并存，服务端按 commitHash 幂等，重复触发不会产生第二条公告。
+# 需在仓库 Settings → Secrets 配置 ANNOUNCE_API_TOKEN（与服务端 ANNOUNCEMENT_API_TOKENS 一致）。
+name: auto-announce
+
+on:
+  push:
+    branches: [master, main]
+
+jobs:
+  announce:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # 需要完整历史才能补发
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: 同步新功能公告（幂等）
+        env:
+          ANNOUNCE_API_TOKEN: ${{ secrets.ANNOUNCE_API_TOKEN }}
+          ANNOUNCE_API_BASE: ${{ vars.ANNOUNCE_API_BASE }}
+        run: |
+          if [ -z "$ANNOUNCE_API_TOKEN" ]; then
+            echo "未配置 ANNOUNCE_API_TOKEN，跳过公告同步"
+            exit 0
+          fi
+          node scripts/announce-release.js --backfill --quiet
