@@ -149,6 +149,7 @@ var route = function (app) {
     app.post('/manager/tag/batch', A, tag.batch);
     app.post('/manager/tag/import', A, tag['import']);
     app.get('/manager/tag/export', A, tag['export']);
+    app.post('/manager/tag/reconcile', A, tag.reconcile); // 一键重算标签计数（自愈）
     // ---- Link（写沿用 /manager/link/save、/manager/link/delete；以下为新增）----
     app.get('/manager/link/detail', A, link.detail);
     app.post('/manager/link/list', A, link.adminList);

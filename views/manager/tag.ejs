@@ -5,6 +5,11 @@
 </ol>
 <h3>标签管理</h3>
 
+<div class="admin-list-toolbar clear-margin" style="margin-bottom:12px;">
+    <button type="button" id="jsTagReconcile" class="btn btn-default">重新计算标签计数</button>
+    <span id="jsTagReconcileMsg" class="text-muted" style="margin-left:10px;"></span>
+</div>
+
 <div class="admin-list">
   <%- include('../common/adminToolbar', { bar: {
       res: 'tag', base: '/manager/tag', keyword: true,
@@ -66,3 +71,21 @@
   </div>
 </div>
 <%- include('footer') %>
+
+<script>
+(function () {
+    var btn = document.getElementById('jsTagReconcile');
+    var msg = document.getElementById('jsTagReconcileMsg');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+        btn.disabled = true; msg.textContent = '计算中…';
+        fetch('/manager/tag/reconcile', {method: 'POST', credentials: 'same-origin'})
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                msg.textContent = d.success ? (d.msg + '，请刷新列表查看') : ('失败：' + (d.msg || '未知错误'));
+            })
+            .catch(function (e) { msg.textContent = '请求失败：' + e.message; })
+            .then(function () { btn.disabled = false; });
+    });
+})();
+</script>

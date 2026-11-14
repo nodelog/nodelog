@@ -39,6 +39,10 @@ exports.findBySlug = function (req, res) {
                 }
             }]
         }, function (e, r) {
+            // 自愈：实时查到 0 篇、但标签缓存计数>0，说明计数脏了——后台静默重算，不阻塞响应（§自愈）。
+            if ((r.total || 0) === 0 && (tag.count || 0) > 0) {
+                Tag.reconcileForContent([tag.name], [tag.name], function () {});
+            }
             res.render('tag', {
                 tag: tag, docs: r.docs, title: '标签：' + tag.name,
                 page: r.page, totalPage: r.totalPage, total: r.total,
@@ -52,6 +56,14 @@ exports.list = function (req, res) {
     Tag.findAll(function (err, docs) {
         if (err) return res.json({docs: []});
         res.json({docs: docs});
+    });
+};
+
+// 一键重算全部标签计数（委托唯一实现 syncTags，覆盖写，幂等安全）。供后台「重新计算标签计数」按钮调用。
+exports.reconcile = function (req, res) {
+    Tag.reconcileAllCounts(function (err) {
+        if (err) return res.json({success: false, msg: err.message});
+        res.json({success: true, msg: '标签计数已重新计算'});
     });
 };
 
