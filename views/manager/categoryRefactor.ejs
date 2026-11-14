@@ -1,0 +1,91 @@
+<%- include('header') %>
+<ol class="breadcrumb">
+    <li><a href="/manager">后台首页</a></li>
+    <li class="active">分类重构</li>
+</ol>
+<h3>分类重构
+    <a class="btn btn-default btn-sm pull-right" href="/manager/category/admin?page=1">返回分类管理</a>
+</h3>
+<p class="text-muted">
+    把现有零散、平铺、命名混乱的分类收敛为一套分层标准分类（10 个一级 + 32 个二级，共 42 个），
+    并把文章从旧分类自动改挂到新分类。细分技术词（如 Yii2/myBatis/jQuery）降级为子分类的「触发词」，
+    由方案 B 的自动分类在写文章时仍可按语义匹配。本操作与 CLI 脚本 <code>scripts/refactor-categories.js</code> 共用同一份标准分类定义。
+</p>
+<div class="alert alert-warning">
+    <strong>可逆说明：</strong>被合并的旧分类采用<strong>软删（status=1）</strong>而非硬删，前台不再展示，但数据保留、可恢复；
+    执行前请先点「预览」核对文章迁移数量。建议在低峰期操作。
+</div>
+<div class="form-group">
+    <button type="button" id="btn-preview" class="btn btn-primary">预览重构方案</button>
+    <button type="button" id="btn-apply" class="btn btn-danger" disabled>执行重构</button>
+    <span id="refactor-status" class="text-muted" style="margin-left:12px;"></span>
+</div>
+<div id="refactor-result"></div>
+
+<%- include('footer') %>
+
+<script>
+(function () {
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+  function renderPlan(plan) {
+    var html = '<div class="alert alert-info">将新建标准分类 <b>' + plan.create.length +
+      '</b> 个，规范化更新 <b>' + plan.update.length + '</b> 个；将把 <b>' + plan.reassign.length +
+      '</b> 个旧分类下的 <b>' + plan.articleTotal + '</b> 篇文章改挂到新分类，并软删 <b>' +
+      plan.deleteCount + '</b> 个旧分类。</div>';
+    if (plan.reassign.length) {
+      html += '<table class="table table-hover"><thead><tr><th>旧分类</th><th>→ 新分类</th><th>文章数</th></tr></thead><tbody>';
+      plan.reassign.forEach(function (p) {
+        html += '<tr><td>' + esc(p.from) + '</td><td>' + esc(p.to) + '</td><td>' + (p.articles || 0) + '</td></tr>';
+      });
+      html += '</tbody></table>';
+    } else {
+      html += '<div class="alert alert-success">当前分类已经符合标准，无需重构。</div>';
+    }
+    return html;
+  }
+  function postJSON(url) {
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({})
+    }).then(function (r) { return r.json(); });
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    var btnPreview = document.getElementById('btn-preview');
+    var btnApply = document.getElementById('btn-apply');
+    var box = document.getElementById('refactor-result');
+    var status = document.getElementById('refactor-status');
+    btnPreview.addEventListener('click', function () {
+      btnPreview.disabled = true; status.textContent = '加载中…';
+      postJSON('/manager/category/refactor/preview')
+        .then(function (d) {
+          btnPreview.disabled = false; status.textContent = '';
+          if (!d.success) { box.innerHTML = '<div class="alert alert-danger">' + esc(d.msg || '预览失败') + '</div>'; return; }
+          box.innerHTML = renderPlan(d.plan);
+          window.__refactorPlan = d.plan;
+          btnApply.disabled = (d.plan.reassign.length === 0);
+        })
+        .catch(function () { btnPreview.disabled = false; status.textContent = ''; box.innerHTML = '<div class="alert alert-danger">网络错误</div>'; });
+    });
+    btnApply.addEventListener('click', function () {
+      if (!window.__refactorPlan) return;
+      if (!confirm('确认执行分类重构？将把 ' + window.__refactorPlan.articleTotal +
+        ' 篇文章改挂到新分类，并软删 ' + window.__refactorPlan.deleteCount + ' 个旧分类（软删可恢复）。')) return;
+      btnApply.disabled = true; status.textContent = '执行中…';
+      postJSON('/manager/category/refactor/apply')
+        .then(function (d) {
+          btnApply.disabled = false; status.textContent = '';
+          if (!d.success) { box.innerHTML = '<div class="alert alert-danger">' + esc(d.msg || '执行失败') + '</div>'; return; }
+          box.innerHTML = '<div class="alert alert-success">重构完成：迁移 ' + d.result.moved +
+            ' 篇，软删 ' + d.result.deleted + ' 个，失败 ' + d.result.failed + ' 个。建议刷新分类管理页核对。</div>';
+        })
+        .catch(function () { btnApply.disabled = false; status.textContent = ''; box.innerHTML = '<div class="alert alert-danger">网络错误</div>'; });
+    });
+  });
+})();
+</script>

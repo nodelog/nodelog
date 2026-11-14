@@ -100,6 +100,7 @@ var adminGroups = [
                 }
             },
             { key: 'category', label: '分类', href: '/manager/category/admin?page=1', roles: 'admin' },
+            { key: 'categoryRefactor', label: '分类重构', href: '/manager/category/refactor', roles: 'admin' },
             { key: 'tag', label: '标签', href: '/manager/tag?page=1', roles: 'admin' },
             { key: 'log', label: '公告', href: '/manager/log/admin?page=1', roles: 'admin' },
             { key: 'link', label: '链接', href: '/manager/link', roles: 'admin' }

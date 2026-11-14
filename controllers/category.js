@@ -201,3 +201,24 @@ exports['export'] = io.export({
             d.cover || '', d.order || 0, d.status, d.keywords || ''];
     }
 });
+
+/* ---------------- 分类重构（方案 B 配套，后台接口） ----------------
+   复用 services/categoryRefactor（与 CLI 同单一事实来源）。 */
+var refactorSvc = require('./../services/categoryRefactor');
+exports.refactorPage = function (req, res) {
+  res.render('manager/categoryRefactor', { title: '分类重构', currentMenu: 'categoryRefactor' });
+};
+exports.refactorPreview = function (req, res) {
+  refactorSvc.run(false, function (err, plan) {
+    if (err) return res.status(500).json({ success: false, msg: err.message });
+    res.json({ success: true, plan: plan });
+  });
+};
+exports.refactorApply = function (req, res) {
+  refactorSvc.run(true, function (err, plan) {
+    if (err) return res.status(500).json({ success: false, msg: err.message });
+    res.json({ success: true, result: plan.result || {
+      moved: plan.articleTotal, deleted: plan.deleteCount, failed: 0
+    } });
+  });
+};
