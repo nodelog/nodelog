@@ -153,7 +153,23 @@ exports.probe = function (req, res) {
             elapsedMs: Date.now() - started
         };
         if (r.allowed) body.allowed = r.allowed;
-        res.status(body.sent ? 200 : 502).json(sanitize(body));
+        body.credentials = view.credentialShape;
+        function respond() {
+            res.status(body.sent ? 200 : 502).json(sanitize(body));
+        }
+        // 认证类全失败时补一次「错误密码」对照，让结论有可验证依据而不是猜测。
+        if (!body.sent && r && (r.reason === 'auth-failed' || r.reason === 'no-working-profile')) {
+            try {
+                return alert.authControl(function (ctl) {
+                    body.control = ctl || null;
+                    respond();
+                });
+            } catch (e) {
+                body.control = {error: String(e.message || e).slice(0, 120)};
+            }
+        }
+        body.control = null;
+        respond();
     });
 };
 

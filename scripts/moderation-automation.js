@@ -484,6 +484,7 @@ function runVerify(done) {
             log('  尝试 ' + (t.id || '-') + ' port=' + t.port + ' secure=' + t.secure +
                 ' auth=' + t.authMethod + ' user=' + t.userForm + ' pass=' + t.passForm +
                 ' tls=' + (t.tlsLoose ? 'loose' : 'strict') +
+                ' host=' + (t.hostForm || 'configured') +
                 ' -> ' + (t.ok ? '通过' : '失败：' + t.error));
         });
         if (r.ok) {
@@ -520,6 +521,7 @@ if (opt.cmd === 'smtp-try') {
             log('  尝试 ' + (t.id || '-') + ' port=' + t.port + ' secure=' + t.secure +
                 ' auth=' + t.authMethod + ' user=' + t.userForm + ' pass=' + t.passForm +
                 ' tls=' + (t.tlsLoose ? 'loose' : 'strict') +
+                ' host=' + (t.hostForm || 'configured') +
                 ' -> ' + (t.ok ? '通过' : '失败：' + t.error));
         });
         if (r && r.profile) log('可用组合（脱敏，已持久化）: ' + JSON.stringify(r.profile));

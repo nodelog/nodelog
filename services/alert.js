@@ -335,8 +335,18 @@ function saveProfile(smtp, profile) {
 function baseProfile(smtp) {
     return {
         port: smtp.port, secure: smtp.secure, authMethod: null,
-        userForm: 'full', passForm: 'raw', tlsLoose: false
+        userForm: 'full', passForm: 'raw', tlsLoose: false, hostForm: 'configured'
     };
+}
+
+// 企业邮常见的等价接入主机：自定义域自身、阿里云旧版万网入口。
+function hostFor(smtp, p) {
+    if (p.hostForm === 'mxhichina') return 'smtp.mxhichina.com';
+    if (p.hostForm === 'domain') {
+        var m = /@([^\s@]+)$/.exec(String(smtp.user || ''));
+        return m ? 'smtp.' + m[1] : smtp.host;
+    }
+    return smtp.host;
 }
 
 function variant(smtp, over) {
@@ -349,7 +359,8 @@ function variant(smtp, over) {
 function buildProfiles(smtp) {
     var list = [], seen = {};
     function add(p) {
-        var key = [p.port, p.secure, p.authMethod, p.userForm, p.passForm, p.tlsLoose].join('|');
+        var key = [p.port, p.secure, p.authMethod, p.userForm, p.passForm,
+            p.tlsLoose, p.hostForm].join('|');
         if (seen[key]) return;
         seen[key] = 1;
         p.id = 'P' + (list.length + 1);
@@ -375,9 +386,16 @@ function buildProfiles(smtp) {
     });
     add(variant(smtp, {tlsLoose: true}));                     // 自签证书 / 老 TLS
     add(variant(smtp, {tlsLoose: true, authMethod: 'PLAIN'}));
-    [{port: 465, secure: true}, {port: 587, secure: false}].forEach(function (pt) {
+    [{port: 465, secure: true}, {port: 587, secure: false}, {port: 25, secure: false}]
+        .forEach(function (pt) {
+            ['PLAIN', 'LOGIN'].forEach(function (am) {
+                add(variant(smtp, {port: pt.port, secure: pt.secure, authMethod: am}));
+            });
+        });
+    // 等价接入主机：同一套账号密码在企业邮的其它入口可能不被 526 拦。
+    ['mxhichina', 'domain'].forEach(function (hf) {
         ['PLAIN', 'LOGIN'].forEach(function (am) {
-            add(variant(smtp, {port: pt.port, secure: pt.secure, authMethod: am}));
+            add(variant(smtp, {hostForm: hf, authMethod: am}));
         });
     });
     return list;
@@ -430,7 +448,7 @@ function authFor(smtp, p) {
 
 function transportOptions(smtp, p) {
     var o = {
-        host: smtp.host, port: p.port, secure: p.secure, auth: authFor(smtp, p),
+        host: hostFor(smtp, p), port: p.port, secure: p.secure, auth: authFor(smtp, p),
         // CLI 场景必须快速失败：SMTP 不可达时不要挂住整个自动化轮次。
         connectionTimeout: 8000, greetingTimeout: 8000, socketTimeout: 12000
     };
@@ -444,7 +462,8 @@ function describeProfile(p) {
     return {
         id: p.id || '', port: p.port, secure: p.secure,
         authMethod: p.authMethod || 'auto', userForm: p.userForm || 'full',
-        passForm: p.passForm || 'raw', tlsLoose: !!p.tlsLoose
+        passForm: p.passForm || 'raw', tlsLoose: !!p.tlsLoose,
+        hostForm: p.hostForm || 'configured'
     };
 }
 
@@ -471,11 +490,12 @@ function findProfile(smtp, cb) {
     var list = cached ? [cached.profile] : [];
     buildProfiles(smtp).forEach(function (p) { list.push(p); });
     var tried = [], i = 0, finished = false;
+    var firstAuthError = null;   // 备选主机连接失败不能盖掉最关键的 526
     function done(r) { if (!finished) { finished = true; cb(null, r); } }
     function next() {
         if (finished) return;
         if (i >= list.length) {
-            var ex = explainSmtpError(lastError || new Error('all SMTP profiles failed'), smtp);
+            var ex = explainSmtpError(firstAuthError || lastError || new Error('all SMTP profiles failed'), smtp);
             var reason = ex.kind === 'auth' ? 'auth-failed'
                 : (ex.kind === 'network' ? 'network-unreachable'
                     : (ex.kind === 'tls' ? 'tls-failed' : 'no-working-profile'));
@@ -497,7 +517,11 @@ function findProfile(smtp, cb) {
                 code: err && err.responseCode ? err.responseCode : null,
                 response: err && err.response ? String(err.response).slice(0, 200) : ''
             }));
-            if (err) { lastError = err; return next(); }
+            if (err) {
+                lastError = err;
+                if (!firstAuthError && explainSmtpError(err, smtp).kind === 'auth') firstAuthError = err;
+                return next();
+            }
             saveProfile(smtp, describeProfile(p));
             done({ok: true, profile: describeProfile(p), tried: tried,
                 fromCache: !!cached && i === 1});
@@ -771,6 +795,35 @@ exports.getProfile = function () {
 exports.probeAndSend = probeAndSend;
 // 给 CLI 的 smtp-try 用：只探测可用参数组合，不发信。
 exports.probeAuth = function (cb) { findProfile(resolve().email, cb); };
+
+/**
+ * 对照实验：故意用明显错误的密码认证一次，用来区分两种情况——
+ *   A) 错误密码与真实密码返回同样的 526 → 服务器对当前来源/账号一律拒绝
+ *      （未开启 SMTP / 客户端专用密码、IP 白名单、连续失败临时锁定），与凭据内容无关；
+ *   B) 两者返回码不同 → 凭据确实被校验，需要换用邮箱侧签发的专用密码。
+ * 绝不输出真实密码或任何认证串。
+ */
+exports.authControl = function (cb) {
+    var smtp = resolve().email;
+    if (!smtp.host || !smtp.user) return cb({skipped: 'smtp-not-configured'});
+    var t;
+    try {
+        t = require('nodemailer').createTransport({
+            host: smtp.host, port: smtp.port, secure: smtp.secure,
+            auth: {user: smtp.user, pass: '__control_wrong_password__'},
+            connectionTimeout: 6000, greetingTimeout: 6000, socketTimeout: 8000
+        });
+    } catch (e) { return cb({error: String(e.message || e).slice(0, 120)}); }
+    t.verify(function (err) {
+        if (t.close) t.close();
+        cb({
+            wrongPasswordAccepted: !err,
+            code: err && err.responseCode ? err.responseCode : null,
+            message: err ? String(err.message || err).slice(0, 200) : 'unexpected-success',
+            response: err && err.response ? String(err.response).slice(0, 200) : ''
+        });
+    });
+};
 exports._buildProfiles = buildProfiles;
 exports._describeProfile = describeProfile;
 exports.resetProfile = function () {
