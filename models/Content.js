@@ -267,6 +267,15 @@ ContentDAO.prototype.getPendingCount = function (callback) {
         callback(err, total || 0);
     });
 };
+// 看板用：按 UTC 自然日聚合最近 days 天每日新建文章数
+ContentDAO.prototype.getTrend = function (days, callback) {
+    var start = new Date(Date.now() - days * 86400000);
+    ContentModel.aggregate([
+        {$match: {createTime: {$gte: start}}},
+        {$group: {_id: {$dateToString: {format: '%Y-%m-%d', date: '$createTime'}}, count: {$sum: 1}}},
+        {$sort: {_id: 1}}
+    ]).exec(function (err, rows) { callback(err, rows || []); });
+};
 ContentDAO.prototype.getCountByCategory = function (category, currentUser, callback) {
     var term;
     if (currentUser == null) {

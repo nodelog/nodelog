@@ -62,6 +62,12 @@ LinkDAO.prototype.findByPage = function (page, callback) {
         .skip((page - 1) * constants.PER_PAGE_COUNT)
         .exec(function (err, docs) { callback(err, docs); });
 };
+// 看板用：已删除(status=1)友链数，即待复核/待恢复
+LinkDAO.prototype.getCountDisabled = function (callback) {
+    LinkModel.count({"status": 1}, function (err, total) {
+        callback(err, total || 0);
+    });
+};
 // D8：由硬删 remove 改软删 status=1，响应 {success,msg} 不变，可恢复。
 LinkDAO.prototype.delete = function (id, callback) {
     LinkModel.update({_id: id, status: 0}, {$set: {status: 1, modifyTime: new Date()}}, function (err) {

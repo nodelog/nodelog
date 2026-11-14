@@ -55,6 +55,12 @@ LogDAO.prototype.getCount = function (callback) {
         callback(err, total);
     });
 };
+// 看板用：已下架(status=1)公告数，即待复核/待恢复
+LogDAO.prototype.getCountDisabled = function (callback) {
+    LogModel.count({"status": constants.LOG_UNABLE_STATUS}, function (err, total) {
+        callback(err, total || 0);
+    });
+};
 LogDAO.prototype.delete = function (id, callback) {
     LogModel.update({"_id": id}, {$set: {'status': constants.LOG_UNABLE_STATUS }}, function (err) {
         callback(err);

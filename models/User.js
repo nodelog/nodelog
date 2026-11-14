@@ -87,6 +87,15 @@ UserDAO.prototype.getCount = function (callback) {
             callback(err, total);
         });
 };
+// 看板用：按 UTC 自然日聚合最近 days 天每日新增注册用户数
+UserDAO.prototype.getTrend = function (days, callback) {
+    var start = new Date(Date.now() - days * 86400000);
+    UserModel.aggregate([
+        {$match: {createTime: {$gte: start}}},
+        {$group: {_id: {$dateToString: {format: '%Y-%m-%d', date: '$createTime'}}, count: {$sum: 1}}},
+        {$sort: {_id: 1}}
+    ]).exec(function (err, rows) { callback(err, rows || []); });
+};
 // 管理员可删除任意用户（含其他管理员、含自己）：不做 role 限制。
 // 用 findOneAndUpdate 并以返回值文档是否存在判定成功，避免依赖驱动版本相关的
 // 返回字段（mongodb 驱动 4.x 是 matchedCount，旧版是 n，直接读 n 会恒为 undefined）。

@@ -61,6 +61,15 @@ CommentDAO.prototype.getCount = function (callback) {
         callback(err, total);
     });
 };
+// 看板用：按 UTC 自然日聚合最近 days 天每日新增评论数
+CommentDAO.prototype.getTrend = function (days, callback) {
+    var start = new Date(Date.now() - days * 86400000);
+    CommentModel.aggregate([
+        {$match: {createTime: {$gte: start}}},
+        {$group: {_id: {$dateToString: {format: '%Y-%m-%d', date: '$createTime'}}, count: {$sum: 1}}},
+        {$sort: {_id: 1}}
+    ]).exec(function (err, rows) { callback(err, rows || []); });
+};
 
 CommentDAO.prototype.getCountByContent = function (content, callback) {
     CommentModel.count({"content": content, "status": constants.COMMENT_ENABLE_STATUS}, function (err, total) {
