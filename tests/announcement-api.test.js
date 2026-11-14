@@ -12,10 +12,10 @@ var store = [];
 require.cache[logPath] = {
     id: logPath, filename: logPath, loaded: true,
     exports: {
-        findByCommitHash: function (hash, cb) {
+        findAnyByCommitHash: function (hash, cb) {
             cb(null, store.filter(function (d) { return d.commitHash === hash; })[0] || null);
         },
-        findByName: function (name, cb) {
+        findAnyByName: function (name, cb) {
             cb(null, store.filter(function (d) { return d.name === name; })[0] || null);
         },
         save: function (obj, cb) {
@@ -116,6 +116,17 @@ t('优化类提交可发布，标题为【优化升级】且正文标明类型',
     assert.strictEqual(res.code, 201);
     assert.ok(store[0].name.indexOf('【优化升级·ui】') === 0);
     assert.ok(store[0].content.indexOf('站点完成以下优化升级') !== -1);
+});
+
+t('已下架(status=1)的公告不会被 hook/CI 自动重发', function () {
+    store.length = 0;
+    var built = require('../services/releaseNote').buildAnnouncement(payload());
+    store.push({ _id: 'off1', name: built.name, commitHash: built.commitHash, status: 1 });
+    var res = fakeRes();
+    api.publish({ body: payload() }, res);
+    assert.strictEqual(res.code, 200);
+    assert.strictEqual(res.body.duplicate, true);
+    assert.strictEqual(store.length, 1, '不得再插入一条同名公告');
 });
 
 t('未设环境变量时，复用 settings.js 的 articleApi.tokens 通过鉴权', function () {

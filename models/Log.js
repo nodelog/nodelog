@@ -33,10 +33,17 @@ LogDAO.prototype.findByName = function (name, callback) {
         callback(err, obj);
     });
 };
-// 自动公告幂等查重：按完整 commit hash 精确匹配，只认未下架(status=0)公告。
-// 已下架的公告不阻止重发，便于管理员撤下后由 hook/CI 再补一条。
-LogDAO.prototype.findByCommitHash = function (hash, callback) {
-    LogModel.findOne({"commitHash": hash, "status": constants.LOG_ENABLE_STATUS}, function (err, obj) {
+// 自动公告幂等查重：按完整 commit hash 精确匹配，**含已下架(status=1)**。
+// 管理员撤下公告是明确的「不想展示」意图，必须继续阻止 hook/CI 自动重发；
+// 否则每次 commit 或 CI 补发都会把它重新放出来，永远删不掉。
+LogDAO.prototype.findAnyByCommitHash = function (hash, callback) {
+    LogModel.findOne({"commitHash": hash}, function (err, obj) {
+        callback(err, obj);
+    });
+};
+// 同上，按标题查重（兼容后台 CSV 导入的无 commitHash 公告）。
+LogDAO.prototype.findAnyByName = function (name, callback) {
+    LogModel.findOne({"name": name}, function (err, obj) {
         callback(err, obj);
     });
 };

@@ -79,7 +79,7 @@ exports.publish = function (req, res) {
         });
     }
 
-    Log.findByCommitHash(note.commitHash, function (err, exist) {
+    Log.findAnyByCommitHash(note.commitHash, function (err, exist) {
         if (err) {
             console.error('[announcementApi.publish] 查重失败：' + err.message);
             return res.status(500).json({ success: false, msg: '服务端错误' });
@@ -88,7 +88,8 @@ exports.publish = function (req, res) {
 
         // 二次兜底：若管理员已用后台 CSV 导入过同一条公告（无 commitHash 字段），
         // 按标题识别，避免 API 与人工补发撞出两条同名公告。
-        Log.findByName(note.name, function (nameErr, byName) {
+        // 同样不限 status：已下架的公告不再自动重发。
+        Log.findAnyByName(note.name, function (nameErr, byName) {
             if (nameErr) {
                 console.error('[announcementApi.publish] 标题查重失败：' + nameErr.message);
                 return res.status(500).json({ success: false, msg: '服务端错误' });
