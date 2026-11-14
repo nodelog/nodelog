@@ -593,10 +593,16 @@ section.card + section.card { margin-top: var(--space-6); }
     display: grid;
     grid-template-columns: 200px minmax(0, 1fr);
     gap: var(--space-6);
-    max-width: calc(var(--wrap) + 2 * var(--space-6));
-    margin: 0 auto;
+    /* 后台是数据与表格界面，采用流体全宽；不再套用前台 1200 居中容器。
+       仅保留 24px 安全内边距，避免内容贴住视口边缘。 */
+    width: 100%;
+    max-width: none;
+    margin: 0;
     padding: 68px var(--space-6) var(--space-8);
 }
+/* 前台 .navbar 用 1200 容器算左右 padding；后台全宽后必须覆盖，
+   否则顶栏品牌与内容区左右不对齐。 */
+.manager .navbar { padding-left: var(--space-6); padding-right: var(--space-6); }
 .manager .l-top-bottom { max-width: none; margin: 0; padding-top: 0; }
 .manager .l-padding-horizontal { padding-left: 0; padding-right: 0; }
 .manager .manager-sidebar { position: sticky; top: 76px; align-self: start; }
