@@ -22,14 +22,21 @@
   // 事件：无 sel 直绑；有 sel 走事件委托（等价旧 .on/.delegate/.live）
   function on(el, evt, sel, handler) {
     if (!el) return;
-    if (sel) {
-      el.addEventListener(evt, function (e) {
-        var t = e.target.closest(sel);
-        if (t && el.contains(t)) handler.call(t, e, t);
-      });
-    } else {
-      el.addEventListener(evt, handler);
-    }
+    // 3 参直绑：on(el, evt, handler) —— 兼容旧 jQuery 版 .on 的直接绑定语义
+    if (typeof sel === 'function') { handler = sel; sel = null; }
+    // 支持空格分隔的多事件（如 'keydown keyup focus click change'，
+    // 原生 addEventListener 只接受单一事件类型，不拆分会导致监听器永不触发）
+    String(evt).trim().split(/\s+/).forEach(function (type) {
+      if (!type) return;
+      if (sel) {
+        el.addEventListener(type, function (e) {
+          var t = e.target.closest(sel);
+          if (t && el.contains(t)) handler.call(t, e, t);
+        });
+      } else {
+        el.addEventListener(type, handler);
+      }
+    });
   }
 
   function getJSON(url, data) {
@@ -481,7 +488,7 @@
       var retry = e.target.closest('.js-state-retry');
       if (retry && attr(retry, 'data-retry') === 'search') suggest((qs('.js-search').value || '').trim(), '/content/search', null);
     });
-    on(document, 'keyup focus click change', '.js-search-panel', '.js-search-auto', function (e) {
+    on(document, 'keyup focus click change', '.js-search-panel .js-search-auto', function (e) {
       e.stopPropagation();
       var _val = (this.value || '').trim().toLowerCase();
       qsa('.js-search-panel li').forEach(function (li) {

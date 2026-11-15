@@ -3,6 +3,7 @@ var user = require('./../controllers/user');
 var site = require('./../controllers/site');
 var category = require('./../controllers/category');
 var content = require('./../controllers/content');
+var contentQuery = require('./../controllers/contentQuery');
 var comment = require('./../controllers/comment');
 var log = require('./../controllers/log');
 var link = require('./../controllers/link');
@@ -106,8 +107,8 @@ var route = function (app) {
     app.get('/content/user', filter.authorize, content.findByUser);
     // 前台作者自助删除（复用 content.delete，DAO 层按 author 归属软删，管理员豁免）
     app.post('/content/delete', filter.authorize, content.delete);
-    app.get('/content/search',content.searchFull);
-    app.post('/content/search',content.findByWordJson);
+    app.get('/content/search',contentQuery.searchFull);
+    app.post('/content/search',contentQuery.findByWordJson);
     // P0 图床上传（base64 -> public/uploads）
     app.post('/api/upload', filter.authorize, upload.upload);
     // P0 编辑器实时预览（服务端 markdown 渲染，与展示一致）
