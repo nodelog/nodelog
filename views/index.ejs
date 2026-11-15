@@ -4,9 +4,9 @@
 <div class="layout">
     <div class="layout-main">
         <% if (typeof docs !== 'undefined' && docs && docs.length) { %>
-        <div class="post-grid">
+        <div class="post-grid register">
             <% docs.forEach(function(doc, i){ %>
-                <%- include('common/postCard', { doc: doc, variant: i === 0 ? 'lead' : 'grid' }) %>
+                <%- include('common/postCard', { doc: doc, variant: i === 0 ? 'lead' : 'list', index: i + 1 }) %>
             <% }); %>
         </div>
         <% } else { %>

@@ -1,0 +1,1786 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light" data-vp="desktop" data-page="home">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="NODELOG 设计语言呈现页：登记簿 / The Numbered Register。首页 / 列表 / 文章三视图，明暗双主题，桌面与 390px 移动视口。">
+<title>NODELOG · 设计语言呈现 · 登记簿</title>
+
+<!--
+  NODELOG 设计语言呈现页（最终版）
+  依据：D:/code/NODELOG/design-language/DESIGN_LANGUAGE.md v1.0（14 节）
+  方向：「登记簿 / The Numbered Register」——72px 左缘登记轨 + 24×2px 主色刻度 + 连续基线。
+
+  URL 协议：index.html?page=home|list|article&theme=light|dark&vp=desktop|mobile
+    page   —— 同一文件内切换三视图（template 克隆，任意时刻唯一 h1 / 唯一 main）
+    theme  —— html 的 data-theme 属性，明暗各一套完整变量，深色不是反色
+    vp     —— desktop 正常渲染；mobile 约束 390px 内容列并启用移动构图
+  控制条：固定在 .page-shell 之外；vp=mobile 时不进入 390px 内容区。
+
+  零外部依赖：无 CDN / 无 Web 字体 / 无图标库 / 无图片请求；图标全部内联 SVG。
+  所有视觉值集中在 TOKENS:START / TOKENS:END 之间，tokens.css 内为同名同值的一份。
+-->
+
+<script>
+/* 唯一一次边界解析（runtime-defensive.md §二）：URL 参数是外部输入，在这里做白名单
+   归一化；下游组件信任 window.__NL_STATE__，不在组件内部重复校验。提前执行防主题闪烁。 */
+(function () {
+  var q = new URLSearchParams(location.search);
+  var PAGE = { home: 1, list: 1, article: 1 };
+  var THEME = { light: 1, dark: 1 };
+  var VP = { desktop: 1, mobile: 1 };
+  var page = q.get('page'), theme = q.get('theme'), vp = q.get('vp');
+  if (!PAGE[page]) page = 'home';
+  if (!THEME[theme]) theme = 'light';
+  if (!VP[vp]) vp = (window.innerWidth < 768 ? 'mobile'
+                  : (window.innerWidth < 1024 ? 'tablet' : 'desktop'));
+  var r = document.documentElement;
+  r.setAttribute('data-theme', theme);
+  r.setAttribute('data-vp', vp);
+  r.setAttribute('data-page', page);
+  window.__NL_STATE__ = { page: page, theme: theme, vp: vp };
+})();
+</script>
+
+<style>
+/* ==================================================================
+   TOKENS:START —— 唯一视觉值来源（与 tokens.css 同名同值）
+   ================================================================== */
+:root {
+  /* 1. 九槽色板（§3.1） */
+  --bg:              #EDF1F2;
+  --surface:         #FFFFFF;
+  --surface-2:       #E1E7E9;
+  --border:          #CFD8DB;   /* 只作装饰分隔，不承载信息 */
+  --border-strong:   #68787F;   /* 控件边界 ≥3:1 */
+  --ink:             #14232A;
+  --muted:           #4C5C64;
+  --accent:          #1B7174;
+  --accent-ink:      #FFFFFF;
+
+  /* 2. 派生令牌 */
+  --accent-hover:    #15595B;
+  --accent-press:    #11484A;
+  --accent-weak:     #E7F1F1;
+  --ring:            var(--accent);
+  --elev:            0 8px 24px rgba(20,35,42,.14);  /* 仅浮层 */
+
+  /* 3. 语义四件套 tint / ink（§3.2） */
+  --info-tint:       #E4EDF6;  --info-ink:    #27598F;
+  --warning-tint:    #F7EEDC;  --warning-ink: #8A5A10;
+  --danger-tint:     #F9E6E4;  --danger-ink:  #A32D27;
+  --success-tint:    #E7F1F1;  --success-ink: #1B7174;
+
+  /* 4. 三族字体（§4.1），全系统栈 */
+  --font-sans:  -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Source Han Sans SC", "Noto Sans CJK SC", sans-serif;
+  --font-serif: Georgia, "Iowan Old Style", "Palatino Linotype", "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC", "STSong", serif;
+  --font-mono:  ui-monospace, "SFMono-Regular", "Cascadia Code", Consolas, "Liberation Mono", Menlo, monospace;
+  --font-ui:    var(--font-sans);   /* 关键：不是 mono */
+
+  /* 5. 八档字号（§4.2）：px / 行高 / 字重 / 字距 */
+  --fs-caption: 12px; --lh-caption: 1.50; --ls-caption: .02em;
+  --fs-small:   14px; --lh-small:   1.55; --ls-small:   .01em;
+  --fs-body:    17px; --lh-body:    1.75; --ls-body:    0;
+  --fs-lead:    22px; --lh-lead:    1.60; --ls-lead:    0;
+  --fs-h3:      26px; --lh-h3:      1.45; --ls-h3:      0;
+  --fs-h2:      32px; --lh-h2:      1.35; --ls-h2:      0;
+  --fs-h1:      40px; --lh-h1:      1.30; --ls-h1:      0;
+  --fs-display: 54px; --lh-display: 1.30; --ls-display: 0;
+  --fw-regular: 400;
+  --fw-medium:  500;   /* 功能字重上限 500 */
+  /* 站名 / brand-mark 专用别名：§4.1 规定衬线仅 4 处且字号 ≥20px，
+     §7 明确写 20px；它不是第 9 档，不参与缩放链，组件只引用令牌。 */
+  --fs-brand:   20px; --lh-brand: 1.30;
+
+  /* 6. 网格与锚线（§5.1 / §5.2） */
+  --wrap:        1120px;  /* 全站唯一，无 1280 例外 */
+  --frame:       100%;    /* 结构开关：截图模拟用 */
+  --frame-align: auto;
+  --gutter:      32px;
+  --rail:        72px;    /* 登记轨 */
+  --rail-gap:    24px;
+  --anchor-b:    96px;    /* = rail + rail-gap */
+  --measure:     680px;   /* 40 汉字；禁用 ch */
+  --aside-w:     280px;
+  --layout-gap:  48px;
+  --art-note-w:  232px;
+  --art-gap:     48px;
+  --navbar-h:    64px;
+  --search-w:    220px;
+  --band-h:      200px;
+  --band-fig-w:  320px;
+  --layout-cols: minmax(0, 1fr) var(--aside-w);
+  --aside-cols:  minmax(0, 1fr);
+
+  /* 7. 间距刻度（§5.3，只用这 9 个值） */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px;
+  --sp-6: 32px; --sp-7: 48px; --sp-8: 72px; --sp-9: 96px;
+  --section-gap: 96px;
+  --entry-gap:   32px;   /* 深色提到 40px，由主题决定 */
+
+  /* 8. 圆角四档（§5.3） */
+  --r-0: 0; --r-1: 4px; --r-2: 8px; --r-3: 12px;
+
+  /* 9. 签名元素 / 触控 */
+  --tap:    44px;
+  --tick-w: 24px;
+  --tick-h: 2px;
+
+  /* 10. 动效三处（§8.2） */
+  --motion-color: 150ms;
+  --motion-float: 200ms;
+  --motion-state: 160ms;
+  --motion-spin:  700ms;
+  --ease-out:     ease-out;
+  --ease-float:   cubic-bezier(.2,.7,.2,1);
+
+  /* 11. z-index 七层（§5.3） */
+  --z-base: 0; --z-dropdown: 100; --z-sticky: 200; --z-overlay: 300;
+  --z-modal: 400; --z-toast: 500; --z-tooltip: 600;
+}
+
+/* 深色不是反色：两套都保持 surface 最亮 / surface-2 最深的同一材料逻辑。
+   条目间距 32→40px 由主题决定，不由页面决定。 */
+:root[data-theme="dark"] {
+  --bg:            #121D22;
+  --surface:       #1C2A31;
+  --surface-2:     #0C151A;
+  --border:        #2E4048;
+  --border-strong: #708A94;
+  --ink:           #E9F0F0;
+  --muted:         #A6B8BE;
+  --accent:        #7CD5CA;
+  --accent-ink:    #0C151A;
+  --accent-hover:  #9BDFD7;
+  --accent-press:  #B2E6E0;
+  --accent-weak:   #15302F;
+  --elev:          0 8px 24px rgba(0,0,0,.55);
+  --info-tint:     #152A3C;  --info-ink:    #9DC2EC;
+  --warning-tint:  #302514;  --warning-ink: #E7BA69;
+  --danger-tint:   #331B1A;  --danger-ink:  #F29B95;
+  --success-tint:  #15302F;  --success-ink: #7CD5CA;
+  --entry-gap:     40px;
+}
+/* ==================================================================
+   TOKENS:END
+   ================================================================== */
+
+/* ---------- 三断点：只覆写「结构性 token」，不写任何视觉值（§10） ---------- */
+@media (min-width: 1024px) {
+  :root {
+    --gutter: 32px; --rail: 72px; --rail-gap: 24px; --anchor-b: 96px;
+    --section-gap: 96px; --navbar-h: 64px;
+    --layout-cols: minmax(0, 1fr) var(--aside-w);
+    --aside-cols: minmax(0, 1fr);
+  }
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  :root {
+    --gutter: 24px; --rail: 72px; --rail-gap: 24px; --anchor-b: 96px;
+    --section-gap: 64px; --navbar-h: 64px;
+    --fs-display: 44px; --fs-h1: 34px; --fs-h2: 28px; --fs-h3: 24px; --fs-lead: 21px;
+    --layout-cols: minmax(0, 1fr);
+    --aside-cols: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 767px) {
+  :root {
+    --gutter: 20px; --rail: 48px; --rail-gap: 16px; --anchor-b: 64px;
+    --section-gap: 48px; --navbar-h: 56px;
+    --frame: 390px; --frame-align: 0;
+    --band-h: 160px;
+    --fs-display: 36px; --fs-h1: 30px; --fs-h2: 26px; --fs-h3: 22px; --fs-lead: 20px;
+    --layout-cols: minmax(0, 1fr);
+    --aside-cols: minmax(0, 1fr);
+  }
+  /* <768px serif 全部回退 sans（§4.1） */
+  .navbar-brand, .article-title, .post-card--lead h1,
+  .article-content blockquote { font-family: var(--font-sans); }
+  .reg-no, .reg-date { display: none; }
+  .reg-year, .reg-no-mobile { display: block; }
+}
+
+/* URL 的 vp 参数只决定「是否模拟 390px 画框」。
+   desktop 不锁死任何结构 token —— 834px 窗口仍走 768–1023 断点，三断点真实生效。 */
+html[data-vp="desktop"] { --frame: 100%; --frame-align: auto; }
+html[data-vp="tablet"] {
+  --gutter: 24px; --rail: 72px; --rail-gap: 24px; --anchor-b: 96px;
+  --section-gap: 64px; --navbar-h: 64px; --frame: 100%; --frame-align: auto;
+  --fs-display: 44px; --fs-h1: 34px; --fs-h2: 28px; --fs-h3: 24px; --fs-lead: 21px;
+  --layout-cols: minmax(0, 1fr);
+  --aside-cols: repeat(2, minmax(0, 1fr));
+}
+html[data-vp="mobile"] {
+  --gutter: 20px; --rail: 48px; --rail-gap: 16px; --anchor-b: 64px;
+  --section-gap: 48px; --navbar-h: 56px;
+  --frame: 390px; --frame-align: 0;
+  --band-h: 160px;
+  --fs-display: 36px; --fs-h1: 30px; --fs-h2: 26px; --fs-h3: 22px; --fs-lead: 20px;
+  --layout-cols: minmax(0, 1fr);
+  --aside-cols: minmax(0, 1fr);
+}
+html[data-vp="mobile"] .navbar-brand,
+html[data-vp="mobile"] .article-title,
+html[data-vp="mobile"] .post-card--lead h1,
+html[data-vp="mobile"] .article-content blockquote { font-family: var(--font-sans); }
+html[data-vp="mobile"] .reg-no,
+html[data-vp="mobile"] .reg-date { display: none; }
+html[data-vp="mobile"] .reg-year,
+html[data-vp="mobile"] .reg-no-mobile { display: block; }
+
+/* ---------- 基础 / 浏览器表面 ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; padding-top: var(--devbar-h);
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: var(--fs-body); line-height: var(--lh-body); letter-spacing: var(--ls-body);
+  caret-color: var(--ink); accent-color: var(--accent);
+  overflow-x: hidden;
+  line-break: strict; word-break: normal;
+}
+::selection { background: var(--accent-weak); color: var(--ink); }
+:focus-visible {
+  outline: 2px solid var(--ring); outline-offset: 2px;
+}
+:root { --devbar-h: 44px; }
+a { color: inherit; text-decoration: none; }
+[hidden] { display: none !important; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+img, svg { max-width: 100%; }
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+.num, td, th, time, .mono { font-variant-numeric: tabular-nums; }
+::-webkit-scrollbar { width: var(--sp-3); height: var(--sp-3); }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: var(--r-0); }
+p { margin: 0; }
+ul, ol { margin: 0; padding: 0; list-style: none; }
+h1, h2, h3, h4 { margin: 0; font-family: var(--font-ui); font-weight: var(--fw-medium); letter-spacing: 0; }
+.container {
+  width: 100%; max-width: min(var(--wrap), var(--frame));
+  margin-inline: var(--frame-align);
+  padding-inline: var(--gutter);
+}
+.skip-link {
+  position: absolute; left: var(--sp-4); top: var(--sp-2); z-index: var(--z-tooltip);
+  transform: translateY(-200%);
+  padding: var(--sp-2) var(--sp-4);
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--border-strong); border-radius: var(--r-1);
+}
+.skip-link:focus { transform: none; }
+
+/* 八档字级工具类：组件只引用令牌 */
+.t1,.t2,.t3,.t4,.t5,.t6,.t7,.t8 { font-family: var(--font-ui); }
+.t1 { font-size: var(--fs-caption); line-height: var(--lh-caption); font-weight: var(--fw-regular); letter-spacing: var(--ls-caption); }
+.t2 { font-size: var(--fs-small);   line-height: var(--lh-small);   font-weight: var(--fw-regular); letter-spacing: var(--ls-small); }
+.t3 { font-size: var(--fs-body);    line-height: var(--lh-body);    font-weight: var(--fw-regular); letter-spacing: var(--ls-body); }
+.t4 { font-size: var(--fs-lead);    line-height: var(--lh-lead);    font-weight: var(--fw-regular); letter-spacing: var(--ls-lead); }
+.t5 { font-size: var(--fs-h3);      line-height: var(--lh-h3);      font-weight: var(--fw-medium);  letter-spacing: var(--ls-h3); }
+.t6 { font-size: var(--fs-h2);      line-height: var(--lh-h2);      font-weight: var(--fw-medium);  letter-spacing: var(--ls-h2); }
+.t7 { font-size: var(--fs-h1);      line-height: var(--lh-h1);      font-weight: var(--fw-medium);  letter-spacing: var(--ls-h1); }
+.t8 { font-size: var(--fs-display); line-height: var(--lh-display); font-weight: var(--fw-medium);  letter-spacing: var(--ls-display); }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.serif { font-family: var(--font-serif); }
+
+.icon { width: 20px; height: 20px; display: inline-block; flex: 0 0 auto; vertical-align: middle; }
+.icon--16 { width: 16px; height: 16px; }
+.icon--24 { width: 24px; height: 24px; }
+.icon-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+/* ---------- 控制条：.page-shell 之外的固定兄弟节点 ---------- */
+.devbar {
+  position: fixed; inset: 0 0 auto 0; height: var(--devbar-h);
+  z-index: var(--z-overlay);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+}
+.devbar-inner {
+  height: 100%; display: flex; align-items: center; gap: var(--sp-3);
+  padding-inline: var(--sp-4); overflow-x: auto;
+}
+.devbar-label { color: var(--muted); white-space: nowrap; }
+.devbar-group { display: flex; gap: var(--sp-2); }
+.devbar-btn {
+  min-height: var(--tap); padding-inline: var(--sp-3);
+  background: transparent; color: var(--muted);
+  border: 1px solid var(--border-strong); border-radius: var(--r-1);
+  white-space: nowrap;
+  transition: color var(--motion-color) var(--ease-out),
+              border-color var(--motion-color) var(--ease-out),
+              background-color var(--motion-color) var(--ease-out);
+}
+.devbar-btn:hover { color: var(--ink); border-color: var(--ink); }
+.devbar-btn[aria-pressed="true"] {
+  background: var(--surface-2); color: var(--ink);
+  font-weight: var(--fw-medium); border-bottom: 2px solid var(--ink);
+}
+.devbar-link { margin-left: auto; color: var(--muted); white-space: nowrap; border-bottom: 1px solid var(--border-strong); }
+.devbar-link:hover { color: var(--ink); border-bottom-color: var(--ink); }
+html[data-vp="mobile"] .devbar-label,
+html[data-vp="mobile"] .devbar-link { display: none; }
+html[data-vp="mobile"] .devbar-inner { gap: var(--sp-2); padding-inline: var(--sp-2); }
+html[data-vp="mobile"] .devbar-btn { padding-inline: var(--sp-2); }
+
+/* ---------- 导航：满幅「书脊带」，平涂不透明，无模糊 / 无投影 / 无渐变条 ---------- */
+.site-header {
+  position: sticky; top: var(--devbar-h); z-index: var(--z-sticky);
+  background: var(--bg); border-bottom: 1px solid var(--border);
+  padding-top: env(safe-area-inset-top);
+}
+.navbar-inner {
+  min-height: var(--navbar-h);
+  display: flex; align-items: center; gap: var(--sp-5);
+  flex-wrap: nowrap;
+}
+.navbar-brand {
+  font-family: var(--font-serif); font-size: var(--fs-brand); line-height: var(--lh-brand);
+  font-weight: var(--fw-medium); color: var(--ink); white-space: nowrap;
+}
+.navbar-brand:hover { text-decoration: none; }
+.brand-tagline { display: block; font-family: var(--font-ui); color: var(--muted); }
+.nav { display: flex; align-items: center; gap: var(--sp-1); }
+.nav-primary { flex: 0 1 auto; }
+.nav-primary > li > a {
+  display: inline-flex; align-items: center; min-height: var(--tap);
+  padding: var(--sp-2) var(--sp-3);
+  color: var(--ink); border-bottom: 1px solid transparent; border-radius: var(--r-0);
+  white-space: nowrap;
+  transition: border-color var(--motion-color) var(--ease-out), color var(--motion-color) var(--ease-out);
+}
+.nav-primary > li > a:hover { border-bottom-color: var(--border-strong); text-decoration: none; }
+.nav-primary > li > a.current-menu {
+  font-weight: var(--fw-medium);
+  border-left: 2px solid var(--accent);
+  border-bottom-color: var(--border-strong);
+}
+.nav-tools { margin-left: auto; }
+.nav-search { display: flex; align-items: center; gap: var(--sp-2); position: relative; }
+.search-input {
+  width: var(--search-w); min-height: var(--tap); padding-inline: var(--sp-3);
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--border-strong); border-radius: var(--r-1);
+}
+.search-input::placeholder { color: var(--muted); }
+.search-input:focus { border-color: var(--accent); }
+.search-submit {
+  min-height: var(--tap); min-width: var(--tap);
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; color: var(--ink);
+  border: 1px solid var(--border-strong); border-radius: var(--r-1);
+  transition: color var(--motion-color) var(--ease-out), border-color var(--motion-color) var(--ease-out);
+}
+.search-submit:hover { border-color: var(--ink); }
+.theme-toggle {
+  min-height: var(--tap); min-width: var(--tap);
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; color: var(--ink);
+  border: 1px solid var(--border-strong); border-radius: var(--r-1);
+  transition: color var(--motion-color) var(--ease-out), border-color var(--motion-color) var(--ease-out);
+}
+.theme-toggle:hover { border-color: var(--ink); }
+html[data-theme="dark"] .i-moon { display: none; }
+html:not([data-theme="dark"]) .i-sun { display: none; }
+
+/* 唯一浮起表面：下拉 / 搜索建议，200ms + translateY(-4→0) 全站唯一位移 */
+.dropdown-menu {
+  position: absolute; right: 0; top: calc(100% + var(--sp-1));
+  min-width: var(--search-w); padding: var(--sp-2);
+  background: var(--surface); box-shadow: var(--elev);
+  border: 0; border-radius: var(--r-2); z-index: var(--z-dropdown);
+  opacity: 0; transform: translateY(-4px); pointer-events: none;
+  transition: opacity var(--motion-float) var(--ease-float),
+              transform var(--motion-float) var(--ease-float);
+}
+.dropdown-menu.is-open { opacity: 1; transform: none; pointer-events: auto; }
+.dropdown-menu a, .dropdown-menu button {
+  display: flex; align-items: center; gap: var(--sp-2);
+  min-height: var(--tap); padding-inline: var(--sp-3);
+  color: var(--ink); background: transparent;
+  border: 0; border-bottom: 1px solid var(--border); border-radius: var(--r-0);
+  text-align: left; width: 100%;
+}
+.dropdown-menu a:last-child, .dropdown-menu button:last-child { border-bottom: 0; }
+.dropdown-menu a:hover, .dropdown-menu button:hover { border-bottom-color: var(--ink); }
+.nav-more { display: none; position: relative; }
+.nav-more > button {
+  min-height: var(--tap); min-width: var(--tap);
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; color: var(--ink);
+  border: 1px solid var(--border-strong); border-radius: var(--r-1);
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  .nav-more { display: block; }
+  .nav-tools > li:not(.nav-search-li):not(.nav-more) { display: none; }
+  /* 834px 书脊带：收窄检索框与节距，保证 5 个平实链接 nowrap 且零横向滚动 */
+  :root { --search-w: 152px; }
+  .navbar-inner { gap: var(--sp-3); }
+}
+html[data-vp="tablet"] { --search-w: 152px; }
+html[data-vp="tablet"] .navbar-inner { gap: var(--sp-3); }
+html[data-vp="tablet"] .nav-more { display: block; }
+html[data-vp="tablet"] .nav-tools > li:not(.nav-search-li):not(.nav-more) { display: none; }
+@media (max-width: 767px) {
+  .nav-primary { display: none; }
+  .nav-more { display: block; }
+  .nav-tools { width: 100%; margin-left: 0; flex-wrap: wrap; }
+  .nav-search-li { flex: 1 1 100%; }
+  .nav-search { width: 100%; }
+  .nav-search .search-input { flex: 1 1 auto; width: auto; min-width: 0; }
+  .nav-tools > li.nav-cta-li { display: none; }
+  .nav-tools > li.theme-toggle-li { display: block; }
+  .dropdown-menu { left: 0; right: 0; width: 100%; }
+}
+html[data-vp="mobile"] .nav-primary { display: none; }
+html[data-vp="mobile"] .nav-more { display: block; }
+html[data-vp="mobile"] .nav-tools { width: 100%; margin-left: 0; flex-wrap: wrap; }
+html[data-vp="mobile"] .nav-search-li { flex: 1 1 100%; }
+html[data-vp="mobile"] .nav-search { width: 100%; }
+html[data-vp="mobile"] .nav-search .search-input { flex: 1 1 auto; width: auto; min-width: 0; }
+html[data-vp="mobile"] .nav-tools > li.nav-cta-li { display: none; }
+html[data-vp="mobile"] .nav-tools > li.theme-toggle-li { display: block; }
+html[data-vp="mobile"] .dropdown-menu { left: 0; right: 0; width: 100%; }
+/* <768px 书脊带：品牌独占一行，工具区整行折到下一行，检索框 100% 宽再独占一行（§10） */
+@media (max-width: 767px) {
+  .navbar-inner { flex-wrap: wrap; row-gap: var(--sp-2); padding-block: var(--sp-2); }
+  .nav-tools { flex: 1 1 100%; }
+  /* 390px 登记带：坐标在上、图示在下叠放，避免 320px 图示挤掉归档坐标 */
+  .reg-band {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto; min-height: var(--band-h); align-items: start;
+    row-gap: var(--sp-3);
+  }
+  .band-fig { justify-items: start; }
+  .band-fig svg { max-height: none; }
+  .band-fig figcaption { text-align: left; }
+}
+html[data-vp="mobile"] .navbar-inner { flex-wrap: wrap; row-gap: var(--sp-2); padding-block: var(--sp-2); }
+html[data-vp="mobile"] .nav-tools { flex: 1 1 100%; }
+html[data-vp="mobile"] .reg-band {
+  grid-template-columns: minmax(0, 1fr);
+  height: auto; min-height: var(--band-h); align-items: start;
+  row-gap: var(--sp-3);
+}
+html[data-vp="mobile"] .band-fig { justify-items: start; }
+html[data-vp="mobile"] .band-fig svg { max-height: none; }
+html[data-vp="mobile"] .band-fig figcaption { text-align: left; }
+
+/* ---------- 按钮（§7 组件 7） ---------- */
+.btn {
+  min-height: var(--tap); display: inline-flex; align-items: center; justify-content: center;
+  gap: var(--sp-2); padding: 0 20px; white-space: nowrap;
+  font-family: var(--font-ui);
+  background: transparent; color: var(--ink);
+  border: 1px solid var(--border-strong); border-radius: var(--r-1);
+}
+/* 全页唯一实填充主按钮 */
+.btn-primary, .nav-cta {
+  background: var(--accent); color: var(--accent-ink); border-color: var(--accent);
+  font-weight: var(--fw-medium);
+}
+.nav-cta {
+  display: inline-flex; align-items: center; gap: var(--sp-2);
+  min-height: var(--tap); padding: 0 20px; border-radius: var(--r-1);
+}
+.btn:hover, .nav-cta:hover { text-decoration: none; }
+.btn-primary:hover, .nav-cta:hover {
+  background: var(--accent-hover); border-color: var(--accent-hover);
+}
+.btn-primary:active, .nav-cta:active {
+  background: var(--accent-press); border-color: var(--accent-press);
+}
+.btn:not(.btn-primary):hover { border-color: var(--ink); }
+.btn:disabled, .btn[aria-disabled="true"] {
+  background: var(--surface-2); color: var(--muted);
+  border: 1px solid var(--border); cursor: not-allowed;
+}
+.btn-primary, .nav-cta, .btn, .search-submit, .theme-toggle, .devbar-btn, .pager-link {
+  transition: color var(--motion-color) var(--ease-out),
+              background-color var(--motion-color) var(--ease-out),
+              border-color var(--motion-color) var(--ease-out);
+}
+.btn-primary:active, .nav-cta:active { transition-duration: 0ms; }
+.btn-sm { padding: 0 var(--sp-3); }
+/* 演示态：伪类与 .is-* 同规则，供速览区并排展示六态 */
+.btn.is-hover:not(.btn-primary) { border-color: var(--ink); }
+.btn.is-active:not(.btn-primary) { border-color: var(--ink); }
+.btn.is-current {
+  font-weight: var(--fw-medium); color: var(--ink);
+  border-bottom: 2px solid var(--ink);
+}
+.btn.is-focus { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+/* ---------- 布局 / 登记轨（§9.1） ---------- */
+.page-shell { padding-block: var(--sp-6) var(--section-gap); }
+.layout {
+  display: grid; grid-template-columns: var(--layout-cols);
+  gap: var(--layout-gap); align-items: start;
+}
+.layout-main { min-width: 0; position: relative; }
+.register { position: relative; }
+/* 轨右侧 1px 竖线贯穿全页 */
+.register::before {
+  content: ""; position: absolute; left: var(--rail); top: 0; bottom: 0;
+  border-left: 1px solid var(--border); z-index: 1; pointer-events: none;
+}
+.kicker { color: var(--muted); margin-bottom: var(--sp-6); }
+.entry { position: relative; padding-left: var(--anchor-b); }
+.entry + .entry { margin-top: var(--entry-gap); border-top: 1px solid var(--border); padding-top: var(--entry-gap); }
+/* 每条登记起始处 24×2px 主色刻度 */
+.reg-tick {
+  position: absolute; left: 0; top: 0;
+  width: var(--tick-w); height: var(--tick-h);
+  background: var(--accent); z-index: 2;
+}
+.reg-rail {
+  position: absolute; left: 0; top: 0; width: var(--rail);
+  text-align: right; padding-right: 0;
+  color: var(--muted);
+  display: grid; gap: var(--sp-1);
+}
+.reg-rail > * { white-space: nowrap; }
+.reg-no-mobile { white-space: nowrap; }
+/* 语义断行：避免 CJK 逐字断行把「一次」「从诊断到重构」拆开 */
+.nobr { white-space: nowrap; }
+.reg-rail .reg-flag { color: var(--muted); }
+.reg-year, .reg-no-mobile { display: none; }
+.reg-no-mobile { color: var(--muted); margin-bottom: var(--sp-1); }
+
+/* ---------- 登记带（§6.4，默认无封面路径） ---------- */
+.post-card--lead { position: relative; padding-left: 0; margin-bottom: var(--section-gap); }
+.reg-band {
+  position: relative; z-index: 0;
+  width: 100%; height: var(--band-h);
+  display: grid; grid-template-columns: minmax(0, 1fr) var(--band-fig-w);
+  align-items: center; gap: var(--sp-5);
+  padding: var(--sp-4);
+  background: var(--surface-2); border: 0; border-radius: var(--r-3);
+}
+.reg-band-coord { display: grid; gap: var(--sp-2); align-content: center; }
+.reg-band-no {
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+  color: var(--ink); white-space: nowrap;
+}
+.reg-band-date { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--muted); }
+.band-fig { display: grid; gap: var(--sp-1); justify-items: end; }
+.band-fig svg { width: 100%; height: auto; max-height: var(--band-h); }
+.band-fig figcaption { color: var(--muted); text-align: right; }
+.lead-body { padding-left: var(--anchor-b); margin-top: var(--sp-6); }
+.post-flag { color: var(--muted); margin-bottom: var(--sp-3); }
+.post-card--lead h1 {
+  font-family: var(--font-serif); font-size: var(--fs-display);
+  line-height: var(--lh-display); font-weight: var(--fw-medium); letter-spacing: 0;
+  text-wrap: balance; margin-bottom: var(--sp-4);
+}
+.post-card--lead .excerpt { color: var(--ink); margin-bottom: var(--sp-4); }
+.post-readmore {
+  color: var(--ink); font-weight: var(--fw-medium);
+  border-bottom: 1px solid var(--border-strong);
+  transition: border-color var(--motion-color) var(--ease-out);
+}
+.post-readmore:hover { border-bottom-width: 2px; border-bottom-color: var(--ink); text-decoration: none; }
+
+/* SVG 图示：只用 CSS 类引 token，属性里零裸色值 */
+.svg-bg { fill: var(--surface-2); }
+.svg-accent { fill: var(--accent); }
+.svg-line { fill: none; stroke: var(--border); }
+.svg-line-strong { fill: none; stroke: var(--border-strong); }
+.svg-num {
+  font-family: var(--font-mono); font-size: var(--fs-caption);
+  fill: var(--muted); font-variant-numeric: tabular-nums;
+}
+.svg-txt { font-family: var(--font-ui); font-size: var(--fs-small); fill: var(--ink); }
+.svg-lbl { font-family: var(--font-ui); font-size: var(--fs-caption); fill: var(--muted); }
+.svg-bar-track { fill: var(--surface-2); }
+.svg-bar { fill: var(--border-strong); }
+.svg-box { fill: none; stroke: var(--border-strong); }
+.svg-glyph { fill: var(--ink); }
+
+/* ---------- 登记条目（首页单列连续流 §7.2） ---------- */
+.post-grid { display: grid; grid-template-columns: minmax(0, 1fr); }
+.post-card--grid { position: relative; padding-left: var(--anchor-b); }
+.post-card--grid h2 {
+  font-size: var(--fs-h3); line-height: var(--lh-h3); font-weight: var(--fw-medium);
+  margin-bottom: var(--sp-2); text-wrap: balance;
+}
+.post-card--grid h2 a { border-bottom: 1px solid transparent; transition: border-color var(--motion-color) var(--ease-out); }
+.post-card--grid h2 a:hover { border-bottom-color: var(--border-strong); text-decoration: none; }
+.post-card--grid .excerpt {
+  color: var(--ink); margin-bottom: var(--sp-3);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.meta {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: var(--sp-2) var(--sp-4); color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.meta > * { display: inline-flex; align-items: center; gap: var(--sp-1); }
+.meta .icon { width: 16px; height: 16px; }
+
+/* ---------- 列表页纯索引条目（§7.2 / §9.3） ---------- */
+.post-list { display: grid; grid-template-columns: minmax(0, 1fr); }
+.post-card--list { position: relative; padding-left: var(--anchor-b); }
+.post-card--list h2 {
+  font-size: var(--fs-h2); line-height: var(--lh-h2); font-weight: var(--fw-medium);
+  margin-bottom: var(--sp-2); text-wrap: balance;
+}
+.post-card--list h2 a { border-bottom: 1px solid transparent; transition: border-color var(--motion-color) var(--ease-out); }
+.post-card--list h2 a:hover { border-bottom-color: var(--border-strong); text-decoration: none; }
+.post-card--list .excerpt {
+  color: var(--ink); margin-bottom: var(--sp-3);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+/* ---------- 页头 / 面包屑 / 分类 / 分页 ---------- */
+.page-head { margin-bottom: var(--sp-7); }
+.page-head h1 {
+  font-size: var(--fs-h1); line-height: var(--lh-h1); font-weight: var(--fw-medium);
+  text-wrap: balance; margin-bottom: var(--sp-3);
+}
+.page-count { color: var(--muted); }
+.breadcrumb { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); color: var(--muted); margin-bottom: var(--sp-5); }
+.breadcrumb li { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.breadcrumb a { border-bottom: 1px solid transparent; transition: border-color var(--motion-color) var(--ease-out); }
+.breadcrumb a:hover { border-bottom-color: var(--border-strong); text-decoration: none; }
+.breadcrumb .active { color: var(--ink); font-weight: var(--fw-medium); }
+.crumb-chev { color: var(--muted); }
+.page-search { display: flex; gap: var(--sp-2); margin-top: var(--sp-5); }
+.page-search .search-input { flex: 1 1 auto; width: auto; }
+.page-search .btn { flex: 0 0 auto; }
+.search-echo { color: var(--muted); margin-top: var(--sp-4); }
+.category-nav { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin-bottom: var(--sp-7); }
+.category-nav a {
+  display: inline-flex; align-items: center; min-height: var(--tap);
+  color: var(--muted); border-bottom: 1px solid var(--border-strong); border-radius: var(--r-0);
+  transition: color var(--motion-color) var(--ease-out), border-color var(--motion-color) var(--ease-out);
+}
+.category-nav a:hover { color: var(--ink); border-bottom-color: var(--ink); text-decoration: none; }
+.category-nav a.current-menu {
+  color: var(--ink); font-weight: var(--fw-medium); border-bottom: 2px solid var(--ink);
+}
+.pagination { margin-top: var(--sp-7); }
+.pager-list { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.pager-link {
+  min-width: var(--tap); min-height: var(--tap);
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-1);
+  padding-inline: var(--sp-3); color: var(--ink);
+  border: 1px solid var(--border-strong); border-radius: var(--r-1);
+}
+.pager-link:hover { border-color: var(--ink); text-decoration: none; }
+.pager-link.current {
+  background: var(--surface-2); color: var(--ink); font-weight: var(--fw-medium);
+}
+.pager-link.is-disabled { color: var(--muted); border-color: var(--border); }
+.pager-ellipsis { display: inline-flex; align-items: center; padding-inline: var(--sp-2); color: var(--muted); }
+
+/* ---------- chip（不是 pill，§7 组件 6） ---------- */
+.tag-chips { display: flex; flex-wrap: wrap; gap: var(--sp-3); }
+.chip {
+  display: inline-flex; align-items: center; min-height: var(--tap);
+  padding: 0 0 2px; color: var(--muted);
+  border: 0; border-bottom: 1px solid var(--border-strong); border-radius: var(--r-0);
+  transition: color var(--motion-color) var(--ease-out), border-color var(--motion-color) var(--ease-out);
+}
+.chip:hover { color: var(--ink); border-bottom-color: var(--ink); text-decoration: none; }
+.chip.current-menu { color: var(--ink); font-weight: var(--fw-medium); border-bottom: 2px solid var(--ink); }
+
+/* ---------- 平面表面 .card（§7 组件 3） ---------- */
+.card {
+  background: var(--surface); border: 0; box-shadow: none;
+  border-radius: var(--r-2); padding: var(--sp-5);
+}
+.card + .card { margin-top: var(--sp-7); border-top: 1px solid var(--border); padding-top: var(--sp-7); border-radius: 0; }
+
+/* ---------- 侧栏（§9.2） ---------- */
+.aside { display: grid; grid-template-columns: var(--aside-cols); gap: var(--sp-7); }
+.aside-title {
+  color: var(--ink); font-weight: var(--fw-medium);
+  border-bottom: 1px solid var(--border); padding-bottom: var(--sp-3); margin-bottom: var(--sp-4);
+}
+.brand-mark { font-family: var(--font-serif); font-size: var(--fs-brand); line-height: var(--lh-brand); font-weight: var(--fw-medium); color: var(--ink); }
+.brand-desc { color: var(--ink); margin-block: var(--sp-4); }
+.brand-cta { justify-self: start; }
+.aside-index { display: grid; gap: var(--sp-2); }
+.aside-index a { color: var(--ink); border-bottom: 1px solid var(--border-strong); }
+.aside-index a:hover { border-bottom-color: var(--ink); text-decoration: none; }
+
+/* ---------- 文章页：72 / 680 / 232 三列（§5.2 / §9.4） ---------- */
+.article-shell { position: relative; }
+.article-shell::before {
+  content: ""; position: absolute; left: var(--rail); top: 0; bottom: 0;
+  border-left: 1px solid var(--border); z-index: 1; pointer-events: none;
+}
+.article-grid {
+  display: grid;
+  grid-template-columns: var(--rail) var(--rail-gap) minmax(0, 1fr) var(--art-gap) var(--art-note-w);
+  align-items: start;
+}
+.article-rail { position: relative; grid-column: 1; text-align: right; padding-right: 0; color: var(--muted); display: grid; gap: var(--sp-1); align-content: start; }
+.article-rail > * { white-space: nowrap; }
+.article-head-main { grid-column: 3; min-width: 0; }
+/* 边注是页边批注，不占栅格行高：绝对定位于右侧 232px，正文紧跟标题（§9.4 标题→正文 48px） */
+.article-note {
+  position: absolute; top: 0; right: 0; width: var(--art-note-w);
+  min-width: 0; display: grid; gap: var(--sp-5); align-content: start;
+}
+.article-body-grid { display: grid; grid-template-columns: var(--rail) var(--rail-gap) minmax(0, 1fr) var(--art-gap) var(--art-note-w); }
+.article-body-grid .article-content { grid-column: 3; }
+.article-title {
+  font-family: var(--font-serif); font-size: var(--fs-h1);
+  line-height: var(--lh-h1); font-weight: var(--fw-medium); letter-spacing: 0;
+  text-wrap: balance; margin-block: var(--sp-5) 0;
+}
+.article-meta { display: grid; gap: var(--sp-2); color: var(--muted); }
+.article-meta > * { display: flex; align-items: center; gap: var(--sp-2); }
+.article-meta .icon { width: 16px; height: 16px; }
+.note-title {
+  color: var(--ink); font-weight: var(--fw-medium);
+  border-bottom: 1px solid var(--border); padding-bottom: var(--sp-2);
+}
+.note-toc { display: grid; gap: var(--sp-2); }
+.note-toc a { color: var(--muted); border-bottom: 1px solid transparent; }
+.note-toc a:hover { color: var(--ink); border-bottom-color: var(--border-strong); text-decoration: none; }
+.article-body { margin-top: var(--sp-7); }
+
+/* §7.1 文章正文排版契约 */
+.article-content {
+  max-width: min(var(--measure), 100%);
+  font-size: var(--fs-body); line-height: var(--lh-body); letter-spacing: var(--ls-body);
+  color: var(--ink); font-family: var(--font-ui);
+}
+.article-content h1, .article-content h2 {
+  font-size: var(--fs-h2); line-height: var(--lh-h2); font-weight: var(--fw-medium);
+  margin: var(--sp-8) 0 var(--sp-5); text-wrap: balance;
+}
+.article-content h3 {
+  font-size: var(--fs-h3); line-height: var(--lh-h3); font-weight: var(--fw-medium);
+  margin: var(--sp-7) 0 var(--sp-4);
+}
+.article-content p { margin: 0 0 var(--sp-5); }
+.article-content a {
+  color: var(--ink); border-bottom: 1px solid var(--border-strong);
+  transition: border-color var(--motion-color) var(--ease-out);
+}
+.article-content a:hover { border-bottom: 2px solid var(--ink); text-decoration: none; }
+.article-content pre {
+  background: var(--surface-2); border: 0; border-radius: var(--r-1);
+  padding: 20px var(--sp-5); margin: var(--sp-6) 0;
+  overflow-x: auto; font-family: var(--font-mono);
+  font-size: var(--fs-small); line-height: 1.6; color: var(--ink);
+}
+.article-content pre code { background: transparent; padding: 0; border-radius: 0; font-size: inherit; }
+.article-content code {
+  font-family: var(--font-mono); font-size: var(--fs-small);
+  background: var(--surface-2); padding: 1px var(--sp-1); border: 0; border-radius: var(--r-1);
+}
+.article-content blockquote {
+  font-family: var(--font-serif); font-size: var(--fs-lead); line-height: 1.6;
+  color: var(--ink); padding-left: var(--sp-5); margin: var(--sp-6) 0; border: 0;
+}
+.article-content blockquote p { margin: 0; }
+.table-scroll { max-width: 100%; overflow-x: auto; margin: var(--sp-6) 0; }
+.article-content table { width: 100%; border-collapse: collapse; }
+.article-content th, .article-content td {
+  padding: var(--sp-3) var(--sp-4); text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.article-content th { background: var(--surface-2); font-weight: var(--fw-medium); }
+.article-content td.num, .article-content th.num { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.article-content img { display: block; max-width: min(100%, var(--measure)); height: auto; margin: var(--sp-6) auto; border-radius: var(--r-1); }
+.article-content ul, .article-content ol { padding-left: var(--sp-5); margin: 0 0 var(--sp-5); list-style: revert; }
+.article-content li { margin: var(--sp-2) 0; }
+.article-content hr { border: 0; border-top: 1px solid var(--border); margin: var(--sp-7) 0; }
+.article-figure { margin: var(--sp-6) 0; }
+.article-figure svg { display: block; width: 100%; height: auto; border-radius: var(--r-1); }
+.article-figure figcaption { color: var(--muted); margin-top: var(--sp-2); }
+
+/* 评论 / 发表评论两块 .card */
+.comment-section { margin-top: var(--section-gap); }
+.comment-section h2 {
+  font-size: var(--fs-h3); line-height: var(--lh-h3); font-weight: var(--fw-medium);
+  margin-bottom: var(--sp-5);
+}
+.comment-list { display: grid; gap: var(--sp-5); }
+.comment { display: grid; grid-template-columns: var(--tap) minmax(0,1fr); gap: var(--sp-4); padding-top: var(--sp-4); border-top: 1px solid var(--border); }
+.comment-avatar {
+  width: var(--tap); height: var(--tap); display: grid; place-items: center;
+  background: var(--surface-2); color: var(--muted);
+  border: 0; border-radius: var(--r-1); font-weight: var(--fw-medium);
+}
+.comment-head { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); color: var(--muted); margin-bottom: var(--sp-1); }
+.comment-head strong { color: var(--ink); font-weight: var(--fw-medium); }
+.comment-body { color: var(--ink); }
+.form-group { margin-bottom: var(--sp-4); }
+.form-group label { display: block; color: var(--muted); margin-bottom: var(--sp-2); }
+.form-control {
+  width: 100%; min-height: var(--tap); padding: var(--sp-3);
+  background: var(--surface-2); color: var(--ink);
+  border: 1px solid var(--border-strong); border-radius: var(--r-1);
+}
+.form-control::placeholder { color: var(--muted); }
+textarea.form-control { min-height: var(--sp-8); resize: vertical; }
+.form-note { color: var(--muted); margin-top: var(--sp-3); }
+
+/* ---------- 无元信息时取消边注列（§9.4） ---------- */
+.article-shell--no-note .article-grid,
+.article-shell--no-note .article-body-grid { grid-template-columns: var(--rail) var(--rail-gap) minmax(0, 1fr); }
+.article-shell--no-note .article-note { display: none; }
+.article-shell--no-note .article-content { max-width: min(912px, 100%); }
+
+/* ---------- 页脚：满幅 --surface-2 带（§2 唯一大色块） ---------- */
+.site-footer {
+  background: var(--surface-2); border-top: 1px solid var(--border);
+  padding-block: var(--sp-6); padding-bottom: calc(var(--sp-6) + env(safe-area-inset-bottom));
+}
+.site-footer-inner { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-3) var(--sp-6); color: var(--muted); }
+.site-footer-inner strong { color: var(--ink); font-weight: var(--fw-medium); }
+.site-footer a { color: var(--ink); border-bottom: 1px solid var(--border-strong); }
+.site-footer a:hover { border-bottom-color: var(--ink); text-decoration: none; }
+
+/* ---------- 状态块（§7 组件 11 / §8.1 九态） ---------- */
+.state {
+  display: flex; gap: var(--sp-3); align-items: flex-start;
+  background: var(--surface); border: 0; border-radius: var(--r-2); padding: var(--sp-5);
+  animation: nl-state-in var(--motion-state) var(--ease-out) both;
+}
+.state-icon { flex: 0 0 auto; color: var(--info-ink); }
+.state--info { background: var(--info-tint); }
+.state--info .state-icon, .state--info .state-title { color: var(--info-ink); }
+.state--warning { background: var(--warning-tint); }
+.state--warning .state-icon, .state--warning .state-title { color: var(--warning-ink); }
+.state--danger, .state--error { background: var(--danger-tint); }
+.state--danger .state-icon, .state--danger .state-title,
+.state--error .state-icon, .state--error .state-title { color: var(--danger-ink); }
+.state--success { background: var(--success-tint); }
+.state--success .state-icon, .state--success .state-title { color: var(--success-ink); }
+.state-title { font-weight: var(--fw-medium); margin-bottom: var(--sp-1); }
+.state-text { color: var(--ink); }
+.state-actions { margin-top: var(--sp-2); }
+.state-skeleton { flex: 1 1 auto; display: grid; gap: var(--sp-2); }
+.sk { display: block; height: var(--sp-3); background: var(--surface-2); border-radius: var(--r-1); }
+.sk--title { width: 40%; }
+.sk--line { width: 100%; }
+.sk--short { width: 65%; }
+.focus-demo { outline: 2px solid var(--ring); outline-offset: 2px; }
+.nl-spinner { animation: nl-spin var(--motion-spin) linear infinite; }
+@keyframes nl-state-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes nl-spin { to { transform: rotate(360deg); } }
+
+/* ---------- 设计语言速览（参数已回填真实数值） ---------- */
+.spec { margin-top: var(--section-gap); padding-top: var(--sp-7); border-top: 1px solid var(--border); }
+.spec > h2 { font-size: var(--fs-h2); line-height: var(--lh-h2); font-weight: var(--fw-medium); margin-bottom: var(--sp-3); }
+.spec-lead { max-width: min(var(--measure), 100%); color: var(--muted); }
+/* 速览用多栏瀑布流：卡片高度不等时不产生「短卡下方一大片死地」 */
+.spec-grid { columns: 3; column-gap: var(--sp-5); margin-top: var(--sp-6); }
+.spec-item { display: inline-block; width: 100%; break-inside: avoid; margin-bottom: var(--sp-5); min-width: 0; }
+/* 色板卡跨满三栏（column-span 只对块级盒生效），令牌名才有足够宽度不截断 */
+.spec-item--wide { display: block; column-span: all; }
+@media (max-width: 1023px) { .spec-grid { columns: 2; } }
+@media (max-width: 767px) { .spec-grid { columns: 1; } }
+html[data-vp="mobile"] .spec-grid { columns: 1; }
+.spec-item-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-3); margin-bottom: var(--sp-4); }
+.spec-item h3 { font-size: var(--fs-h3); line-height: var(--lh-h3); font-weight: var(--fw-medium); }
+.spec-param { font-family: var(--font-mono); color: var(--muted); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.spec-note { color: var(--muted); margin-top: var(--sp-3); }
+.swatches { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-2); }
+.swatch { min-width: 0; border: 0; border-radius: var(--r-1); overflow: hidden; }
+.swatch-color { height: var(--sp-7); border: 1px solid var(--border); }
+/* 参数标签不拆 hex：令牌名一行、色值一行，word-break 只在色值串内部生效 */
+.swatch-meta { display: block; padding: var(--sp-2); font-family: var(--font-mono); color: var(--ink); }
+.swatch-meta b { display: block; font-weight: var(--fw-regular); white-space: nowrap; }
+.swatch-meta span { display: block; overflow-wrap: anywhere; }
+/* 八档字号：样张独占一行，数值标签另起一行，不用 ellipsis 截断 */
+.type-step { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-1); padding-block: var(--sp-2); border-bottom: 1px solid var(--border); }
+.type-step .sample { min-width: 0; white-space: nowrap; font-weight: var(--fw-regular); }
+.type-step .label { font-family: var(--font-mono); color: var(--muted); white-space: nowrap; justify-self: end; }
+.spec-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+.spec-stack > * + * { margin-top: var(--sp-3); }
+.spec-code {
+  margin: 0; padding: var(--sp-3); overflow-x: auto;
+  background: var(--surface-2); border: 0; border-radius: var(--r-1);
+  font-family: var(--font-mono); font-size: var(--fs-small); line-height: 1.6;
+}
+.spec-quote {
+  margin: 0; padding-left: var(--sp-5); border: 0;
+  font-family: var(--font-serif); font-size: var(--fs-lead); line-height: 1.6; color: var(--ink);
+}
+.spec-nav { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.spec-nav .nav-primary > li > a { min-height: var(--tap); }
+.spec-card-row { display: grid; gap: var(--sp-3); }
+.spec-card-row .card { padding: var(--sp-3); }
+.spec-param-list { display: grid; gap: var(--sp-2); }
+.spec-param-list div { display: flex; justify-content: space-between; gap: var(--sp-3); border-bottom: 1px solid var(--border); padding-bottom: var(--sp-2); }
+.spec-param-list span:last-child { font-family: var(--font-mono); color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ---------- 文章页响应式收列（放在所有基础规则之后，避免被栅格基础声明覆盖） ----------
+   <1024px：72/680/232 收成「轨 / 沟 / 正文」单列；边注移到标题下方，成 2 列索引（§10）。 */
+@media (max-width: 1023px) {
+  .article-grid, .article-body-grid {
+    grid-template-columns: var(--rail) var(--rail-gap) minmax(0, 1fr);
+  }
+  .article-grid { row-gap: var(--sp-6); }
+  .article-note {
+    position: static; width: auto; grid-column: 3;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .article-content { max-width: min(var(--measure), 100%); }
+}
+html[data-vp="tablet"] .article-grid,
+html[data-vp="tablet"] .article-body-grid,
+html[data-vp="mobile"] .article-grid,
+html[data-vp="mobile"] .article-body-grid {
+  grid-template-columns: var(--rail) var(--rail-gap) minmax(0, 1fr);
+}
+html[data-vp="tablet"] .article-grid,
+html[data-vp="mobile"] .article-grid { row-gap: var(--sp-6); }
+html[data-vp="tablet"] .article-note,
+html[data-vp="mobile"] .article-note { position: static; width: auto; grid-column: 3; }
+html[data-vp="tablet"] .article-note { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+html[data-vp="mobile"] .article-note { grid-template-columns: minmax(0, 1fr); }
+
+/* 与上面的 vp 规则等价，但放在基础规则之后，保证真实窄屏（无 vp 参数）也生效 */
+@media (max-width: 767px) {
+  .reg-band {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto; min-height: var(--band-h); align-items: start;
+    row-gap: var(--sp-3);
+  }
+  .band-fig { justify-items: start; }
+  .band-fig svg { max-height: none; }
+  .band-fig figcaption { text-align: left; }
+}
+
+/* ---------- 动效降级（§8.2）：状态保留，只去过程 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; }
+  .state { animation: none !important; opacity: 1 !important; }
+  .nl-spinner { animation: none !important; }
+  .dropdown-menu { transform: none !important; }
+}
+</style>
+</head>
+
+<body>
+<a class="skip-link" href="#main">跳到主内容</a>
+
+<!-- 唯一图标来源：内联 SVG，24 viewBox / stroke 1.75 / fill none / currentColor -->
+<svg class="icon-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+  <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></symbol>
+  <symbol id="i-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></symbol>
+  <symbol id="i-chevron-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></symbol>
+  <symbol id="i-chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.6"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-inbox" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M4 13 6 5h12l2 8v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20L12 3z"/><path d="M12 9v5"/><circle cx="12" cy="17.5" r=".8"/></symbol>
+  <symbol id="i-check-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="8" r=".8"/></symbol>
+  <symbol id="i-x-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2 6"/><path d="M20 5v6h-6"/></symbol>
+  <symbol id="i-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 9 9"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+</svg>
+
+<!-- 控制条：固定在 .page-shell 之外 -->
+<div class="devbar" role="region" aria-label="呈现控制条">
+  <div class="devbar-inner">
+    <span class="devbar-label t1">呈现</span>
+    <div class="devbar-group" role="group" aria-label="切换页面">
+      <button type="button" class="devbar-btn t2" data-set="page" data-value="home" aria-pressed="true">首页</button>
+      <button type="button" class="devbar-btn t2" data-set="page" data-value="list" aria-pressed="false">列表</button>
+      <button type="button" class="devbar-btn t2" data-set="page" data-value="article" aria-pressed="false">文章</button>
+    </div>
+    <div class="devbar-group" role="group" aria-label="切换明暗主题">
+      <button type="button" class="devbar-btn t2" data-set="theme" data-value="light" aria-pressed="true">浅色</button>
+      <button type="button" class="devbar-btn t2" data-set="theme" data-value="dark" aria-pressed="false">深色</button>
+    </div>
+    <div class="devbar-group" role="group" aria-label="切换视口">
+      <button type="button" class="devbar-btn t2" data-set="vp" data-value="desktop" aria-pressed="true">桌面</button>
+      <button type="button" class="devbar-btn t2" data-set="vp" data-value="mobile" aria-pressed="false">移动</button>
+    </div>
+    <a class="devbar-link t2" href="#spec">设计语言速览</a>
+  </div>
+</div>
+
+<header class="site-header">
+  <nav class="navbar" role="navigation" aria-label="主导航">
+    <div class="container navbar-inner">
+      <a class="navbar-brand" href="?page=home" data-nav="home">NODELOG<span class="brand-tagline t1">打造最快的搜索体验</span></a>
+      <ul class="nav nav-primary" aria-label="内容导航">
+        <li><a class="t2" href="?page=home" data-nav="home" data-cur="home">首页</a></li>
+        <li><a class="t2" href="?page=list" data-nav="list" data-cur="list">全部文章</a></li>
+        <li><a class="t2" href="?page=list" data-nav="list" data-cur="article">工程实践</a></li>
+        <li><a class="t2" href="?page=list" data-nav="list">数据库</a></li>
+        <li><a class="t2" href="?page=home" data-nav="home">关于 <svg class="icon icon--16 nav-caret" aria-hidden="true"><use href="#i-chevron-down"/></svg></a></li>
+      </ul>
+      <ul class="nav nav-tools" aria-label="工具与账号">
+        <li class="nav-search-li">
+          <form class="nav-search" data-search-form="top" role="search" action="?page=list">
+            <label class="sr-only" for="top-search">搜索文章</label>
+            <input class="search-input t2" id="top-search" name="word" type="search" maxlength="50" placeholder="搜索文章" value="" autocomplete="off">
+            <button class="search-submit" type="submit" aria-label="搜索"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg></button>
+            <div class="dropdown-menu" id="top-suggest" role="listbox" aria-label="搜索建议">
+              <a href="?page=article" data-nav="article" role="option">服务器 .git 涨到 5GB：一次从诊断到重构的完整复盘</a>
+              <a href="?page=article" data-nav="article" role="option">MongoDB 复合索引的字段顺序到底怎么定</a>
+              <a href="?page=list" data-nav="list" role="option">把全文检索从 LIKE 迁到倒排索引</a>
+            </div>
+          </form>
+        </li>
+        <li class="theme-toggle-li">
+          <button type="button" class="theme-toggle" id="themeToggle" aria-label="切换深色/浅色">
+            <svg class="icon i-moon" aria-hidden="true"><use href="#i-moon"/></svg>
+            <svg class="icon i-sun" aria-hidden="true"><use href="#i-sun"/></svg>
+          </button>
+        </li>
+        <li class="nav-cta-li"><a class="nav-cta t2" href="?page=list" data-nav="list">全部文章</a></li>
+        <li class="nav-more">
+          <button type="button" class="nav-more-btn" aria-label="更多" aria-expanded="false" aria-controls="nav-more-menu">
+            <svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg>
+          </button>
+          <div class="dropdown-menu" id="nav-more-menu" aria-label="更多导航">
+            <a href="?page=home" data-nav="home">首页</a>
+            <a href="?page=list" data-nav="list">全部文章</a>
+            <a href="?page=article" data-nav="article">最新一条登记</a>
+            <button type="button" data-theme-toggle>切换明暗主题</button>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </nav>
+</header>
+
+<div class="container page-shell">
+  <main id="main" tabindex="-1">
+    <div id="view-root"></div>
+
+    <!-- 设计语言速览：参数说明已回填契约真实数值 -->
+    <section id="spec" class="spec" aria-labelledby="spec-title">
+      <h2 id="spec-title">设计语言速览</h2>
+      <p class="spec-lead t2">登记簿 / The Numbered Register。以下参数来自 DESIGN_LANGUAGE.md v1.0，全部可直接落到 <code>public/css/theme.css</code> 的变量层。</p>
+      <div class="spec-grid">
+
+        <div class="card spec-item spec-item--wide">
+          <div class="spec-item-head"><h3>色板九槽</h3><span class="spec-param t1">浅 / 深 两套</span></div>
+          <div class="swatches">
+            <div class="swatch"><div class="swatch-color" style="background:var(--bg)"></div><span class="swatch-meta t1"><b>--bg</b><span>#EDF1F2 / #121D22</span></span></div>
+            <div class="swatch"><div class="swatch-color" style="background:var(--surface)"></div><span class="swatch-meta t1"><b>--surface</b><span>#FFFFFF / #1C2A31</span></span></div>
+            <div class="swatch"><div class="swatch-color" style="background:var(--surface-2)"></div><span class="swatch-meta t1"><b>--surface-2</b><span>#E1E7E9 / #0C151A</span></span></div>
+            <div class="swatch"><div class="swatch-color" style="background:var(--border)"></div><span class="swatch-meta t1"><b>--border</b><span>#CFD8DB / #2E4048</span></span></div>
+            <div class="swatch"><div class="swatch-color" style="background:var(--border-strong)"></div><span class="swatch-meta t1"><b>--border-strong</b><span>#68787F / #708A94</span></span></div>
+            <div class="swatch"><div class="swatch-color" style="background:var(--ink)"></div><span class="swatch-meta t1"><b>--ink</b><span>#14232A / #E9F0F0</span></span></div>
+            <div class="swatch"><div class="swatch-color" style="background:var(--muted)"></div><span class="swatch-meta t1"><b>--muted</b><span>#4C5C64 / #A6B8BE</span></span></div>
+            <div class="swatch"><div class="swatch-color" style="background:var(--accent)"></div><span class="swatch-meta t1"><b>--accent</b><span>#1B7174 / #7CD5CA</span></span></div>
+            <div class="swatch"><div class="swatch-color" style="background:var(--accent-ink)"></div><span class="swatch-meta t1"><b>--accent-ink</b><span>#FFFFFF / #0C151A</span></span></div>
+          </div>
+          <p class="spec-note t1">派生：hover #15595B / #9BDFD7；press #11484A / #B2E6E0；weak #E7F1F1 / #15302F。深色不是反色，三级材质台阶同逻辑。</p>
+        </div>
+
+        <div class="card spec-item">
+          <div class="spec-item-head"><h3>八档字号阶</h3><span class="spec-param t1">px / 行高 / 字重 / 字距</span></div>
+          <div class="type-step"><span class="sample" style="font-size:var(--fs-caption);line-height:var(--lh-caption)">登记簿索引</span><span class="label t1">12 / 1.50 / 400 / .02em</span></div>
+          <div class="type-step"><span class="sample" style="font-size:var(--fs-small);line-height:var(--lh-small)">登记簿索引</span><span class="label t1">14 / 1.55 / 400 / .01em</span></div>
+          <div class="type-step"><span class="sample" style="font-size:var(--fs-body);line-height:var(--lh-body)">登记簿索引</span><span class="label t1">17 / 1.75 / 400 / 0</span></div>
+          <div class="type-step"><span class="sample" style="font-size:var(--fs-lead);line-height:var(--lh-lead)">登记簿索引</span><span class="label t1">22 / 1.60 / 400 / 0</span></div>
+          <div class="type-step"><span class="sample" style="font-size:var(--fs-h3);line-height:var(--lh-h3)">登记簿索引</span><span class="label t1">26 / 1.45 / 500 / 0</span></div>
+          <div class="type-step"><span class="sample" style="font-size:var(--fs-h2);line-height:var(--lh-h2)">登记簿索引</span><span class="label t1">32 / 1.35 / 500 / 0</span></div>
+          <div class="type-step"><span class="sample" style="font-size:var(--fs-h1);line-height:var(--lh-h1)">登记簿索引</span><span class="label t1">40 / 1.30 / 500 / 0</span></div>
+          <div class="type-step"><span class="sample" style="font-size:var(--fs-display);line-height:var(--lh-display)">登记簿索引</span><span class="label t1">54 / 1.30 / 500 / 0</span></div>
+          <p class="spec-note t1">正文 17px 三断点与明暗都不缩；T8 / T3 = 3.18×；功能字重上限 500；中文零负字距；行宽 680px（40 汉字）。</p>
+        </div>
+
+        <div class="card spec-item">
+          <div class="spec-item-head"><h3>按钮六态</h3><span class="spec-param t1">44px / radius 4 / 0 20px</span></div>
+          <div class="spec-row">
+            <span class="btn t2">Default</span>
+            <span class="btn t2 is-hover">Hover</span>
+            <span class="btn t2 is-active">Active</span>
+            <span class="btn t2 is-focus">Focus</span>
+            <span class="btn t2 is-current">Current</span>
+            <button type="button" class="btn t2" disabled aria-disabled="true">Disabled</button>
+          </div>
+          <p class="spec-note t1">主按钮规格：1px accent 边 + accent 底 + accent-ink 字 14px/500 sans；hover 150ms → --accent-hover；active 0ms → --accent-press（无 scale）。全页唯一实填充实例在书脊带 .nav-cta。disabled 不用 opacity：surface-2 底 + muted 字（6.11:1）+ 1px border + aria-disabled。</p>
+        </div>
+
+        <div class="card spec-item">
+          <div class="spec-item-head"><h3>导航 / 书脊带</h3><span class="spec-param t1">64px / 56px · 1px 底边</span></div>
+          <div class="spec-nav">
+            <ul class="nav nav-primary" aria-label="导航示例">
+              <li><a class="t2 current-menu" href="#spec" aria-current="page">当前项</a></li>
+              <li><a class="t2" href="#spec">文章</a></li>
+              <li><a class="t2" href="#spec">标签</a></li>
+            </ul>
+            <ul class="nav nav-tools" aria-label="工具示例">
+              <li><input class="search-input t2" type="search" aria-label="搜索文章示例" placeholder="搜索文章"></li>
+              <li><button type="button" class="theme-toggle" aria-label="切换主题示例"><svg class="icon" aria-hidden="true"><use href="#i-moon"/></svg></button></li>
+            </ul>
+          </div>
+          <p class="spec-note t1">满幅平涂不透明 --bg，无毛玻璃 / 无投影 / 无双色渐变条。brand 20px/500 serif；nav a 14px/400；hover 1px 下边框；current 左沿 2px accent 竖线 + 500 字重 + aria-current，不用色块。</p>
+        </div>
+
+        <div class="card spec-item">
+          <div class="spec-item-head"><h3>卡片三形态</h3><span class="spec-param t1">跨 728 / 单列连续 / 纯索引</span></div>
+          <div class="spec-card-row">
+            <div class="card"><span class="t5">.post-card--lead</span><p class="t1" style="margin-top:var(--sp-2)">T8 54px serif · 登记带 728×200 · 默认 0 摄影图</p></div>
+            <div class="card"><span class="t5">.post-card--grid</span><p class="t1" style="margin-top:var(--sp-2)">T5 26px · 连续条目 · 32px + 1px 基线 · 无盒</p></div>
+            <div class="card"><span class="t5">.post-card--list</span><p class="t1" style="margin-top:var(--sp-2)">T6 32px · 零封面 · 深色条目间距 40px</p></div>
+          </div>
+          <p class="spec-note t1">三者共用 72px 登记轨 + 24×2px 刻度。.card 平面表面 = --surface 台阶 + border 0 + box-shadow none，radius 8，padding 24，禁嵌套卡片。</p>
+        </div>
+
+        <div class="card spec-item">
+          <div class="spec-item-head"><h3>chip / 代码块 / 引用</h3><span class="spec-param t1">radius 0 / 4 / serif 22px</span></div>
+          <div class="spec-stack">
+            <div class="tag-chips">
+              <a class="chip t2" href="#spec">Node.js</a>
+              <a class="chip t2" href="#spec">MongoDB</a>
+              <a class="chip t2 current-menu" href="#spec" aria-current="page">工程实践</a>
+            </div>
+            <pre class="spec-code"><code>const top = sizes.trim().split('\n')
+  .sort((a, b) =&gt; b.bytes - a.bytes)
+  .slice(0, 20);</code></pre>
+            <blockquote class="spec-quote">先量再动。体积构成没量清楚之前，不要运行 git gc。</blockquote>
+          </div>
+          <p class="spec-note t1">chip 不是 pill：14px/400 muted + 仅 1px 下边框 + radius 0 + min-height 44px + gap 12；删除 # 前缀。pre 用 surface-2 凹槽，无语法高亮多色、无行号、无彩色条。引用禁侧条纹。</p>
+        </div>
+
+        <div class="card spec-item">
+          <div class="spec-item-head"><h3>状态四态 / 九态矩阵</h3><span class="spec-param t1">tint + ink + SVG + 人话</span></div>
+          <div class="spec-stack">
+            <div class="state state--loading" data-state="loading" role="status" aria-live="polite">
+              <div class="state-skeleton" aria-hidden="true"><span class="sk sk--title"></span><span class="sk sk--line"></span><span class="sk sk--line sk--short"></span></div>
+              <span class="sr-only">正在加载</span>
+            </div>
+            <div class="state state--info" role="status" aria-live="polite">
+              <span class="state-icon" aria-hidden="true"><svg class="icon" aria-hidden="true"><use href="#i-inbox"/></svg></span>
+              <div><p class="state-title t2">还没有文章</p><p class="state-text t2">发布第一篇文章后，这里会显示列表</p></div>
+            </div>
+            <div class="state state--danger" role="alert" aria-live="assertive">
+              <span class="state-icon" aria-hidden="true"><svg class="icon" aria-hidden="true"><use href="#i-alert"/></svg></span>
+              <div><p class="state-title t2">标签没加载出来</p><p class="state-text t2">稍后再试，文章列表不受影响</p><div class="state-actions"><button type="button" class="btn btn-sm t2">重试</button></div></div>
+            </div>
+            <div class="state state--success" role="status" aria-live="polite">
+              <span class="state-icon" aria-hidden="true"><svg class="icon" aria-hidden="true"><use href="#i-check-circle"/></svg></span>
+              <div><p class="state-title t2">已保存</p><p class="state-text t2">这条登记已写入索引</p></div>
+            </div>
+            <div class="spec-row"><button type="button" class="btn t2" disabled aria-disabled="true"><svg class="icon icon--16 nl-spinner" aria-hidden="true"><use href="#i-spinner"/></svg> 正在保存…</button></div>
+          </div>
+          <p class="spec-note t1">九态：Default / Hover / Focus / Active / Disabled / Loading / Error / Empty / Success。骨架静态无微光；spinner 是唯一循环动效 700ms linear。失败绝不降级成空态。</p>
+        </div>
+
+        <div class="card spec-item">
+          <div class="spec-item-head"><h3>圆角 / 动效 / 焦点环</h3><span class="spec-param t1">0 / 4 / 8 / 12</span></div>
+          <div class="spec-param-list t2">
+            <div><span>圆角四档</span><span>0 · 4 · 8 · 12px</span></div>
+            <div><span>间距九档</span><span>4 8 12 16 24 32 48 72 96</span></div>
+            <div><span>节间（三断点）</span><span>96 / 64 / 48px</span></div>
+            <div><span>动效 1 颜色 / 下划线</span><span>150ms ease-out · 0 位移</span></div>
+            <div><span>动效 2 浮层</span><span>200ms cubic-bezier(.2,.7,.2,1) + 4px</span></div>
+            <div><span>动效 3 状态淡入</span><span>160ms ease-out · 仅 opacity</span></div>
+            <div><span>focus-visible</span><span>2px --ring + 2px offset</span></div>
+            <div><span>触控目标</span><span>≥44×44 · 相邻 ≥8px</span></div>
+            <div><span>主色面积</span><span>4 类位置 · ≈1.3%</span></div>
+            <div><span>登记轨</span><span>72 / 48px · 刻度 24×2px</span></div>
+          </div>
+          <div class="spec-row" style="margin-top:var(--sp-4)"><button type="button" class="btn t2 focus-demo">焦点环示例</button></div>
+          <p class="spec-note t1">prefers-reduced-motion 下 3 处动效全降 0.01ms、spinner animation none，视觉状态保留。主题切换瞬时换色。平面表面与浮起表面永不叠加。</p>
+        </div>
+
+      </div>
+    </section>
+  </main>
+</div>
+
+<footer class="site-footer">
+  <div class="container site-footer-inner t2">
+    <strong>NODELOG</strong>
+    <span>打造最快的搜索体验</span>
+    <span>作者：匠子心</span>
+    <span>自 2014 年起持续登记 · Markdown 写作 · 全文检索 · 按分类归档</span>
+    <a href="?page=home" data-nav="home">首页</a>
+    <a href="?page=list" data-nav="list">全部文章</a>
+  </div>
+</footer>
+
+<!-- ===== 三视图模板：任意时刻只克隆一个进 #view-root，保证唯一 h1 / 唯一 main ===== -->
+<template id="tpl-home">
+  <section class="view" aria-label="首页">
+    <p class="kicker t2">最新文章 · 814 篇</p>
+    <div class="layout">
+      <div class="layout-main register">
+
+        <article class="post-card--lead">
+          <span class="reg-tick" aria-hidden="true"></span>
+          <div class="reg-band">
+            <div class="reg-band-coord">
+              <span class="reg-band-no t7">№ 0137</span>
+              <span class="reg-band-date t1">2026-11-12</span>
+              <span class="t1" style="color:var(--muted)">本期头条 · 工程实践</span>
+            </div>
+            <figure class="band-fig">
+              <svg viewBox="0 0 320 160" role="img" aria-label="登记簿索引结构示意：编号轨、连续基线与当前条目定位">
+                <rect class="svg-bg" x="0" y="0" width="320" height="160"/>
+                <line class="svg-line-strong" x1="0" y1="0" x2="0" y2="160" stroke-width="1"/>
+                <line class="svg-line" x1="0" y1="32" x2="320" y2="32" stroke-width="1"/>
+                <line class="svg-line" x1="0" y1="72" x2="320" y2="72" stroke-width="1"/>
+                <line class="svg-line" x1="0" y1="112" x2="320" y2="112" stroke-width="1"/>
+                <rect class="svg-accent" x="0" y="30" width="24" height="2"/>
+                <text class="svg-num" x="312" y="26" text-anchor="end">№ 0135</text>
+                <text class="svg-num" x="312" y="66" text-anchor="end">№ 0136</text>
+                <text class="svg-num" x="312" y="106" text-anchor="end">№ 0137</text>
+              </svg>
+              <figcaption class="t1">按编号定位一条登记 —— 本站的检索方式</figcaption>
+            </figure>
+          </div>
+          <div class="lead-body">
+            <p class="post-flag t1">本期头条</p>
+            <h1><a href="?page=article" data-nav="article">服务器 .git 涨到 5GB：<span class="nobr">一次</span><span class="nobr">从诊断到重构</span>的完整复盘</a></h1>
+            <p class="excerpt t4">周一早上 CI 克隆超时，.git 已经涨到 5.02GB。我们没有直接跑 git gc，而是先把对象体积量清楚，再把构建产物、历史 lock 文件和测试视频从仓库里彻底请出去。最后克隆耗时从 4 分 12 秒降到 9 秒。</p>
+            <div class="meta t2">
+              <span><svg class="icon icon--16" aria-hidden="true"><use href="#i-user"/></svg>匠子心</span>
+              <span><svg class="icon icon--16" aria-hidden="true"><use href="#i-folder"/></svg>工程实践</span>
+              <span><svg class="icon icon--16" aria-hidden="true"><use href="#i-calendar"/></svg><time datetime="2026-11-12">2026-11-12</time></span>
+              <span><svg class="icon icon--16" aria-hidden="true"><use href="#i-eye"/></svg>1,284 次阅读</span>
+              <span><svg class="icon icon--16" aria-hidden="true"><use href="#i-clock"/></svg>约 9 分钟</span>
+            </div>
+            <p style="margin-top:var(--sp-4)"><a class="post-readmore t2" href="?page=article" data-nav="article">阅读全文</a></p>
+            <div class="tag-chips" style="margin-top:var(--sp-4)">
+              <a class="chip t2" href="?page=list" data-nav="list">Git</a>
+              <a class="chip t2" href="?page=list" data-nav="list">CI</a>
+              <a class="chip t2" href="?page=list" data-nav="list">工程实践</a>
+            </div>
+          </div>
+        </article>
+
+        <div class="post-grid">
+          <article class="post-card--grid entry">
+            <span class="reg-tick" aria-hidden="true"></span>
+            <div class="reg-rail t1 mono"><span class="reg-no">№ 0136</span><time class="reg-date" datetime="2026-11-08">2026-11-08</time><span class="reg-year">2026</span></div>
+            <span class="reg-no-mobile t1 mono">№ 0136 · 2026-11-08</span>
+            <h2><a href="?page=article" data-nav="article">Express 中间件的执行顺序：一次线上 502 的排查</a></h2>
+            <p class="excerpt t4">错误处理中间件注册在路由之后，异常被默认处理器吞掉，上游只看到 502。把 next(err) 的链路画出来之后，问题十分钟就定位了。</p>
+            <div class="meta t2"><span>匠子心</span><span>工程实践</span><time datetime="2026-11-08">2026-11-08</time><span>862 次阅读</span></div>
+            <div class="tag-chips" style="margin-top:var(--sp-3)"><a class="chip t2" href="?page=list" data-nav="list">Express</a><a class="chip t2" href="?page=list" data-nav="list">Node.js</a></div>
+          </article>
+
+          <article class="post-card--grid entry">
+            <span class="reg-tick" aria-hidden="true"></span>
+            <div class="reg-rail t1 mono"><span class="reg-no">№ 0135</span><time class="reg-date" datetime="2026-11-03">2026-11-03</time><span class="reg-year">2026</span></div>
+            <span class="reg-no-mobile t1 mono">№ 0135 · 2026-11-03</span>
+            <h2><a href="?page=article" data-nav="article">MongoDB 复合索引的字段顺序到底怎么定</a></h2>
+            <p class="excerpt t4">等值、范围、排序，三类字段在复合索引里的位置不是随便排的。用 explain() 的 keysExamined 与 docsExamined 比值做判据，比背口诀可靠。</p>
+            <div class="meta t2"><span>匠子心</span><span>数据库</span><time datetime="2026-11-03">2026-11-03</time><span>1,037 次阅读</span></div>
+            <div class="tag-chips" style="margin-top:var(--sp-3)"><a class="chip t2" href="?page=list" data-nav="list">MongoDB</a><a class="chip t2" href="?page=list" data-nav="list">索引</a></div>
+          </article>
+
+          <article class="post-card--grid entry">
+            <span class="reg-tick" aria-hidden="true"></span>
+            <div class="reg-rail t1 mono"><span class="reg-no">№ 0134</span><time class="reg-date" datetime="2026-10-29">2026-10-29</time><span class="reg-year">2026</span></div>
+            <span class="reg-no-mobile t1 mono">№ 0134 · 2026-10-29</span>
+            <h2><a href="?page=article" data-nav="article">把全文检索从 LIKE 迁到倒排索引</a></h2>
+            <p class="excerpt t4">当文章过万篇，全表扫描把检索 p95 拖到 1.8 秒。分词、倒排表、位置信息，以及中文分词的三个坑，都记在这一条里。</p>
+            <div class="meta t2"><span>匠子心</span><span>全文检索</span><time datetime="2026-10-29">2026-10-29</time><span>2,106 次阅读</span></div>
+          </article>
+        </div>
+
+        <div class="pagination">
+          <ul class="pager-list" aria-label="分页">
+            <li><span class="pager-link t2 is-disabled" aria-disabled="true">上一页</span></li>
+            <li><span class="pager-link t2 current" aria-current="page">1</span></li>
+            <li><a class="pager-link t2" href="?page=list" data-nav="list" aria-label="第 2 页">2</a></li>
+            <li><a class="pager-link t2" href="?page=list" data-nav="list" aria-label="第 3 页">3</a></li>
+            <li><span class="pager-ellipsis" aria-hidden="true">…</span></li>
+            <li><a class="pager-link t2" href="?page=list" data-nav="list" aria-label="第 82 页">82</a></li>
+            <li><a class="pager-link t2" href="?page=list" data-nav="list" rel="next">下一页 <svg class="icon icon--16" aria-hidden="true"><use href="#i-chevron-right"/></svg></a></li>
+          </ul>
+        </div>
+      </div>
+
+      <aside class="aside" aria-label="侧栏">
+        <section class="card">
+          <h2 class="aside-title t2">标签索引</h2>
+          <div class="tag-chips">
+            <a class="chip t2" href="?page=list" data-nav="list">Node.js</a>
+            <a class="chip t2" href="?page=list" data-nav="list">Git</a>
+            <a class="chip t2" href="?page=list" data-nav="list">MongoDB</a>
+            <a class="chip t2" href="?page=list" data-nav="list">Express</a>
+            <a class="chip t2" href="?page=list" data-nav="list">全文检索</a>
+            <a class="chip t2" href="?page=list" data-nav="list">SSR</a>
+            <a class="chip t2" href="?page=list" data-nav="list">性能</a>
+          </div>
+        </section>
+        <section class="card card--brand">
+          <div class="brand-mark">NODELOG</div>
+          <p class="brand-desc t2">自 2014 年起持续登记 · Markdown 写作 · 全文检索 · 按分类归档。现有 814 篇，按归档坐标定位，不做推荐流。</p>
+          <a class="btn brand-cta t2" href="?page=list" data-nav="list">写文章</a>
+        </section>
+        <section class="card">
+          <h2 class="aside-title t2">归档索引</h2>
+          <div class="aside-index t2 mono">
+            <a href="?page=list" data-nav="list">2026 · 137 篇</a>
+            <a href="?page=list" data-nav="list">2025 · 214 篇</a>
+            <a href="?page=list" data-nav="list">2024 · 186 篇</a>
+            <a href="?page=list" data-nav="list">2023 · 277 篇</a>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </section>
+</template>
+
+<template id="tpl-list">
+  <section class="view" aria-label="全部文章">
+    <ol class="breadcrumb t2" aria-label="面包屑">
+      <li><a href="?page=home" data-nav="home">首页</a></li>
+      <li><svg class="icon icon--16 crumb-chev" aria-hidden="true"><use href="#i-chevron-right"/></svg><a href="?page=list" data-nav="list">全部文章</a></li>
+      <li><svg class="icon icon--16 crumb-chev" aria-hidden="true"><use href="#i-chevron-right"/></svg><span class="active" aria-current="page">分类</span></li>
+    </ol>
+
+    <div class="page-head">
+      <h1>工程实践</h1>
+      <p class="page-count t2">分类 · 共 214 篇</p>
+      <form class="page-search" data-search-form="page" role="search" action="?page=list">
+        <label class="sr-only" for="page-search-input">搜索文章关键词</label>
+        <input class="search-input t2" id="page-search-input" name="word" type="search" maxlength="50" value="索引" placeholder="搜索文章关键词">
+        <button class="btn t2" type="submit">搜索</button>
+      </form>
+      <p class="search-echo t2">搜索「索引」· 共 6 篇 · 分类「工程实践」已高亮</p>
+    </div>
+
+    <nav class="category-nav t2" aria-label="文章分类">
+      <a href="?page=list" data-nav="list">全部</a>
+      <a href="?page=list" data-nav="list" class="current-menu" aria-current="page">工程实践</a>
+      <a href="?page=list" data-nav="list">数据库</a>
+      <a href="?page=list" data-nav="list">Node.js</a>
+      <a href="?page=list" data-nav="list">全文检索</a>
+      <a href="?page=list" data-nav="list">复盘</a>
+    </nav>
+
+    <div class="layout">
+      <div class="layout-main register">
+        <div class="post-list">
+          <article class="post-card--list entry">
+            <span class="reg-tick" aria-hidden="true"></span>
+            <div class="reg-rail t1 mono"><span class="reg-no">№ 0137</span><time class="reg-date" datetime="2026-11-12">2026-11-12</time><span class="reg-year">2026</span></div>
+            <span class="reg-no-mobile t1 mono">№ 0137 · 2026-11-12</span>
+            <h2><a href="?page=article" data-nav="article">服务器 .git 涨到 5GB：<span class="nobr">一次</span><span class="nobr">从诊断到重构</span>的完整复盘</a></h2>
+            <p class="excerpt t4">从对象体积统计到 filter-repo 重写历史，再到把构建产物彻底移出仓库。附三阶段实测数据与 CI 侧护栏。</p>
+            <div class="meta t2"><span>匠子心</span><span>工程实践</span><time datetime="2026-11-12">2026-11-12</time><span>1,284 次阅读</span><span>约 9 分钟</span></div>
+          </article>
+          <article class="post-card--list entry">
+            <span class="reg-tick" aria-hidden="true"></span>
+            <div class="reg-rail t1 mono"><span class="reg-no">№ 0134</span><time class="reg-date" datetime="2026-10-29">2026-10-29</time><span class="reg-year">2026</span></div>
+            <span class="reg-no-mobile t1 mono">№ 0134 · 2026-10-29</span>
+            <h2><a href="?page=article" data-nav="article">把全文检索从 LIKE 迁到倒排索引</a></h2>
+            <p class="excerpt t4">当文章过万篇，LIKE 的全表扫描把 p95 拖到 1.8 秒。分词、倒排表、位置信息，以及中文分词的三个坑。</p>
+            <div class="meta t2"><span>匠子心</span><span>全文检索</span><time datetime="2026-10-29">2026-10-29</time><span>2,106 次阅读</span><span>约 12 分钟</span></div>
+          </article>
+          <article class="post-card--list entry">
+            <span class="reg-tick" aria-hidden="true"></span>
+            <div class="reg-rail t1 mono"><span class="reg-no">№ 0135</span><time class="reg-date" datetime="2026-11-03">2026-11-03</time><span class="reg-year">2026</span></div>
+            <span class="reg-no-mobile t1 mono">№ 0135 · 2026-11-03</span>
+            <h2><a href="?page=article" data-nav="article">MongoDB 复合索引的字段顺序到底怎么定</a></h2>
+            <p class="excerpt t4">等值、范围、排序三类字段的排布规则，用 explain() 的扫描比值验证，而不是背 ESR 口诀。</p>
+            <div class="meta t2"><span>匠子心</span><span>数据库</span><time datetime="2026-11-03">2026-11-03</time><span>1,037 次阅读</span><span>约 8 分钟</span></div>
+          </article>
+          <article class="post-card--list entry">
+            <span class="reg-tick" aria-hidden="true"></span>
+            <div class="reg-rail t1 mono"><span class="reg-no">№ 0136</span><time class="reg-date" datetime="2026-11-08">2026-11-08</time><span class="reg-year">2026</span></div>
+            <span class="reg-no-mobile t1 mono">№ 0136 · 2026-11-08</span>
+            <h2><a href="?page=article" data-nav="article">Express 中间件的执行顺序：一次线上 502 的排查</a></h2>
+            <p class="excerpt t4">错误处理中间件注册位置错了，next(err) 被默认处理器吞掉。把请求链路画出来之后，十分钟定位。</p>
+            <div class="meta t2"><span>匠子心</span><span>工程实践</span><time datetime="2026-11-08">2026-11-08</time><span>862 次阅读</span><span>约 7 分钟</span></div>
+          </article>
+          <article class="post-card--list entry">
+            <span class="reg-tick" aria-hidden="true"></span>
+            <div class="reg-rail t1 mono"><span class="reg-no">№ 0132</span><time class="reg-date" datetime="2026-10-21">2026-10-21</time><span class="reg-year">2026</span></div>
+            <span class="reg-no-mobile t1 mono">№ 0132 · 2026-10-21</span>
+            <h2><a href="?page=article" data-nav="article">Node.js 内存泄漏：一次 heap snapshot 实战</a></h2>
+            <p class="excerpt t4">三次快照对比，Retainers 视图里那个一直没释放的闭包数组。定位到事件监听器没有在请求结束时摘掉。</p>
+            <div class="meta t2"><span>匠子心</span><span>Node.js</span><time datetime="2026-10-21">2026-10-21</time><span>1,498 次阅读</span><span>约 11 分钟</span></div>
+          </article>
+          <article class="post-card--list entry">
+            <span class="reg-tick" aria-hidden="true"></span>
+            <div class="reg-rail t1 mono"><span class="reg-no">№ 0131</span><time class="reg-date" datetime="2026-10-14">2026-10-14</time><span class="reg-year">2026</span></div>
+            <span class="reg-no-mobile t1 mono">№ 0131 · 2026-10-14</span>
+            <h2><a href="?page=article" data-nav="article">用 EJS 做 SSR 时最容易踩的三个坑</a></h2>
+            <p class="excerpt t4">转义与 &lt;%- 的边界、include 作用域里的 locals、以及把客户端状态塞进模板导致的注水错位。</p>
+            <div class="meta t2"><span>匠子心</span><span>SSR</span><time datetime="2026-10-14">2026-10-14</time><span>734 次阅读</span><span>约 6 分钟</span></div>
+          </article>
+        </div>
+
+        <div class="pagination">
+          <ul class="pager-list" aria-label="分页">
+            <li><a class="pager-link t2" href="?page=list" data-nav="list" rel="prev"><svg class="icon icon--16" aria-hidden="true"><use href="#i-chevron-left"/></svg> 上一页</a></li>
+            <li><a class="pager-link t2" href="?page=list" data-nav="list" aria-label="第 1 页">1</a></li>
+            <li><span class="pager-link t2 current" aria-current="page">2</span></li>
+            <li><a class="pager-link t2" href="?page=list" data-nav="list" aria-label="第 3 页">3</a></li>
+            <li><span class="pager-ellipsis" aria-hidden="true">…</span></li>
+            <li><a class="pager-link t2" href="?page=list" data-nav="list" aria-label="第 22 页">22</a></li>
+            <li><a class="pager-link t2" href="?page=list" data-nav="list" rel="next">下一页 <svg class="icon icon--16" aria-hidden="true"><use href="#i-chevron-right"/></svg></a></li>
+          </ul>
+        </div>
+      </div>
+
+      <aside class="aside" aria-label="侧栏">
+        <section class="card">
+          <h2 class="aside-title t2">标签索引</h2>
+          <div class="tag-chips">
+            <a class="chip t2" href="?page=list" data-nav="list">索引</a>
+            <a class="chip t2" href="?page=list" data-nav="list">倒排索引</a>
+            <a class="chip t2" href="?page=list" data-nav="list">Git</a>
+            <a class="chip t2" href="?page=list" data-nav="list">MongoDB</a>
+            <a class="chip t2" href="?page=list" data-nav="list">Express</a>
+            <a class="chip t2" href="?page=list" data-nav="list">EJS</a>
+          </div>
+        </section>
+        <section class="card card--brand">
+          <div class="brand-mark">NODELOG</div>
+          <p class="brand-desc t2">自 2014 年起持续登记 · Markdown 写作 · 全文检索 · 按分类归档。814 篇按归档坐标定位，不做推荐流。</p>
+          <a class="btn brand-cta t2" href="?page=home" data-nav="home">回首页</a>
+        </section>
+        <section class="card">
+          <h2 class="aside-title t2">归档索引</h2>
+          <div class="aside-index t2 mono">
+            <a href="?page=list" data-nav="list">2026 · 137 篇</a>
+            <a href="?page=list" data-nav="list">2025 · 214 篇</a>
+            <a href="?page=list" data-nav="list">2024 · 186 篇</a>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </section>
+</template>
+
+<template id="tpl-article">
+  <section class="view" aria-label="文章正文">
+    <article class="article-shell article-detail">
+      <div class="article-grid">
+        <div class="article-rail t1 mono">
+          <span class="reg-tick" aria-hidden="true"></span>
+          <span class="reg-no">№ 0137</span>
+          <time class="reg-date" datetime="2026-11-12">2026-11-12</time>
+          <span class="reg-year">2026</span>
+        </div>
+        <div class="article-head-main">
+          <ol class="breadcrumb t2" aria-label="面包屑">
+            <li><a href="?page=home" data-nav="home">首页</a></li>
+            <li><svg class="icon icon--16 crumb-chev" aria-hidden="true"><use href="#i-chevron-right"/></svg><a href="?page=list" data-nav="list">工程实践</a></li>
+            <li><svg class="icon icon--16 crumb-chev" aria-hidden="true"><use href="#i-chevron-right"/></svg><span class="active" aria-current="page">正文</span></li>
+          </ol>
+          <span class="reg-no-mobile t1 mono">№ 0137 · 2026-11-12</span>
+          <h1 class="article-title">服务器 .git 涨到 5GB：<span class="nobr">一次</span><span class="nobr">从诊断到重构</span>的完整复盘</h1>
+        </div>
+        <aside class="article-note" aria-label="本篇元信息">
+          <div>
+            <p class="note-title t2">本篇登记</p>
+            <div class="article-meta t2">
+              <span><svg class="icon icon--16" aria-hidden="true"><use href="#i-user"/></svg>匠子心</span>
+              <span><svg class="icon icon--16" aria-hidden="true"><use href="#i-folder"/></svg>工程实践</span>
+              <span><svg class="icon icon--16" aria-hidden="true"><use href="#i-calendar"/></svg><time datetime="2026-11-12">2026-11-12</time></span>
+              <span><svg class="icon icon--16" aria-hidden="true"><use href="#i-eye"/></svg>1,284 次阅读</span>
+              <span><svg class="icon icon--16" aria-hidden="true"><use href="#i-clock"/></svg>约 9 分钟</span>
+            </div>
+          </div>
+          <div>
+            <p class="note-title t2">标签</p>
+            <div class="tag-chips article-tags">
+              <a class="chip t2" href="?page=list" data-nav="list">Git</a>
+              <a class="chip t2" href="?page=list" data-nav="list">CI</a>
+              <a class="chip t2" href="?page=list" data-nav="list">工程实践</a>
+              <a class="chip t2" href="?page=list" data-nav="list">复盘</a>
+            </div>
+          </div>
+          <div>
+            <p class="note-title t2">本篇目录</p>
+            <div class="note-toc t2">
+              <a href="#sec-diagnose">诊断：先量再动</a>
+              <a href="#sec-rebuild">重构：把大文件挡在仓库外</a>
+              <a href="#sec-result">结果与复盘</a>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <div class="article-body article-body-grid">
+        <div class="article-content">
+          <p>周一早上 CI 第一次报红，克隆仓库用了 4 分 12 秒，随后直接超时。运维先怀疑是网络，但同一台机器上另一个 200MB 的仓库 9 秒就拉完了。问题不在链路，在 .git 本身：它已经涨到 5.02GB，而工作区里的源码其实只有 86MB。</p>
+
+          <h2 id="sec-diagnose">诊断：先量再动</h2>
+          <p>我们没有一上来就执行 <code>git gc</code>。先用 <code>git rev-list --objects --all</code> 枚举全部对象，再用 <code>git cat-file --batch-check</code> 批量取体积，按字节倒序排。结果很集中：前三名是一个 1.8GB 的构建产物压缩包、被反复重写的 <code>package-lock.json</code> 历史版本，还有一批早期上传的测试视频。完整做法见<a href="#sec-rebuild">重构一节</a>。</p>
+
+          <pre><code>// 定位大对象：按体积倒序，只保留前 20 个
+const { execFileSync } = require('node:child_process');
+const objects = execFileSync('git', ['rev-list', '--objects', '--all'], {
+  encoding: 'utf8',
+  maxBuffer: 64 * 1024 * 1024
+}).trim().split('\n');
+
+const blobs = objects.map(line =&gt; line.split(' ')[0]);
+const sizes = execFileSync('git', ['cat-file', '--batch-check'], {
+  input: blobs.join('\n'),
+  encoding: 'utf8'
+});
+
+const top = sizes.trim().split('\n')
+  .map(row =&gt; row.split(' '))
+  .filter(parts =&gt; parts[1] === 'blob')
+  .map(parts =&gt; ({ oid: parts[0], bytes: Number(parts[2]) }))
+  .sort((a, b) =&gt; b.bytes - a.bytes)
+  .slice(0, 20);
+
+console.table(top);</code></pre>
+
+          <figure class="article-figure">
+            <svg viewBox="0 0 680 240" role="img" aria-label="三阶段仓库体积与克隆耗时对比：事故前 5.02GB、gc 之后 3.41GB、重构后 86MB">
+              <rect class="svg-bg" x="0" y="0" width="680" height="240"/>
+              <line class="svg-line-strong" x1="0" y1="0" x2="0" y2="240" stroke-width="1"/>
+              <text class="svg-txt" x="16" y="28">.git 体积 · 三阶段实测</text>
+              <text class="svg-lbl" x="16" y="66">事故前</text>
+              <rect class="svg-bar-track" x="130" y="52" width="470" height="18"/>
+              <rect class="svg-bar" x="130" y="52" width="470" height="18"/>
+              <text class="svg-num" x="612" y="66">5.02 GB</text>
+              <text class="svg-lbl" x="16" y="106">gc 之后</text>
+              <rect class="svg-bar-track" x="130" y="92" width="470" height="18"/>
+              <rect class="svg-bar" x="130" y="92" width="319" height="18"/>
+              <text class="svg-num" x="612" y="106">3.41 GB</text>
+              <text class="svg-lbl" x="16" y="146">重构后</text>
+              <rect class="svg-bar-track" x="130" y="132" width="470" height="18"/>
+              <rect class="svg-bar" x="130" y="132" width="38" height="18"/>
+              <text class="svg-num" x="612" y="146">86 MB</text>
+              <line class="svg-line" x1="16" y1="176" x2="664" y2="176" stroke-width="1"/>
+              <text class="svg-lbl" x="16" y="202">克隆耗时 4分12秒 → 2分48秒 → 9秒</text>
+              <text class="svg-lbl" x="16" y="226">检索 p95 1,240ms → 210ms → 38ms</text>
+            </svg>
+            <figcaption class="t1">三阶段实测：体积、克隆耗时与检索 p95 同向下降，证明瓶颈在历史对象而非网络链路。</figcaption>
+          </figure>
+
+          <h2 id="sec-rebuild">重构：把大文件挡在仓库外</h2>
+          <p>诊断清楚之后分三步走。第一步用 <code>git filter-repo</code> 从全部历史里移除那 11 个大对象，并强制所有协作者重新克隆；第二步把 <code>dist/</code>、<code>coverage/</code> 和录制视频放进 <code>.gitignore</code>，产物改由 CI 的制品库分发；第三步在 pre-commit 钩子里加一条体积检查，单个文件超过 2MB 直接拒绝提交。</p>
+
+          <blockquote><p>别急着 git gc。先弄清楚 5GB 是什么——是历史大文件、还是被反复重写的 lock 文件，两者的处理方式完全不同。前者要重写历史，后者只要改协作习惯。</p></blockquote>
+
+          <h3>护栏：把检查放在提交前</h3>
+          <p>第三步最容易被跳过，但它是唯一能防止复发的动作。我们在钩子里用 <code>git diff --cached --name-only</code> 配合 <code>stat</code>，比在 CI 里报错更早，开发者本地就能看到，也不会把已经推上去的大对象再拉回来。</p>
+          <ol>
+            <li>枚举全部对象并按体积排序，确认是哪几类文件撑大了 .git。</li>
+            <li>重写历史移除大对象，产物改由制品库分发。</li>
+            <li>加 pre-commit 体积检查，超过 2MB 拒绝提交。</li>
+          </ol>
+
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>阶段</th><th class="num">.git 体积</th><th class="num">克隆耗时</th><th class="num">检索 p95</th></tr></thead>
+              <tbody>
+                <tr><td>事故前</td><td class="num">5.02 GB</td><td class="num">4 分 12 秒</td><td class="num">1,240 ms</td></tr>
+                <tr><td>gc 之后</td><td class="num">3.41 GB</td><td class="num">2 分 48 秒</td><td class="num">210 ms</td></tr>
+                <tr><td>重构之后</td><td class="num">86 MB</td><td class="num">9 秒</td><td class="num">38 ms</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <hr>
+
+          <h2 id="sec-result">结果与复盘</h2>
+          <p>最终仓库从 5.02GB 降到 86MB，CI 克隆稳定在 9 秒，站内检索 p95 从 1,240ms 降到 38ms。复盘会上我们只留了两条结论：任何进入版本库的东西都要有「谁会在什么时候再读它」的答案；以及体积类问题必须先量后动，否则你优化掉的往往只是最容易看见的那一块。</p>
+        </div>
+      </div>
+    </article>
+
+    <section class="card comment-section" aria-labelledby="comment-title">
+      <h2 id="comment-title">评论 · 3 条</h2>
+      <div class="comment-list">
+        <div class="comment">
+          <span class="comment-avatar t2" aria-hidden="true">林</span>
+          <div>
+            <div class="comment-head t2"><strong>林岸</strong><time datetime="2026-11-12">2026-11-12 14:26</time></div>
+            <p class="comment-body t3">我们上个月也遇到一次，最后发现是同事把压测录屏提交进来了。pre-commit 那条体积检查我们现在也加上了，确实比事后重写历史省事。</p>
+          </div>
+        </div>
+        <div class="comment">
+          <span class="comment-avatar t2" aria-hidden="true">陈</span>
+          <div>
+            <div class="comment-head t2"><strong>陈屿</strong><time datetime="2026-11-12">2026-11-12 18:03</time></div>
+            <p class="comment-body t3">cat-file --batch-check 这一步很关键。之前我直接用 du 看 objects 目录，pack 之后根本对不上单个对象的体积。</p>
+          </div>
+        </div>
+        <div class="comment">
+          <span class="comment-avatar t2" aria-hidden="true">周</span>
+          <div>
+            <div class="comment-head t2"><strong>周迟</strong><time datetime="2026-11-13">2026-11-13 09:41</time></div>
+            <p class="comment-body t3">想问下 filter-repo 之后老分支的 tag 是怎么处理的？我们这边有几个发布 tag 还指向旧 commit。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card comment-section" aria-labelledby="comment-form-title">
+      <h2 id="comment-form-title">发表评论</h2>
+      <form data-comment-form action="?page=article">
+        <div class="form-group">
+          <label class="t2" for="commentInput">内容</label>
+          <textarea class="form-control t3" id="commentInput" name="content" rows="4" placeholder="写下你的问题或补充"></textarea>
+        </div>
+        <button type="submit" class="btn t2">发表评论</button>
+        <p class="form-note t2">登录后可以发表评论；当前为设计语言呈现页，提交不会写入数据。</p>
+      </form>
+    </section>
+  </section>
+</template>
+
+<script>
+/* ---------- 状态机：只在边界接收输入，组件内信任状态 ----------
+   runtime-defensive.md §二「跨出去的才校验，没跨出去的信类型」。 */
+(function () {
+  var state = window.__NL_STATE__;
+  var VALID = {
+    page:  { home: 1, list: 1, article: 1 },
+    theme: { light: 1, dark: 1 },
+    vp:    { desktop: 1, mobile: 1, tablet: 1 }
+  };
+  var root = document.getElementById('view-root');
+  var lastPage = null;
+
+  function syncUrl() {
+    var q = '?page=' + state.page + '&theme=' + state.theme + '&vp=' + state.vp;
+    try {
+      window.history.replaceState(null, '', q);
+    } catch (e) {
+      /* file:// 的 origin 为 null，浏览器禁止改写 history；
+         状态已在 DOM 上生效，不影响任何交互，故不重试也不上报。
+         runtime-defensive.md §三「空 catch 必须点名错误」。 */
+    }
+  }
+
+  function renderView(page) {
+    if (lastPage === page) return;
+    var tpl = document.getElementById('tpl-' + page);
+    root.replaceChildren(tpl.content.cloneNode(true));
+    lastPage = page;
+  }
+
+  function syncControls() {
+    var btns = document.querySelectorAll('.devbar-btn[data-set]');
+    for (var i = 0; i < btns.length; i++) {
+      var b = btns[i];
+      b.setAttribute('aria-pressed', state[b.getAttribute('data-set')] === b.getAttribute('data-value') ? 'true' : 'false');
+    }
+  }
+
+  function syncNavCurrent() {
+    var links = document.querySelectorAll('.nav-primary a[data-cur]');
+    for (var i = 0; i < links.length; i++) {
+      var a = links[i];
+      var on = a.getAttribute('data-cur') === state.page;
+      a.classList.toggle('current-menu', on);
+      if (on) a.setAttribute('aria-current', 'page');
+      else a.removeAttribute('aria-current');
+    }
+  }
+
+  function closeDropdowns() {
+    var menus = document.querySelectorAll('.dropdown-menu.is-open');
+    for (var i = 0; i < menus.length; i++) menus[i].classList.remove('is-open');
+    var triggers = document.querySelectorAll('.nav-more-btn[aria-expanded="true"]');
+    for (var j = 0; j < triggers.length; j++) triggers[j].setAttribute('aria-expanded', 'false');
+  }
+
+  function apply(focusMain) {
+    var r = document.documentElement;
+    r.setAttribute('data-theme', state.theme);
+    r.setAttribute('data-vp', state.vp);
+    r.setAttribute('data-page', state.page);
+    var changed = lastPage !== state.page;
+    renderView(state.page);
+    syncControls();
+    syncNavCurrent();
+    syncUrl();
+    if (focusMain && changed) {
+      var main = document.getElementById('main');
+      if (main) main.focus({ preventScroll: true });
+    }
+  }
+
+  function setState(patch, focusMain) {
+    var keys = Object.keys(patch);
+    for (var i = 0; i < keys.length; i++) {
+      var k = keys[i];
+      if (VALID[k] && VALID[k][patch[k]]) state[k] = patch[k];
+    }
+    closeDropdowns();
+    apply(focusMain);
+  }
+
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('.devbar-btn[data-set]') : null;
+    if (btn) {
+      var patch = {};
+      patch[btn.getAttribute('data-set')] = btn.getAttribute('data-value');
+      setState(patch, false);
+      return;
+    }
+    var themeBtn = e.target.closest ? e.target.closest('#themeToggle, [data-theme-toggle]') : null;
+    if (themeBtn) {
+      setState({ theme: state.theme === 'dark' ? 'light' : 'dark' }, false);
+      return;
+    }
+    var more = e.target.closest ? e.target.closest('.nav-more-btn') : null;
+    if (more) {
+      var menu = more.parentNode.querySelector('.dropdown-menu');
+      var open = menu && menu.classList.toggle('is-open');
+      more.setAttribute('aria-expanded', open ? 'true' : 'false');
+      return;
+    }
+    var link = e.target.closest ? e.target.closest('a[data-nav]') : null;
+    if (link) {
+      e.preventDefault();
+      setState({ page: link.getAttribute('data-nav') }, true);
+      return;
+    }
+    if (!e.target.closest || !e.target.closest('.dropdown-menu')) closeDropdowns();
+  });
+
+  /* 搜索建议：唯一的浮层位移（200ms + translateY -4→0） */
+  var topSearch = document.getElementById('top-search');
+  var topSuggest = document.getElementById('top-suggest');
+  if (topSearch && topSuggest) {
+    topSearch.addEventListener('focus', function () { topSuggest.classList.add('is-open'); });
+    topSearch.addEventListener('blur', function () {
+      /* 延迟到下一次点击判定后再关，避免点不到建议项 */
+      window.setTimeout(function () {
+        if (!topSuggest.contains(document.activeElement)) topSuggest.classList.remove('is-open');
+      }, 120);
+    });
+  }
+
+  document.addEventListener('submit', function (e) {
+    var form = e.target;
+    if (!form.matches('[data-search-form], [data-comment-form]')) return;
+    e.preventDefault();
+    if (form.matches('[data-comment-form]')) return;
+    var input = form.querySelector('input[type="search"]');
+    var word = input ? input.value.trim() : '';
+    setState({ page: 'list' }, true);
+    var echo = document.querySelector('.search-echo');
+    if (echo) echo.textContent = word ? ('搜索「' + word + '」· 共 6 篇 · 分类「工程实践」已高亮') : '分类 · 共 214 篇';
+    var pageInput = document.getElementById('page-search-input');
+    if (pageInput) pageInput.value = word;
+    if (topSearch) topSearch.value = word;
+    if (topSuggest) topSuggest.classList.remove('is-open');
+  });
+
+  apply(false);
+})();
+</script>
+</body>
+</html>

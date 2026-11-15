@@ -1,0 +1,315 @@
+/* ==================================================================
+   NODELOG 设计语言 · 「登记簿 / The Numbered Register」变量表 + 类名映射骨架
+   ------------------------------------------------------------------
+   依据：D:/code/NODELOG/design-language/DESIGN_LANGUAGE.md v1.0（14 节）
+   落地方式：合并 / 替换到 public/css/theme.css 的 :root 变量层，放在所有业务样式之前。
+   本文件只定义「变量值 + 浏览器表面 + 断点处的结构 token」，不覆盖任何现有布局规则。
+
+   TOKENS:START / TOKENS:END 之间与 design-language/index.html 完全同名同值，
+   两处必须同步修改（§11「全站唯一项只在 tokens.css 定义一次」）。
+   变量命名与呈现页一致；组件样式只引用 var(--token)，零裸 hex / 零裸 px 字号。
+
+   零新增依赖：无 Web 字体、无图标库、无构建步骤；图标一律内联 SVG。
+   ================================================================== */
+
+/* ==================================================================
+   TOKENS:START —— 唯一视觉值来源（与 index.html 同名同值）
+   ================================================================== */
+:root {
+  /* 1. 九槽色板（§3.1） */
+  --bg:              #EDF1F2;
+  --surface:         #FFFFFF;
+  --surface-2:       #E1E7E9;
+  --border:          #CFD8DB;   /* 只作装饰分隔，不承载信息 */
+  --border-strong:   #68787F;   /* 控件边界 ≥3:1 */
+  --ink:             #14232A;
+  --muted:           #4C5C64;
+  --accent:          #1B7174;
+  --accent-ink:      #FFFFFF;
+
+  /* 2. 派生令牌 */
+  --accent-hover:    #15595B;
+  --accent-press:    #11484A;
+  --accent-weak:     #E7F1F1;
+  --ring:            var(--accent);
+  --elev:            0 8px 24px rgba(20,35,42,.14);  /* 仅浮层 */
+
+  /* 3. 语义四件套 tint / ink（§3.2） */
+  --info-tint:       #E4EDF6;  --info-ink:    #27598F;
+  --warning-tint:    #F7EEDC;  --warning-ink: #8A5A10;
+  --danger-tint:     #F9E6E4;  --danger-ink:  #A32D27;
+  --success-tint:    #E7F1F1;  --success-ink: #1B7174;
+
+  /* 4. 三族字体（§4.1），全系统栈 */
+  --font-sans:  -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Source Han Sans SC", "Noto Sans CJK SC", sans-serif;
+  --font-serif: Georgia, "Iowan Old Style", "Palatino Linotype", "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC", "STSong", serif;
+  --font-mono:  ui-monospace, "SFMono-Regular", "Cascadia Code", Consolas, "Liberation Mono", Menlo, monospace;
+  --font-ui:    var(--font-sans);   /* 关键：不是 mono */
+
+  /* 5. 八档字号（§4.2）：px / 行高 / 字重 / 字距 */
+  --fs-caption: 12px; --lh-caption: 1.50; --ls-caption: .02em;
+  --fs-small:   14px; --lh-small:   1.55; --ls-small:   .01em;
+  --fs-body:    17px; --lh-body:    1.75; --ls-body:    0;
+  --fs-lead:    22px; --lh-lead:    1.60; --ls-lead:    0;
+  --fs-h3:      26px; --lh-h3:      1.45; --ls-h3:      0;
+  --fs-h2:      32px; --lh-h2:      1.35; --ls-h2:      0;
+  --fs-h1:      40px; --lh-h1:      1.30; --ls-h1:      0;
+  --fs-display: 54px; --lh-display: 1.30; --ls-display: 0;
+  --fw-regular: 400;
+  --fw-medium:  500;   /* 功能字重上限 500 */
+  /* 站名 / brand-mark 专用别名：§4.1 规定衬线仅 4 处且字号 ≥20px，
+     §7 明确写 20px；它不是第 9 档，不参与缩放链，组件只引用令牌。 */
+  --fs-brand:   20px; --lh-brand: 1.30;
+
+  /* 6. 网格与锚线（§5.1 / §5.2） */
+  --wrap:        1120px;  /* 全站唯一，无 1280 例外 */
+  --frame:       100%;    /* 结构开关：截图模拟用 */
+  --frame-align: auto;
+  --gutter:      32px;
+  --rail:        72px;    /* 登记轨 */
+  --rail-gap:    24px;
+  --anchor-b:    96px;    /* = rail + rail-gap */
+  --measure:     680px;   /* 40 汉字；禁用 ch */
+  --aside-w:     280px;
+  --layout-gap:  48px;
+  --art-note-w:  232px;
+  --art-gap:     48px;
+  --navbar-h:    64px;
+  --search-w:    220px;
+  --band-h:      200px;
+  --band-fig-w:  320px;
+  --layout-cols: minmax(0, 1fr) var(--aside-w);
+  --aside-cols:  minmax(0, 1fr);
+
+  /* 7. 间距刻度（§5.3，只用这 9 个值） */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px;
+  --sp-6: 32px; --sp-7: 48px; --sp-8: 72px; --sp-9: 96px;
+  --section-gap: 96px;
+  --entry-gap:   32px;   /* 深色提到 40px，由主题决定 */
+
+  /* 8. 圆角四档（§5.3） */
+  --r-0: 0; --r-1: 4px; --r-2: 8px; --r-3: 12px;
+
+  /* 9. 签名元素 / 触控 */
+  --tap:    44px;
+  --tick-w: 24px;
+  --tick-h: 2px;
+
+  /* 10. 动效三处（§8.2） */
+  --motion-color: 150ms;
+  --motion-float: 200ms;
+  --motion-state: 160ms;
+  --motion-spin:  700ms;
+  --ease-out:     ease-out;
+  --ease-float:   cubic-bezier(.2,.7,.2,1);
+
+  /* 11. z-index 七层（§5.3） */
+  --z-base: 0; --z-dropdown: 100; --z-sticky: 200; --z-overlay: 300;
+  --z-modal: 400; --z-toast: 500; --z-tooltip: 600;
+}
+
+/* 深色不是反色：两套都保持 surface 最亮 / surface-2 最深的同一材料逻辑。
+   条目间距 32→40px 由主题决定，不由页面决定。 */
+:root[data-theme="dark"] {
+  --bg:            #121D22;
+  --surface:       #1C2A31;
+  --surface-2:     #0C151A;
+  --border:        #2E4048;
+  --border-strong: #708A94;
+  --ink:           #E9F0F0;
+  --muted:         #A6B8BE;
+  --accent:        #7CD5CA;
+  --accent-ink:    #0C151A;
+  --accent-hover:  #9BDFD7;
+  --accent-press:  #B2E6E0;
+  --accent-weak:   #15302F;
+  --elev:          0 8px 24px rgba(0,0,0,.55);
+  --info-tint:     #152A3C;  --info-ink:    #9DC2EC;
+  --warning-tint:  #302514;  --warning-ink: #E7BA69;
+  --danger-tint:   #331B1A;  --danger-ink:  #F29B95;
+  --success-tint:  #15302F;  --success-ink: #7CD5CA;
+  --entry-gap:     40px;
+}
+/* ==================================================================
+   TOKENS:END
+   ================================================================== */
+
+/* ==================================================================
+   一、浏览器表面（落到 theme.css 无副作用，建议保留）
+   ================================================================== */
+:root { caret-color: var(--ink); accent-color: var(--accent); }
+::selection { background: var(--accent-weak); color: var(--ink); }
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+a { text-underline-offset: .18em; text-decoration-thickness: .07em; }
+.num, td, th, time, .mono { font-variant-numeric: tabular-nums; }
+::-webkit-scrollbar { width: var(--sp-3); height: var(--sp-3); }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: var(--r-0); }
+
+/* ==================================================================
+   二、三断点结构 token（§10）—— 属于变量层，生产可直接使用
+   --frame / --frame-align 仅用于呈现页的 390px 截图模拟，生产可忽略。
+   ================================================================== */
+@media (min-width: 1024px) {
+  :root {
+    --gutter: 32px; --rail: 72px; --rail-gap: 24px; --anchor-b: 96px;
+    --section-gap: 96px; --navbar-h: 64px;
+    --layout-cols: minmax(0, 1fr) var(--aside-w);
+    --aside-cols: minmax(0, 1fr);
+  }
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  :root {
+    --gutter: 24px; --rail: 72px; --rail-gap: 24px; --anchor-b: 96px;
+    --section-gap: 64px; --navbar-h: 64px;
+    --fs-display: 44px; --fs-h1: 34px; --fs-h2: 28px; --fs-h3: 24px; --fs-lead: 21px;
+    --layout-cols: minmax(0, 1fr);
+    --aside-cols: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 767px) {
+  :root {
+    --gutter: 20px; --rail: 48px; --rail-gap: 16px; --anchor-b: 64px;
+    --section-gap: 48px; --navbar-h: 56px;
+    --frame: 390px; --frame-align: 0;
+    --band-h: 160px;
+    --fs-display: 36px; --fs-h1: 30px; --fs-h2: 26px; --fs-h3: 22px; --fs-lead: 20px;
+    --layout-cols: minmax(0, 1fr);
+    --aside-cols: minmax(0, 1fr);
+  }
+  /* <768px serif 全部回退 sans（§4.1） */
+  .navbar-brand, .article-title, .post-card--lead h1,
+  .article-content blockquote { font-family: var(--font-sans); }
+}
+
+/* ==================================================================
+   三、动效降级（§8.2）：视觉状态保留，只去过程
+   ================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; }
+  .state { animation: none !important; opacity: 1 !important; }
+  .nl-spinner { animation: none !important; }
+  .dropdown-menu { transform: none !important; }
+}
+
+/* ==================================================================
+   四、现有 EJS 类名 → token 映射骨架
+   ------------------------------------------------------------------
+   生产里布局由 public/css/style.css / app.css / responsive-nav.css 负责；
+   下表说明「改哪个变量影响哪些现有类名」，并给出可取消注释的最小替换片段。
+   一律是骨架，不要在参数回填之外提前启用。
+   ================================================================== */
+
+/* 类名映射表（不改代码，只作落地对照）
+   --------------------------------------------------------------------
+   .navbar / .navbar-brand / .nav-primary   → --bg / --border / --navbar-h / --font-serif / --fs-small
+   .nav-primary .current-menu              → 左沿 2px --accent 竖线 + --fw-medium + aria-current
+   .nav-cta                                → 全页唯一实填充主按钮：--accent / --accent-ink / --r-1 / --tap
+   .search-input / .form-control            → --surface / --border-strong / --r-1 / --tap / --fs-small
+   .theme-toggle / .nav-tools               → --ink / --border-strong / --r-1 / --tap
+   .kicker                                 → --fs-small / --muted（无色、无字距、无标签感）
+   .layout / .layout-main / .aside          → --layout-cols / --aside-w / --layout-gap / --aside-cols
+   .register / .reg-rail / .reg-tick       → --rail / --rail-gap / --border / --accent / --tick-w / --tick-h
+   .post-card--lead                        → --fs-display / --font-serif / --band-h / --r-3 / 下方 --section-gap
+   .post-card--grid                        → --fs-h3 / --entry-gap / 1px --border 基线 / 单列无盒
+   .post-card--list                        → --fs-h2 / --entry-gap / 1px --border 基线 / 零封面
+   .post-flag                              → --fs-caption / --muted 纯文字「本期头条」（删药丸徽章）
+   .post-readmore                          → --fs-small / --fw-medium / --ink + 1px 下划线（删 → 装饰符）
+   .post-cover--lead / .reg-band           → --surface-2 平涂 / --r-3（仅此处 12px）
+   .chip / .tag-chips                      → --fs-small / --muted / border-bottom 1px --border-strong / --r-0
+   .pager-link / .pager-link.current       → --tap / --r-1 / --border-strong；current --surface-2 底 + --ink 500
+   .aside-title / .brand-mark / .card--brand → --fs-small / --fw-medium / 1px 横线；brand 20px serif（删 U+276F）
+   .breadcrumb / .breadcrumb .active        → --fs-small / --muted；分隔符 16px 内联 SVG chevron
+   .page-head h1                           → --fs-h1 / --lh-h1 / --fw-medium / text-wrap: balance
+   .article-detail / .article-grid         → --rail | --rail-gap | --measure | --art-gap | --art-note-w
+   .article-title                          → --font-serif / --fs-h1 / --lh-h1 / 锚线 B
+   .article-meta / .article-tags           → 右侧 232px 边注区（承载真实元信息，不是空栏）
+   .article-content                        → min(var(--measure),100%) / --fs-body / --lh-body（17px / 1.75）
+   .article-content h2                     → --fs-h2 / margin 72px 0 24px / balance
+   .article-content h3                     → --fs-h3 / margin 48px 0 16px
+   .article-content pre / code             → --surface-2 凹槽 / --r-1 / --font-mono 14px / 无高亮多色
+   .article-content blockquote             → --font-serif / --fs-lead / padding-left 24px / border 0
+   .article-content table                  → 只留底部 1px --border / th 底 --surface-2 / 外层 overflow-x auto
+   .article-content img                    → max-width min(100%,--measure) / --r-1 / T1 figcaption
+   .state--loading / --empty / --error / --success → tint + ink + 20px 内联 SVG + 人话文案
+   .card                                   → --surface / --r-2 / padding 24 / border 0 / box-shadow none
+   .site-footer                            → 满幅 --surface-2 带 + 顶部 1px --border / --fs-small
+   .btn / .btn-primary                     → --tap / --r-1 / --accent / --accent-ink / --fs-small / --fw-medium
+   .dropdown-menu                          → --surface + --elev + border 0 + --r-2 + --z-dropdown
+   -------------------------------------------------------------------- */
+
+/* 最小替换片段（骨架，取消注释前请先核对现有 app.css 优先级）
+   —— 刻意保持注释状态，避免在生产里与业务样式抢权重。
+
+:root { color-scheme: light dark; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  letter-spacing: var(--ls-body);
+  overflow-x: hidden;
+}
+.container { max-width: var(--wrap); margin-inline: auto; padding-inline: var(--gutter); }
+.navbar {
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  min-height: var(--navbar-h);
+  padding-top: env(safe-area-inset-top);
+}
+.navbar-brand { font-family: var(--font-serif); font-size: var(--fs-brand); line-height: var(--lh-brand); font-weight: var(--fw-medium); }
+.nav-primary a { font-size: var(--fs-small); min-height: var(--tap); border-radius: var(--r-0); }
+.nav-primary .current-menu { border-left: 2px solid var(--accent); font-weight: var(--fw-medium); }
+.btn, .btn-primary, .nav-cta {
+  min-height: var(--tap); padding: 0 20px; border-radius: var(--r-1);
+  font-size: var(--fs-small); font-weight: var(--fw-medium);
+  transition: color var(--motion-color) var(--ease-out),
+              background-color var(--motion-color) var(--ease-out),
+              border-color var(--motion-color) var(--ease-out);
+}
+.btn-primary, .nav-cta { background: var(--accent); color: var(--accent-ink); border: 1px solid var(--accent); }
+.btn-primary:hover, .nav-cta:hover { background: var(--accent-hover); }
+.btn-primary:active, .nav-cta:active { background: var(--accent-press); transition-duration: 0ms; }
+.btn:disabled, .btn[aria-disabled="true"] {
+  background: var(--surface-2); color: var(--muted); border: 1px solid var(--border);
+  cursor: not-allowed;
+}
+.card, .post-card { background: var(--surface); border: 0; box-shadow: none; border-radius: var(--r-2); padding: var(--sp-5); }
+.chip, .pager-link { min-height: var(--tap); border-radius: var(--r-1); }
+.chip { border: 0; border-bottom: 1px solid var(--border-strong); border-radius: var(--r-0); }
+.post-card--grid, .post-card--list { border-top: 1px solid var(--border); padding-top: var(--entry-gap); }
+.article-content { max-width: min(var(--measure), 100%); font-size: var(--fs-body); line-height: var(--lh-body); }
+.article-content h2 { font-size: var(--fs-h2); margin: var(--sp-8) 0 var(--sp-5); text-wrap: balance; }
+.article-content h3 { font-size: var(--fs-h3); margin: var(--sp-7) 0 var(--sp-4); }
+.article-content pre, .article-content code { font-family: var(--font-mono); font-size: var(--fs-small); }
+.article-content pre { background: var(--surface-2); border: 0; border-radius: var(--r-1); overflow-x: auto; }
+.article-content blockquote { font-family: var(--font-serif); font-size: var(--fs-lead); border: 0; padding-left: var(--sp-5); }
+.article-content table th, .article-content table td { border-bottom: 1px solid var(--border); }
+.article-content th { background: var(--surface-2); }
+.site-footer { background: var(--surface-2); border-top: 1px solid var(--border); padding-bottom: env(safe-area-inset-bottom); }
+*/
+
+/* ==================================================================
+   五、规范落地备注（供后续替换生产文案 / 清理贴皮的依据）
+   ------------------------------------------------------------------
+   1) 品牌文案：现有 views/common/sidebar.ejs 的 .brand-desc 是
+      「专业级技术写作引擎…毫秒级全文检索…稳得不像话」这类营销腔，与登记簿气质冲突。
+      后续替换依据（呈现页已按此写）：
+      「自 2014 年起持续登记 · Markdown 写作 · 全文检索 · 按分类归档。
+        现有 814 篇，按归档坐标定位，不做推荐流。」
+      要求：具体可核实的事实，无夸张形容词、无「毫秒级」「稳得不像话」。
+   2) 必须删除的 9 类旧贴皮（DESIGN_LANGUAGE.md §7 删除清单）：
+      U+276F 提示符 + 1.1s 闪烁光标 + @keyframes nl-cursor；
+      深色 body 径向渐变点阵 / 蓝色辉光；
+      .aside-title::before "# " / .chip::before "#" / .site-stat::before U+25CF；
+      .article-content a 渐变下划线生长；
+      .cover scale(1.045) + .post-cover__shine 渐变罩；
+      @keyframes nl-enter 逐节淡入；
+      --font-ui: var(--mono) 套满铬层；
+      .navbar::after 2px 双色渐变条 + 14px 毛玻璃 / color-mix 半透底 / box-shadow。
+      替代物：登记轨 + 归档坐标、三族字体角色分工、三级材质台阶、
+      满幅书脊带 + 单一 1px 底边 + 常驻检索框。
+   3) --font-ui 必须 = --font-sans；mono 只允许 pre/code、登记轨序号日期、表格数字三处。
+   4) 顶栏 search-icon.png 换 20px 内联 SVG；logo.png / share-cover.png 仅元数据，不进页面。
+   ================================================================== */

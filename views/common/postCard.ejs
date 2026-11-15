@@ -7,16 +7,18 @@
   var _date = format(doc.createTime || doc.modifyTime, 'YYYY-MM-DD');
 %>
 <article class="post-card post-card--<%= v %>">
-    <% if (isLead && doc.cover) { %>
-    <a class="post-cover post-cover--lead" href="/content/detail?id=<%= doc._id %>" tabindex="-1" aria-hidden="true">
-        <img class="cover" src="<%= doc.cover %>" alt="<%= doc.name %>" width="1280" height="640" decoding="async">
-        <span class="post-cover__shine" aria-hidden="true"></span>
-    </a>
-    <% } else if (!isList && doc.cover) { %>
+    <% if (doc.cover) { %>
     <a class="post-cover" href="/content/detail?id=<%= doc._id %>" tabindex="-1" aria-hidden="true">
         <img class="cover" src="<%= doc.cover %>" alt="<%= doc.name %>" width="640" height="360"
              decoding="async" loading="lazy">
     </a>
+    <% } %>
+    <% if (!isLead) { %>
+    <div class="reg-rail" aria-hidden="true">
+        <span class="reg-no"><%= (typeof index !== 'undefined' && index) ? ('№' + (index < 10 ? '0' + index : index)) : '' %></span>
+        <span class="reg-date"><%= _date %></span>
+        <span class="reg-year"><%= String(_date).slice(0, 4) %></span>
+    </div>
     <% } %>
     <div class="post-body">
         <% if (isLead) { %><span class="post-flag">精选</span><% } %>

@@ -3,6 +3,10 @@
 <input type="hidden" class="js-doc-id" value="<%- doc._id %>"/>
 
 <article class="article-detail">
+    <div class="article-rail" aria-hidden="true">
+        <div class="reg-date"><%= format(doc.createTime, "YYYY-MM-DD") %></div>
+        <% if (doc.readingTime) { %><div class="reg-time"><%= doc.readingTime %> min</div><% } %>
+    </div>
     <ol class="breadcrumb" aria-label="面包屑">
         <li><a href="/" title="首页">首页</a></li>
         <li><a href="/content/category?categoryId=<%= doc.category %>&page=1" title="<%= doc.categoryName || '未分类' %>"><%= doc.categoryName || '未分类' %></a></li>
