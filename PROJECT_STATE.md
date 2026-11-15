@@ -4,7 +4,7 @@
 
 ## 1. 目标与阶段
 - 一句话目标：为 NODELOG 前台重定义一套独特、高端、统一、可落地的设计语言，解决「排版辨识度不足、风格偏普通」，并交付首页/列表页/文章页的明暗 × 移动端应用效果。
-- 当前阶段：Phase 3（生产落地）**已完成**——「登记簿 / The Numbered Register」已落到 `public/css/theme.css` + 改写 `views/**/*.ejs`，删尽 9 类贴皮，新增登记轨系统。
+- 当前阶段：Phase 4（生产落地 · 方向切换）**已完成**——「云笺 · Cloudletter」已**替换**「登记簿 / The Numbered Register」落到生产：`public/css/theme.css` 令牌层与组件全面改写为蓝绿双色 + 柔光卡 + 胶囊按钮 + 720px 阅读栏 + featured/grid/compact 列表；改写 `views/**/*.ejs` 套用新结构。Phase 3 的登记簿令牌已整体退役。
 - 档位：小组（交付总监 + 设计师 + 前端）
 - 形态判定：**设计语言规范 + 高保真呈现页**（不是改生产代码，不动后端）。用户要的是「规范 + 关键参数 + 页面应用效果，便于直接用于前端实现」。
 
@@ -30,6 +30,17 @@
   - 自查：P0 红项 grep —— `transition:all`=0、`backdrop-filter`=0、`ch` 仅注释、`color-mix` 仅注释、贴皮 emoji 符号=0；`postCard.ejs` 经 ejs 编译校验通过（输出含 `reg-rail`/`№03`、无 `--lead`/shine）。
   - 未做：本环境无 `mongod`，未跑真渲染截图（上次 12 张真渲染用于规范页，生产落地为机械式 CSS/EJS 改，建议用户本地 `node ./bin/www` + Chrome 复验。
 
+- [x] Phase 4 生产落地（用户回复 `1` 选「采用云笺替换登记簿」，再回复「开始落地」后执行）：以 `design-language/cloudletter-design-language.md` 为契约、`cloudletter-preview.html` 为呈现页验收，把「云笺 · Cloudletter」落到生产，**整体替换** Phase 3 的登记簿。
+  - `public/css/theme.css`：令牌层全面改写——蓝 `#2563EB` + 绿 `#10B981` 双色、`--bg:#EEF2FA` 浅薰衣草蓝底、`--surface:#FFF`、`--ink:#1F2937`；8 档字阶（正文 17/1.8 不缩）；间距 `--sp-1..9`；圆角刻度 `xs6/sm8/12/lg16/pill999`；阴影三档 `--shadow-sm/--shadow/--shadow-lg` + `--glow-accent` 彩色微光；栅格 `--wrap:1200`/`--measure:720`/`--aside:280`；动效变量沿用。**删登记簿**：`.register`/`.reg-rail`/`.article-rail`/`.post-flag`(保留样式)/登记轨变量/九槽青绿全部移除。**新增 Cloudletter 组件**：`.card`(白底+16px圆角+柔光+`.hov` hover 抬升)/`.post-card--lead`(featured 大卡，封面 21/9 圆角)/`.post-card--grid`(两列卡)/`.post-card--list`(紧凑归档行，mono 日期+标题+基线分隔)/`.cat`(pastel 胶囊分类)/`.pill`+`.section-head`(栏目头范式)/`.reading`+`.lead`(720 阅读栏+首段导读)/`.comments`(评论卡)/`.btn-accent2`(绿次按钮)/品牌 `.brand-mark`+`.card--brand`；导航新增 `.brand-mark-sq` 渐变方标 + `.blog-tag` + 分类菜单 hover/current `::after` 下划线滑入；`.navbar` 改为 `surface` 白底 + `--shadow-sm`；`:root` 重建 `--accent-2:#10B981` 后台兼容别名（保 `views/manager/index.ejs` 渐变）。
+  - `views/common/postCard.ejs`：三形态——lead=featured 大卡(`.card.hov`+封面 21/9+`.cat`+h1+`.post-flag`+excerpt+`.post-readmore`+chips)；grid=两列卡(`.card.hov`+顶圆角封面+`.cat`+h3+excerpt+chips)；list=紧凑行(无卡，`.post-date` 为 grid 直接子列 + h2 + meta)；删 `.reg-rail`。
+  - `views/index.ejs`：首篇 lead(featured) + `.section-head`(栏目头) + 其余 `.post-grid` 两列；删 `register` 类与 kicker 重复。
+  - `views/contentPanel.ejs`：`.post-grid` 两列卡（category/search/myContent 共用）；删 `register`。
+  - `views/contentDetail.ejs`：`.article-detail.reading`(720 左对齐) 去 `.article-rail`；新增 `.lead` 首段导读(取 `doc.excerpt`)；评论区 `<section class="card comments">`；整页用 `.article-shell` 收进 720 居中壳层（文章页无侧栏，避免右侧大片留白 + 表单卡与正文等宽对齐）。
+  - `views/common/sidebar.ejs`：品牌文案去「登记簿」口吻，改云笺文案。
+  - `views/header.ejs`：品牌加 `.brand-mark-sq` 渐变方标 + `.blog-tag` BLOG 胶囊；CTA 由 `btn-primary` 改 `btn-accent2`(绿)。
+  - 验收：EJS 全量编译 + 含 include 的整页渲染冒烟（mock 数据）通过；本机 Chrome 无头真渲染截图（首页 light/dark 1280×2200、文章 light 1280×2400）确认——白吸顶栏+渐变 N 标+BLOG 胶囊、featured 柔光大卡、两列网格卡、栏目头、侧栏、页脚、720 阅读栏(标题40/blockquote 4px 竖条/code 块/表格)、评论卡、深色 navy 调性均正确；零横向溢出。
+  - 已知小项（非阻断）：文章页无侧栏故阅读栏居中而非左对齐（刻意，避免右侧空）；网格卡无封面时高度参差（生产文章普遍有封面）；P0 红项 grep 全 0（无 `transition:all`/`backdrop-filter`/`color-mix`/`ch`/emoji 图标）。
+
 ## 3. 验收结论（门禁红项全部误判 / 设计意图内，无真实阻断）
 - `design_presence_check`：4 FAIL 因把**内容站误判为营销页**（满宽色块 / 展示级 ≥3.5× 大标题 / 插画大图 / 2+ 种 section 内边距 均为营销标准）；内容站相关的 构图多样性 / 非卡片内容块 / 示意图 / 明度层级 4 项 PASS。
 - `layout_variety_check`：10 FAIL 因把「连续编年登记流」（A 决策，故意不用卡片网格）记为家族重复 + 真实长文章标题超 20 字营销上限。
@@ -41,15 +52,16 @@
 ## 4. 已决策（原待决策已闭环）
 | 问题 | 结论 |
 |---|---|
-| 视觉方向 | **采纳「登记簿 / The Numbered Register」**（用户确认） |
-| 是否落地生产 | **授权落地改生产文件**（用户确认）；参考站 jiangzi.xin / saas.jiangzi.xin 经实抓分析判定**不参考**（两套体系不统一、品类不匹配、手法触发 P0） |
+| 视觉方向 | **先采纳「登记簿 / The Numbered Register」**（Phase 3 落地）；后对照参考站 `saas.jiangzi.xin` 母本出「云笺 · Cloudletter」呈现页验收，用户回复「开始落地」**切换为 Cloudletter 并替换登记簿**（Phase 4） |
+| 是否落地生产 | **授权落地改生产文件**（用户确认）；参考站 jiangzi.xin / saas.jiangzi.xin 经实抓分析判定**不参考**（两套体系不统一、品类不匹配、手法触发 P0）——但 saas 的「蓝绿双色 / 圆润 / 柔光 / 留白」调性被抽取为 Cloudletter 母本 |
 
 ## 5. 下一步
-1. 用户本地 `node ./bin/www`（需 MongoDB）起服，Chrome 复验首页/列表/文章三页明暗 × 桌面/移动，重点看 72px 左缘登记轨三页对齐、17px 不缩、移动端零横向滚动。
-2. 若需微调：深色 `--muted` 小字号偏淡（已知小项）可按 §3 微调；登记轨序号当前为分页内 1-based，如需全站连续序号由路由传入全局序号。
+1. 用户本地 `node ./bin/www`（需 MongoDB）起服，Chrome 复验首页/列表/文章三页明暗 × 桌面/移动，重点看蓝绿双色、featured/grid 卡片、720 阅读栏、评论卡、深色 navy 调性是否对齐呈现页 `design-language/cloudletter-preview.html`。
+2. 若需微调：网格卡无封面时的高度参差、深色 `--muted` 小字号偏淡（已知小项，可按 §3 微调）。
+3. 后台 `views/manager/**` 仍走 `style.css`/`docs.min.css`，本次只动了前台 `theme.css` 令牌——后台渐变依赖 `--accent-2` 已从青绿改为绿 `#10B981`，需顺手在后台起服时扫一眼导航/按钮配色。
 
 ## 6. 边界与约束（实读事实，勿重复排查）
-- 工作区 `master` 已有他人未提交改动，**本轮只在 `design-language/` 新建文件**，不碰 `theme.css` / `views` / `DESIGN.md` / `design-tokens.json` / `design-choice.json`。
+- 工作区 `master` 已有他人未提交改动；Phase 3 曾约束「只在 `design-language/` 新建文件」，Phase 4（用户授权「开始落地」）**已解除该约束**，正式改 `public/css/theme.css` 与 `views/**/*.ejs`。
 - 既有契约是上一轮继承式产物，本次是「换视觉世界」不是收口。
 - 现有视觉问题根因：`theme.css:148–207` 终端贴皮 + 通用墨蓝 `#1d4ed8` + 系统字体一把梭 + 卡片网格到底。
 - 站点自称「打造最快的搜索体验」，作者「匠子心」，无可用真实摄影图（故头条默认「登记带」而非封面）。

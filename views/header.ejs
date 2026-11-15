@@ -16,7 +16,11 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
         </button>
-        <a class="navbar-brand" href="/"><%=session.site.name %></a>
+        <a class="navbar-brand" href="/">
+            <span class="brand-mark-sq"><%= (session.site.name || 'N').charAt(0) %></span>
+            <span class="brand-name"><%=session.site.name %></span>
+            <span class="blog-tag">BLOG</span>
+        </a>
     </div>
     <div class="collapse navbar-collapse" id="example-navbar-collapse">
         <!-- 区一：主导航，只放内容目的地 -->
@@ -40,7 +44,7 @@
         <!-- 区二：动作与工具（CTA / 搜索 / 主题 / 账号） -->
         <ul class="nav navbar-nav nav-tools" aria-label="工具与账号">
             <% zones.cta.forEach(function(item){ %>
-            <li><a href="<%= item.href %>" title="<%= item.title %>" class="btn btn-primary nav-cta <%= item.className %>"><%= item.label %></a></li>
+            <li><a href="<%= item.href %>" title="<%= item.title %>" class="btn btn-accent2 nav-cta <%= item.className %>"><%= item.label %></a></li>
             <% }); %>
             <li class="dropdown js-search-bar search-bar">
                 <input type="search" id="nl-site-search" data-toggle="dropdown" maxlength="50"
