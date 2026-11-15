@@ -1,0 +1,110 @@
+<%
+  /* =========================================================================
+   * 后台统一数据列表组件（配置驱动）。由各列表页 include 并传入 list + docs。
+   *
+   * 与现有前端委托（public/js/common.js IIFE#2）契约一致，输出的 DOM 类名/属性
+   * 与 8 个既有后台页手写表格完全相同，因此无需改任何 JS 即可生效：
+   *   - 批次复选：<td><input class="js-batch-check" value="<id>"></td>
+   *   - 状态开关：<input class="js-admin-status" data-id data-status> + <span class="js-status-label">
+   *   - 编辑：<button class="js-admin-edit" data-id data-title [data-edit-api]>
+   *   - 删除：<button class="js-admin-delete" data-id>
+   *   - 行回传属性：<tr data-id data-名称=...> 供编辑弹层 prefill 与防环
+   *
+   * list = {
+   *   columns: 必填。[{ key, label, type, width, align, default }]
+   *            type: 'index'（序号）| 'text'（默认）| 'link'（type:'link' 配合 list.linkBase）
+   *                  | 'status'（状态开关，读 row.status 0/1）| 'date'（format 全局格式化，缺失则降级）
+   *                  | 'raw'（已转义 HTML 字符串，控制器预生成）
+   *   selectable:  首列复选框（批量操作），默认 false
+   *   rowKey:      行 id 字段名，默认 '_id'
+   *   rowData:     { data属性名: 行字段名 } —— 输出到 <tr data-xxx>，供编辑回填/防环
+   *   actions:     true(默认 edit+delete) | false(无操作列) | [{type:'detail'|'edit'|'delete', base?, api?, title?}]
+   *   linkBase:    type:'link' 列的统一跳转前缀（生成 ?id=<行id>）
+   *   res / base:  资源键 / 列表基础路径（语义标注，多数委托从 .admin-toolbar 读取）
+   *   emptyTitle / emptyHint: 空态文案（缺省按是否带筛选自动判断）
+   * }
+   * docs: 行数组（Mongoose 文档或已 decorate 的 POJO，需含 rowKey 与 rowData 各字段）
+   * ========================================================================= */
+  var _list = (typeof list !== 'undefined' && list) ? list : {};
+  var _cols = (_list.columns && _list.columns.length) ? _list.columns : [];
+  var _docs = (typeof docs !== 'undefined' && Array.isArray(docs)) ? docs : [];
+  var _sel = !!_list.selectable;
+  var _rk = _list.rowKey || '_id';
+  var _rd = (_list.rowData && typeof _list.rowData === 'object') ? _list.rowData : {};
+  var _linkBase = _list.linkBase || '';
+  var _actions = (_list.actions === false) ? [] : (_list.actions || [{type:'edit'}, {type:'delete'}]);
+  function _rid(row){ return String(row[_rk] == null ? '' : row[_rk]); }
+  function _stOf(row){ var s = row.status; return (s === 1 || String(s) === '1') ? '1' : '0'; }
+  function _safe(v){ return (v == null) ? '' : String(v); }
+  function _fmt(v){
+    if (v == null || v === '') return '';
+    if (typeof format === 'function') { try { return format(v); } catch (e) {} }
+    if (v instanceof Date) {
+      function p(n){ return (n < 10 ? '0' : '') + n; }
+      return v.getFullYear() + '-' + p(v.getMonth() + 1) + '-' + p(v.getDate()) + ' ' + p(v.getHours()) + ':' + p(v.getMinutes());
+    }
+    return String(v);
+  }
+  function _hasFilters(){ return !!(locals && locals.filters && Object.keys(locals.filters).length); }
+%>
+<% if (!_cols.length) { %>
+  <%- include('state', {kind:'error', size:'inline', title:'列表未配置列', text:'请为 admin-list 传入 list.columns。'}) %>
+<% } else if (!_docs.length) { %>
+  <%- include('state', {
+        kind:'empty', size:'inline',
+        title: (_list.emptyTitle || (_hasFilters() ? '没有符合条件的记录' : '暂无数据')),
+        text: (_list.emptyHint || (_hasFilters() ? '试试调整筛选条件或重置' : ''))
+     }) %>
+<% } else { %>
+<table class="manager table table-hover nl-admin-list" data-res="<%= _list.res || '' %>">
+  <thead>
+    <tr>
+      <% if (_sel) { %><th class="nl-col-select" scope="col"><input type="checkbox" class="js-batch-all" aria-label="全选本页"></th><% } %>
+      <% _cols.forEach(function (c) {
+           var _style = '';
+           if (c.width) _style += 'width:' + c.width + ';';
+           if (c.align) _style += 'text-align:' + c.align + ';';
+      %><th class="nl-col-<%= c.type || 'text' %>" scope="col"<% if (_style) { %> style="<%= _style %>"<% } %>><%= c.label %></th><% }); %>
+      <% if (_actions.length) { %><th class="nl-col-actions" scope="col">操作</th><% } %>
+    </tr>
+  </thead>
+  <tbody>
+  <% _docs.forEach(function (row, i) {
+       var _id = _rid(row);
+       var _st = _stOf(row);
+  %>
+    <tr data-id="<%= _id %>"<% Object.keys(_rd).forEach(function (attr) { var f = _rd[attr]; if (row[f] != null) { %> data-<%= attr %>="<%= _safe(row[f]) %>"<% } }); %>>
+      <% if (_sel) { %><td class="nl-col-select"><input type="checkbox" class="js-batch-check" value="<%= _id %>" aria-label="选择第 <%= i + 1 %> 项"></td><% } %>
+      <% _cols.forEach(function (c) {
+           var _v = row[c.key];
+           var _t = c.type || 'text';
+      %>
+        <% if (_t === 'index') { %>
+          <td class="nl-col-index"><%= i + 1 %></td>
+        <% } else if (_t === 'link') { %>
+          <td><a href="<%= _linkBase ? (_linkBase + '?id=' + _id) : '#' %>"><%= _safe(_v) %></a></td>
+        <% } else if (_t === 'status') { %>
+          <td class="nl-col-status"><label class="admin-status-toggle">
+            <input type="checkbox" class="js-admin-status" data-id="<%= _id %>" data-status="<%= _st %>"<%= _st === '0' ? ' checked' : '' %>>
+            <span class="js-status-label"><%= _st === '1' ? '禁用' : '正常' %></span>
+          </label></td>
+        <% } else if (_t === 'date') { %>
+          <td class="nl-col-date"><%= _fmt(_v) %></td>
+        <% } else if (_t === 'raw') { %>
+          <td><%- _v == null ? '' : _v %></td>
+        <% } else { %>
+          <td><%= _safe(_v) %><% if (c.default && (_v == null || _v === '')) { %> <%= c.default %><% } %></td>
+        <% } %>
+      <% }); %>
+      <% if (_actions.length) { %><td class="nl-col-actions admin-col-actions"><span class="admin-row-actions">
+        <% _actions.forEach(function (a) {
+             if (a.type === 'detail') { %><a class="nl-link" href="<%= (a.base || _linkBase) ? ((a.base || _linkBase) + '?id=' + _id) : '#' %>">详情</a><% }
+             else if (a.type === 'edit') { %><button type="button" class="btn btn-sm js-admin-edit" data-id="<%= _id %>" data-title="<%= a.title || '记录' %>"<% if (a.api) { %> data-edit-api="<%= a.api %>"<% } %>>编辑</button><% }
+             else if (a.type === 'delete') { %><button type="button" class="btn btn-sm btn-danger js-admin-delete" data-id="<%= _id %>">删除</button><% }
+        }); %>
+      </span></td><% } %>
+    </tr>
+  <% }); %>
+  </tbody>
+</table>
+<% } %>

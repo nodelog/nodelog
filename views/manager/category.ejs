@@ -32,57 +32,27 @@
       ]}
   } }) %>
   <div class="bg-white jumbotron clear-margin">
-    <% var _docs = Array.isArray(docs) ? docs : []; %>
-    <% if (_docs.length > 0) { %>
-    <table class="table table-hover">
-      <thead>
-      <tr>
-        <th class="admin-col-check" aria-label="选择"></th>
-        <th>编号</th>
-        <th>名称</th>
-        <th>父分类</th>
-        <th>触发词</th>
-        <th>标识</th>
-        <th>排序</th>
-        <th>创建时间</th>
-        <th>修改时间</th>
-        <th class="admin-col-status">状态</th>
-        <th class="admin-col-actions">操作</th>
-      </tr>
-      </thead>
-      <tbody>
-      <% _docs.forEach(function (d, i) { %>
-        <% var _id = String(d._id == null ? '' : d._id); %>
-        <% var _nm = String(d.name == null ? '' : d.name); %>
-        <% var _st = (d.status === 1 || String(d.status) === '1') ? '1' : '0'; %>
-        <% var _stTxt = _st === '1' ? '禁用' : '正常'; %>
-        <% var _href = safeHref('/manager/category/detail?id=' + _id); %>
-        <tr data-id="<%= _id %>" data-name="<%= _nm %>" data-slug="<%= d.slug || '' %>" data-order="<%= d.order == null ? 0 : d.order %>" data-keywords="<%= d.keywords || '' %>" data-parent="<%= d.parent ? String(d.parent) : '' %>" data-status="<%= _st %>">
-          <td><input type="checkbox" class="js-batch-check" value="<%= _id %>" aria-label="选择 <%= _nm %>"></td>
-          <td><%= i + 1 %></td>
-        <td><a href="<%= _href %>"><%= _nm %></a></td>
-        <td><%= d.parentName || '—' %></td>
-        <td><%= d.keywords || '' %></td>
-        <td><%= d.slug || '' %></td>
-          <td><%= d.order == null ? 0 : d.order %></td>
-          <td><%= format(d.createTime) %></td>
-          <td><%= format(d.modifyTime) %></td>
-          <td><label class="admin-status-toggle">
-              <input type="checkbox" class="js-admin-status" data-id="<%= _id %>" data-status="<%= _st %>" <%= _st === '0' ? 'checked' : '' %>>
-              <span class="js-status-label"><%= _stTxt %></span>
-            </label></td>
-          <td class="admin-col-actions"><span class="admin-row-actions">
-              <a href="<%= _href %>">详情</a>
-              <button type="button" class="js-admin-edit" data-id="<%= _id %>" data-title="分类">编辑</button>
-              <button type="button" class="js-admin-delete" data-id="<%= _id %>">删除</button>
-            </span></td>
-        </tr>
-      <% }); %>
-      </tbody>
-    </table>
+    <%- include('../common/admin-list', { list: {
+        selectable: true,
+        res: 'category',
+        linkBase: '/manager/category/detail',
+        rowKey: '_id',
+        rowData: {name:'name', slug:'slug', order:'order', keywords:'keywords', parent:'parent', status:'status'},
+        actions: [{type:'edit', api:'/manager/category/modify', title:'分类'}, {type:'delete'}],
+        columns: [
+          {key:'seq', label:'编号', type:'index'},
+          {key:'name', label:'名称', type:'link'},
+          {key:'parentName', label:'父分类', type:'text', default:'—'},
+          {key:'keywords', label:'触发词'},
+          {key:'slug', label:'标识'},
+          {key:'order', label:'排序'},
+          {key:'createTime', label:'创建时间', type:'date'},
+          {key:'modifyTime', label:'修改时间', type:'date'},
+          {key:'status', label:'状态', type:'status'}
+        ]
+      }, docs: docs }) %>
+    <% if (Array.isArray(docs) && docs.length) { %>
     <%- include('../common/adminPager', { url: url, page: page, totalPage: totalPage }) %>
-    <% } else { %>
-    <%- include('../common/state', { kind:'empty', size:'inline', title:(locals.filters && Object.keys(locals.filters).length > 0) ? '没有符合条件的分类' : '暂无分类', text:(locals.filters && Object.keys(locals.filters).length > 0) ? '试试调整筛选条件或重置' : '' }) %>
     <% } %>
   </div>
 </div>
