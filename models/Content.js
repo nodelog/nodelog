@@ -317,6 +317,25 @@ ContentDAO.prototype.findBySourceApp = function (appId, callback) {
             callback(err, docs || []);
         });
 };
+// 一次聚合统计多个应用的文章数，消除 list 里的 N+1 查询。返回 {appIdString: count}。
+ContentDAO.prototype.countBySourceApps = function (appIds, callback) {
+    if (!appIds || !appIds.length) return callback(null, {});
+    var ObjectIdType = mongodb.mongoose.Types.ObjectId;
+    var oids = [];
+    appIds.forEach(function (id) {
+        try { oids.push(new ObjectIdType(String(id))); } catch (e) { /* 跳过非法 id */ }
+    });
+    if (!oids.length) return callback(null, {});
+    ContentModel.aggregate([
+        {$match: {sourceAppId: {$in: oids}, status: {$ne: constants.CONTENT_UNABLE_STATUS}}},
+        {$group: {_id: '$sourceAppId', n: {$sum: 1}}}
+    ]).exec(function (err, rows) {
+        if (err) return callback(err);
+        var map = {};
+        (rows || []).forEach(function (r) { map[String(r._id)] = r.n; });
+        callback(null, map);
+    });
+};
 ContentDAO.prototype.getCountByWord = function (word, currentUser, callback) {
     var term;
     if (currentUser == null) {

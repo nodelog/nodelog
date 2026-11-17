@@ -1,7 +1,13 @@
 /**
  * 公告发布 API 的逻辑回归（用内存 mock 替掉 Log DAO，无需 MongoDB）。
  * 运行：node tests/announcement-api.test.js
- * 重点验证：commitHash 幂等、Token 鉴权、HTML 转义、非法入参拒绝。
+ *
+ * v3 说明：
+ *   - 鉴权已统一为应用凭证（adminOnly），由 controllers/announcementApi.js 在模块加载时
+ *     绑定 articleApi.authenticate({adminOnly:true})；真实鉴权（AppID+签名换 token、
+ *     adminOnly 校验等）由 scripts/test-api-credential.js 完整覆盖，此处 stub 掉以便专注逻辑。
+ *   - 静态 token 已彻底废弃，不再有 ANNOUNCEMENT_API_TOKENS / settings.js token 回退。
+ *   - 重点验证发布逻辑：commitHash 幂等、HTML 转义、非法入参拒绝、优化类提交、已下架不重发。
  */
 'use strict';
 
@@ -27,7 +33,18 @@ require.cache[logPath] = {
 };
 
 var TOKEN = 'a1b2c3d4e5f60718293a4b5c6d7e8f90';
-process.env.ANNOUNCEMENT_API_TOKENS = TOKEN;
+
+// v3：announcementApi.js 在模块加载时即执行 articleApi.authenticate({adminOnly:true})。
+// 这里在 require 之前替换被缓存 articleApi 模块的 authenticate，注入轻量 stub，
+// 让本测试只关注发布逻辑，不依赖 cred.init()/MongoDB。真实鉴权见 scripts/test-api-credential.js。
+var articleApi = require('../controllers/articleApi');
+articleApi.authenticate = function () {
+    return function (req, res, next) {
+        var h = req.headers['authorization'] || req.headers['x-api-token'] || '';
+        if (!h) return res.status(401).json({ success: false });
+        next();
+    };
+};
 var api = require('../controllers/announcementApi');
 
 function fakeRes() {
@@ -129,19 +146,15 @@ t('已下架(status=1)的公告不会被 hook/CI 自动重发', function () {
     assert.strictEqual(store.length, 1, '不得再插入一条同名公告');
 });
 
-t('未设环境变量时，复用 settings.js 的 articleApi.tokens 通过鉴权', function () {
-    var settings = null;
-    try { settings = require('../settings'); } catch (e) { settings = null; }
-    var list = settings && settings.articleApi && settings.articleApi.tokens;
-    if (!list || !list.length) {
-        console.log('    (本机无 settings.js articleApi 配置，跳过该环境相关断言)');
-        return;
-    }
-    delete process.env.ANNOUNCEMENT_API_TOKENS;   // 强制走 settings.js 回退
+t('v3 鉴权：真实 adminOnly 应用凭证鉴权由脚本覆盖，此处仅验证 stub 备用请求头', function () {
+    // v3：静态 token 已彻底废弃；真实的应用凭证鉴权（AppID+签名换 token、adminOnly 校验）
+    // 由 scripts/test-api-credential.js 完整覆盖，不再断言任何静态 token 可通过鉴权。
+    // 此处只验证注入的鉴权中间件对 X-API-Token 备用请求头的放行行为。
     var res = fakeRes();
     var next = false;
-    api.auth({ headers: { authorization: 'Bearer ' + list[0].token } }, res, function () { next = true; });
-    assert.strictEqual(next, true, 'settings.js 的 articleApi token 应被公告接口接受');
+    api.auth({ headers: { 'x-api-token': 'any-access-token' } }, res, function () { next = true; });
+    assert.strictEqual(next, true, 'stub 鉴权应接受 X-API-Token 备用请求头');
+    console.log('    (真实 adminOnly 应用凭证鉴权见 scripts/test-api-credential.js，静态 token 已废弃)');
 });
 
 console.log('\n全部通过：' + passed + ' 项');

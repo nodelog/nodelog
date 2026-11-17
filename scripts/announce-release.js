@@ -10,11 +10,14 @@
  *   node scripts/announce-release.js --backfill --scope=feature        # 只补发新功能（旧行为）
  *   node scripts/announce-release.js --head --base=http://127.0.0.1:3000
  *
- * Token 读取顺序（与文章发布 API 保持同一套配置习惯）：
- *   命令行 --token > 环境变量 > settings.js 的 announcementApi.tokens > settings.js 的 articleApi.tokens。
- *   因此本机/服务器只要已有 settings.js 的 articleApi 配置即可开箱运行，无需新增环境变量；
- *   CI 上没有 settings.js（已 gitignore），用 Secret ANNOUNCE_API_TOKEN 注入。
+ * 鉴权（v3 应用凭证，零静态 token）：
+ *   先在后台「应用管理」创建应用并绑定一个管理员用户（role===0），复制其 AppID / AppSecret。
+ *   凭据读取顺序：命令行 --app-id / --app-secret > 环境变量 ANNOUNCE_APP_ID / ANNOUNCE_APP_SECRET。
+ *   脚本用 AppID + AppSecret 在本地做 HMAC-SHA256 签名，POST /api/auth/token 换取短期 access_token，
+ *   再以 Bearer <access_token> 调用公告接口；token 进程内缓存，到期前 60 秒视为过期并重新换取。
+ *   settings.js 已零密钥且被 gitignore，不再从中读取任何 token / secret。
  *   其余可用环境变量：ANNOUNCE_API_BASE（默认 https://blog.jiangzi.xin）、ANNOUNCE_REPO_URL。
+ *   注意：公告接口为 adminOnly，应用必须绑定管理员用户，否则即使换到 token 调用公告接口仍会 401。
  *
  * 设计要点：
  *   - 新功能/优化判定与公告文案生成全部复用 services/releaseNote.js，与服务端零分叉。
@@ -29,6 +32,7 @@ var fs = require('fs');
 var path = require('path');
 var http = require('http');
 var https = require('https');
+var crypto = require('crypto');
 var cp = require('child_process');
 var note = require('../services/releaseNote');
 
@@ -36,6 +40,10 @@ var ROOT = path.resolve(__dirname, '..');
 var QUEUE_DIR = path.join(ROOT, '.announce-queue');
 var DEFAULT_BASE = 'https://blog.jiangzi.xin';
 var REQUEST_TIMEOUT_MS = 8000;
+
+// access_token 进程内缓存；expiresAt 为绝对毫秒时间戳，提前 60 秒视为过期
+var TOKEN_CACHE = { token: '', expiresAt: 0 };
+var TOKEN_REFRESH_MARGIN_MS = 60000;
 
 var opt = {
     mode: 'head',
@@ -45,7 +53,8 @@ var opt = {
     limit: 0,
     pattern: null,
     base: '',
-    token: '',
+    appId: '',
+    appSecret: '',
     repoUrl: '',
     queue: true,
     csv: '',
@@ -63,7 +72,11 @@ function parseArgs(argv) {
         else if (a.indexOf('--since=') === 0) opt.since = a.slice(8);
         else if (a.indexOf('--limit=') === 0) opt.limit = parseInt(a.slice(8), 10) || 0;
         else if (a.indexOf('--base=') === 0) opt.base = a.slice(7);
-        else if (a.indexOf('--token=') === 0) opt.token = a.slice(8);
+        else if (a.indexOf('--app-id=') === 0) opt.appId = a.slice(9);
+        else if (a.indexOf('--app-secret=') === 0) opt.appSecret = a.slice(13);
+        else if (a.indexOf('--token=') === 0) {
+            fail('--token 已废弃：v3 已移除静态 Token，请改用 --app-id= 与 --app-secret=。' + credentialHint());
+        }
         else if (a.indexOf('--repo-url=') === 0) opt.repoUrl = a.slice(11);
         else if (a.indexOf('--csv=') === 0) opt.csv = a.slice(6);
         else if (a.indexOf('--scope=') === 0) {
@@ -82,6 +95,12 @@ function parseArgs(argv) {
     });
 }
 
+function credentialHint() {
+    return '请在后台「应用管理」创建应用并绑定管理员用户，复制其 AppID/AppSecret 到环境变量 ' +
+        'ANNOUNCE_APP_ID / ANNOUNCE_APP_SECRET（也可用 --app-id= / --app-secret= 传入）。' +
+        '公告接口仅允许绑定管理员用户的应用调用。';
+}
+
 function printHelp() {
     console.log([
         '站点更新公告自动发布 / 历史补发（默认：新功能 + 优化升级）',
@@ -95,11 +114,14 @@ function printHelp() {
         '  --limit=N           最多处理 N 条提交',
         '  --pattern=REGEX     额外的自定义匹配规则',
         '  --base=URL          站点地址（默认 ' + DEFAULT_BASE + '）',
-        '  --token=TOKEN       API Token',
+        '  --app-id=APPID      应用 AppID（或环境变量 ANNOUNCE_APP_ID）',
+        '  --app-secret=SECRET 应用 AppSecret（或环境变量 ANNOUNCE_APP_SECRET）',
         '  --repo-url=URL      代码仓库地址（用于公告里的变更链接）',
-        '  --csv=FILE          导出后台批量导入格式的 CSV（无需部署新接口即可补发）',
+        '  --csv=FILE          导出后台批量导入格式的 CSV（无需换 token 即可补发）',
         '  --no-queue          禁用失败排队重试',
-        '  --quiet             精简输出'
+        '  --quiet             精简输出',
+        '鉴权：后台创建绑定管理员用户的应用，复制 AppID/AppSecret 到 ANNOUNCE_APP_ID / ANNOUNCE_APP_SECRET。',
+        '      ' + credentialHint()
     ].join('\n'));
 }
 
@@ -130,32 +152,11 @@ function repoUrl() {
     return raw;
 }
 
-function firstToken(list) {
-    if (!Array.isArray(list)) return '';
-    for (var i = 0; i < list.length; i++) {
-        if (list[i] && typeof list[i].token === 'string' && list[i].token.trim()) {
-            return list[i].token.trim();
-        }
-    }
-    return '';
-}
-
-function token() {
-    var fromEnv = opt.token ||
-        String(process.env.ANNOUNCE_API_TOKEN || '').trim() ||
-        String(process.env.ANNOUNCEMENT_API_TOKENS || '').split(',')[0].trim() ||
-        String(process.env.ARTICLE_API_TOKENS || '').split(',')[0].trim();
-    if (fromEnv) return fromEnv;
-
-    // 与文章发布 API 同一套配置：直接复用 settings.js 里的 articleApi.tokens。
-    // settings.js 被 gitignore，CI 上不存在，此时 catch 后由环境变量/Secret 兜底。
-    try {
-        var s = require('../settings');
-        return firstToken(s && s.announcementApi && s.announcementApi.tokens) ||
-            firstToken(s && s.articleApi && s.articleApi.tokens);
-    } catch (e) {
-        return '';
-    }
+// v3：不再读 settings.js / 静态 token，凭据只来自 CLI 参数或环境变量
+function credentials() {
+    var appId = String(opt.appId || process.env.ANNOUNCE_APP_ID || '').trim();
+    var appSecret = String(opt.appSecret || process.env.ANNOUNCE_APP_SECRET || '').trim();
+    return { appId: appId, appSecret: appSecret };
 }
 
 function base() {
@@ -245,23 +246,25 @@ function writeCsv(payloads) {
 }
 
 // ---------- HTTP ----------
-function post(payload, tok) {
+// 统一 POST JSON：tok 非空时带 Bearer 头。返回 { status, body } 或 { err }。
+function httpJson(baseUrl, pathname, bodyObj, tok) {
     return new Promise(function (resolve) {
         var url;
-        try { url = new URL('/api/announcements', base()); }
-        catch (e) { return resolve({ err: '站点地址非法：' + base() }); }
+        try { url = new URL(pathname, baseUrl); }
+        catch (e) { return resolve({ err: '站点地址非法：' + baseUrl }); }
         var mod = url.protocol === 'https:' ? https : http;
-        var data = Buffer.from(JSON.stringify(payload), 'utf8');
+        var data = Buffer.from(JSON.stringify(bodyObj), 'utf8');
+        var headers = {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Content-Length': data.length
+        };
+        if (tok) headers['Authorization'] = 'Bearer ' + tok;
         var req = mod.request({
             hostname: url.hostname,
             port: url.port || (url.protocol === 'https:' ? 443 : 80),
             path: url.pathname,
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json; charset=utf-8',
-                'Content-Length': data.length,
-                'Authorization': 'Bearer ' + tok
-            },
+            headers: headers,
             // hook 场景尽量少占用 commit 时间；补发场景可稍长
             timeout: opt.mode === 'head' ? 3000 : REQUEST_TIMEOUT_MS
         }, function (res) {
@@ -278,6 +281,55 @@ function post(payload, tok) {
         req.on('error', function (e) { resolve({ err: e.message }); });
         req.write(data);
         req.end();
+    });
+}
+
+// 用 AppID + AppSecret 在本地做 HMAC-SHA256 签名，换取短期 access_token。
+// 签名串与服务端 services/apiCredential.js 的 sign() 完全一致：
+//   HMAC_SHA256(secretPlain, appId + "\n" + timestamp + "\n" + nonce) 的小写 hex。
+function getAccessToken(baseUrl, appId, appSecret, force) {
+    var now = Date.now();
+    if (!force && TOKEN_CACHE.token && now < TOKEN_CACHE.expiresAt - TOKEN_REFRESH_MARGIN_MS) {
+        return Promise.resolve(TOKEN_CACHE.token);
+    }
+    var timestamp = Date.now();
+    var nonce = crypto.randomBytes(16).toString('hex');
+    var signature = crypto.createHmac('sha256', String(appSecret))
+        .update(String(appId) + '\n' + String(timestamp) + '\n' + nonce)
+        .digest('hex');
+    return httpJson(baseUrl, '/api/auth/token', {
+        appId: appId,
+        timestamp: timestamp,
+        nonce: nonce,
+        signature: signature
+    }, null).then(function (r) {
+        if (r.err) return null;
+        var b = r.body || {};
+        if (r.status === 200 && b.success === true && b.access_token) {
+            var ttl = parseInt(b.expires_in, 10) || 3600;
+            TOKEN_CACHE.token = b.access_token;
+            TOKEN_CACHE.expiresAt = Date.now() + ttl * 1000;
+            return TOKEN_CACHE.token;
+        }
+        log('[announce] 换 token 失败：HTTP ' + r.status + ' ' + (b.msg || ''), true);
+        return null;
+    }).catch(function () { return null; });
+}
+
+function sendAnnouncement(payload, accessToken) {
+    return httpJson(base(), '/api/announcements', payload, accessToken);
+}
+
+// 公告接口 401（token 过期/失效）时强制换一次 token 并重试一次。
+function post(payload, accessToken, appId, appSecret) {
+    return sendAnnouncement(payload, accessToken).then(function (r) {
+        if (r && r.status === 401 && appId && appSecret) {
+            return getAccessToken(base(), appId, appSecret, true).then(function (fresh) {
+                if (!fresh) return r;   // 换 token 失败：原样返回 401 交给调用方处理
+                return sendAnnouncement(payload, fresh);
+            });
+        }
+        return r;
     });
 }
 
@@ -317,10 +369,8 @@ async function main() {
         return;
     }
 
-    // CSV 是纯本地产物，不需要 token / 不调用接口，导出后即结束
+    // CSV 与 dry-run 都是纯本地产物：不需要凭据、不换 token、不调用接口
     if (opt.csv) { writeCsv(payloads); return; }
-
-    var tok = token();
     if (opt.dryRun) {
         log('[announce] dry-run：共 ' + payloads.length + ' 条（' + countsText +
             '；跳过 ' + skipped + ' 条）\n', true);
@@ -331,21 +381,35 @@ async function main() {
         log('\n[dry-run] 未调用接口、未写库。去掉 --dry-run 即会实际发布。', true);
         return;
     }
-    if (!tok) {
+
+    // 其余分支：先取凭据，再换取 token
+    var cred = credentials();
+    if (!cred.appId || !cred.appSecret) {
         if (opt.mode === 'head') {
             // hook 场景：不报错、不影响 commit，落队列等配置完成后自动补发
-            payloads.forEach(function (p) { enqueue(p, '缺少 ANNOUNCE_API_TOKEN'); });
-            log('[announce] 未配置 API Token，本次提交已排队；配置后执行 --backfill 即可补发。', true);
+            payloads.forEach(function (p) { enqueue(p, '缺少 ANNOUNCE_APP_ID / ANNOUNCE_APP_SECRET'); });
+            log('[announce] 未配置 AppID/AppSecret，本次提交已排队；' + credentialHint(), true);
             return;
         }
-        fail('缺少 API Token：请设置 ANNOUNCE_API_TOKEN（或 --token=...）。');
+        fail('缺少 AppID/AppSecret：' + credentialHint());
+    }
+
+    var tok = await getAccessToken(base(), cred.appId, cred.appSecret);
+    if (!tok) {
+        if (opt.mode === 'head') {
+            // 换 token 失败同样不得阻塞 git commit
+            payloads.forEach(function (p) { enqueue(p, '换取 access_token 失败'); });
+            log('[announce] 换取 access_token 失败，本次提交已排队；请检查 AppID/AppSecret 是否正确、应用是否绑定管理员用户。', true);
+            return;
+        }
+        fail('换取 access_token 失败：请检查 AppID/AppSecret 是否正确、应用是否启用并绑定管理员用户。');
     }
 
     var stat = { created: 0, duplicate: 0, queued: 0, failed: 0 };
     for (var i = 0; i < payloads.length; i++) {
         var p = payloads[i];
         var built = note.buildAnnouncement(p);
-        var r = await post(p, tok);
+        var r = await post(p, tok, cred.appId, cred.appSecret);
         if (r.err) {
             stat.queued++;
             enqueue(p, r.err);

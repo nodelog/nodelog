@@ -41,19 +41,9 @@ function loadTokenConfig() {
     return { entries: articleApi.loadApiConfig().entries };
 }
 
-exports.auth = function (req, res, next) {
-    var cfg = loadTokenConfig();
-    if (!cfg.entries.length) {
-        return res.status(503).json({
-            success: false,
-            msg: '公告发布接口未启用：请配置 ANNOUNCEMENT_API_TOKENS 或 ARTICLE_API_TOKENS'
-        });
-    }
-    if (!articleApi.resolveToken(req, cfg)) {
-        return res.status(401).json({ success: false, msg: 'API Token 无效或缺失' });
-    }
-    next();
-};
+// v3：统一走应用凭证鉴权，且公告 API 仅限「绑定用户为管理员」的应用调用。
+// 旧的 loadTokenConfig / 静态 token 逻辑已废弃（保留函数体不影响，但不再被鉴权使用）。
+exports.auth = articleApi.authenticate({adminOnly: true});
 
 exports.publish = function (req, res) {
     var b = req.body || {};

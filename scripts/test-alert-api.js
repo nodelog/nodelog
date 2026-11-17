@@ -14,6 +14,12 @@
  *
  * 不连 MongoDB、不新增依赖、不读取任何生产凭据；收件人/发件账号均为测试常量。
  * 生产环境部署后调用同一个 POST /api/alert/probe，会读真实 settings.js 并真实投递。
+ *
+ * 关于应用鉴权：v3 下 alertApi.auth 走 articleApi.authenticate({adminOnly:true})，
+ * 需要 MongoDB + 已初始化凭证，与本测试目标（SMTP 自愈 + csrfGuard 白名单）无关。
+ * 故本脚本在加载 alertApi 前对已缓存 articleApi 的 authenticate 打一个最小 stub
+ * （只校验 token 头是否存在，挂最小 req.apiApp / req.apiAuthor 后放行）。
+ * 真实的应用鉴权由 scripts/test-api-credential.js 覆盖；csrfGuard 仍是真实守卫。
  */
 'use strict';
 
@@ -178,10 +184,37 @@ var smtpServer = startSmtp(function (smtpPort) {
     process.env.ALERT_SMTP_USER = SMTP_USER;
     process.env.ALERT_SMTP_PASS = SMTP_PASS;
     process.env.ALERT_RECIPIENTS = RECIPIENT;
-    process.env.ARTICLE_API_TOKENS = TOKEN;
     delete process.env.ALERT_TRANSPORT;
     delete process.env.ALERT_ENABLED;
     delete process.env.ALERT_REALTIME;
+
+    // v3 鉴权 stub：alertApi.auth 内部调用 articleApi.authenticate({adminOnly:true})，
+    // 后者依赖 MongoDB + 已初始化凭证。本测试不验证应用鉴权本身，故在加载 alertApi 前
+    // 对已缓存 articleApi 的 authenticate 打最小 stub：仅校验 token 头是否存在，
+    // 挂最小 req.apiApp / req.apiAuthor 后放行。TOKEN 常量仅作为 Bearer 头的值使用。
+    // 直接把 stub 模块塞进 require.cache：alertApi 惰性 require('./articleApi') 时拿到它，
+    // 从而连 articleApi（及其 models/mongoose）都不加载，真正做到不连 MongoDB。
+    var articleApiPath = require.resolve('../controllers/articleApi');
+    require.cache[articleApiPath] = {
+        id: articleApiPath,
+        filename: articleApiPath,
+        loaded: true,
+        children: [],
+        paths: [],
+        exports: {
+            authenticate: function (opts) {
+                return function (req, res, next) {
+                    var token = req.headers['authorization'] || req.headers['x-api-token'] || '';
+                    if (!token) {
+                        return res.status(401).json({success: false, msg: '缺少 token'});
+                    }
+                    req.apiApp = {_id: 'stub-app', status: 0};
+                    req.apiAuthor = {_id: 'stub-user', role: 0, status: 0};
+                    return next();
+                };
+            }
+        }
+    };
 
     var alert = require('../services/alert');
     var csrfGuard = require('../routes/filter').csrfGuard;

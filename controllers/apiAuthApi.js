@@ -66,10 +66,10 @@ exports.token = function (req, res) {
                 return res.status(403).json({success: false, msg: '应用绑定的用户已停用'});
             }
             var issued;
-            try { issued = cred.issueToken(app, user); }
+            try { issued = cred.issueToken(app, user, secretPlain, 3600); }
             catch (e) {
                 console.error('[apiAuth.token] 签发 token 失败：' + e.message);
-                return res.status(500).json({success: false, msg: '服务端错误：未配置 token 签名密钥'});
+                return res.status(500).json({success: false, msg: '服务端错误'});
             }
             ApiApp.touch(app._id, function () { /* 最近使用时间，失败不影响主流程 */ });
             // 响应绝不携带 secret 明文或密文
@@ -111,14 +111,12 @@ exports.list = function (req, res) {
                     createTime: a.createTime
                 };
             });
-            // 每个应用的文章数（用于列表 postCount）
-            var pending = data.length;
-            if (!pending) return res.json({success: true, data: data});
-            data.forEach(function (row) {
-                Content.countBySourceApp(row.id, function (cErr, n) {
-                    row.postCount = cErr ? 0 : n;
-                    if (--pending === 0) res.json({success: true, data: data});
-                });
+            // 一次聚合统计所有应用的文章数（消除 N+1，页面打开不再慢）
+            Content.countBySourceApps(data.map(function (r) { return r.id; }), function (cErr, map) {
+                if (cErr) console.error('[apiAuth.list] 文章数聚合失败：' + cErr.message);
+                map = map || {};
+                data.forEach(function (row) { row.postCount = map[row.id] || 0; });
+                return res.json({success: true, data: data});
             });
         });
     });

@@ -41,9 +41,12 @@ Module._load = function (request) {
     if (request === 'mongoose') return fakeMongoose;
     var base = path.basename(request);
     if (request.indexOf('models/') !== -1) {
-        if (base === 'Content.js' || base === 'Category.js' || base === 'User.js' || base === 'Tag.js') return makeStub();
+        if (base === 'Content.js' || base === 'Category.js' || base === 'User.js' ||
+            base === 'Tag.js' || base === 'ApiApp.js') return makeStub();
         if (base === 'constants') return { CONTENT_ENABLE_STATUS: 0, CONTENT_SELF_STATUS: 2, USER_ENABLE_STATUS: 0 };
     }
+    // v3：articleApi 顶层引入凭证服务，但本测试只驱动 publish，不需要真实凭证初始化。
+    if (request.indexOf('services/apiCredential') !== -1) return {};
     if (request.indexOf('moderationGuard') !== -1) {
         return { enforce: function (req, fields, type, cb) { cb(null, { allowed: true }); } };
     }
@@ -57,7 +60,8 @@ function runPublish(body, done) {
     var req = {
         body: body,
         headers: {},
-        apiAuthor: { _id: 'author12345678901234567890' }
+        apiAuthor: { _id: 'author12345678901234567890' },
+        apiApp: { _id: 'app1234567890123456789012' }
     };
     var res = {
         statusCode: 0, body: null,

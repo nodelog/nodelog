@@ -3,10 +3,18 @@
 > 每次 Phase 切换、成员回传、需求变更后增量更新。新会话先读这一页。
 
 ## 1. 目标与阶段
-- 当前会话主线（2026-11-17）：开放文章发布接口从静态 Token 升级为**应用凭证 + 来源溯源**（小组档）。设计语言 Phase 0–4 为上一阶段历史，见下。
-- 一句话目标：后台可建应用（自动生成 AppID/Secret、绑定站内用户），调用方用 AppID + HMAC 签名换短期 token 发文，作者=应用绑定用户、不可伪造；文章自动打来源标识且后台编辑无法去除。
-- 本阶段状态：代码已实现（前后端），`scripts/test-api-credential.js` 31/31 PASS；**待团队联调收口 + 用户确认是否切生产**（静态 token 在文章接口已废弃，切生产即对外生效）。
-- 契约源：`.workbuddy/spec-api-app.md`；接口文档：`docs/article-api.md`（v2 已更新，按用户约定不提交）。
+- 当前会话主线（2026-11-17）：开放接口从「静态 Token / v2 应用凭证」升级为 **v3 全应用统一鉴权 + 零配置 + 后台页面修复**。设计语言 Phase 0–4 为上一阶段历史，见下。
+- 一句话目标：所有开放 API（文章/分类/公告/告警）统一走「后台建应用 → AppID + Secret 签 HMAC 换短期 token → token 调用」；`settings.js` 零密钥（主密钥首次启动自动生成落 MongoDB）；JWT 用每个应用 Secret 派生（应用隔离）；公告/告警 API 仅管理员应用可调用；来源可溯源且不可去除。
+- 本阶段状态：代码已实现（前后端），`scripts/test-api-credential.js` **32/32 PASS**、全量 `node --check` 通过、EJS 编译通过；`announce-release.js` 与 `test-alert-api.js` 正迁移到 v3 鉴权。**待联调收口 + 用户确认是否切生产**（静态 token 对全部开放 API 已废弃，切生产即不可逆对外生效）。
+- 契约源：`.workbuddy/spec-api-app.md`（v3）；接口文档：`docs/article-api.md`（v3，按用户约定不提交）。
+
+### v3 关键实现（实读要点，勿重复排查）
+- 零配置：`models/SystemConfig.js` `getOrCreateMasterKey()` 原子生成/读取主密钥存 `system_config`；`apiCredential.init()` 在路由挂载前异步调用；env `API_APP_ENCRYPTION_KEY` 仅多实例共享可选覆盖；`settings.js`/`settings.example.js` 已删全部密钥字段。
+- 应用隔离 JWT：`apiCredential.jwtKeyFor(secret)=HMAC_SHA256(secret,'nodelog-api-jwt-v3')`；A 应用 token 用 B Secret 验不过；无全局 tokenSecret。
+- 统一鉴权工厂：`articleApi.authenticate({adminOnly})` 导出供文章/分类/公告/告警复用；流程 = Bearer → peek appId → 查应用解密 Secret → 派生密钥验签 → 校验应用/用户启用 → adminOnly 查 `role===0` → 挂 `req.apiApp`/`req.apiAuthor`。静态 `loadApiConfig`/`resolveToken` 保留函数体但不再被开放 API 使用。
+- 权限模型：API 声明式 `adminOnly`；公告 `/api/announcements` 与告警 `/api/alert/status|probe` = adminOnly；文章/分类 = 普通。后台应用编辑弹窗只读展示该应用可调用 API 清单。
+- 页面修复：`apiAuth.list` 用 `Content.countBySourceApps(ids)` 一次聚合替代 N+1；`views/manager/apiApp.ejs` 新增/编辑改模态弹窗（z-index 2000）、修 `<select>` 下拉、空用户提示、`data-role` 注入按角色展示权限、EJS 转义 + textContent 防 XSS。
+- 来源溯源（v2 保持）：`Content.source`/`sourceAppId` immutable + controller 不读 + DAO 白名单不含；API 发布强制写来源与绑定用户作者。
 
 ### 历史阶段（上一条主线，已完成）
 - 一句话目标：为 NODELOG 前台重定义一套独特、高端、统一、可落地的设计语言，解决「排版辨识度不足、风格偏普通」，并交付首页/列表页/文章页的明暗 × 移动端应用效果。

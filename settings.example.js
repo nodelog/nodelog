@@ -96,45 +96,26 @@ module.exports = {
         siteHost: process.env.SITE_HOST || 'blog.jiangzi.xin'
     },
 
-    // ===== 开放文章发布 API（供外部系统 / AI 工具自动发文）=====
-    // 启用方式二选一：① 用环境变量（推荐，密钥不落文件）：
-    //   ARTICLE_API_TOKENS=abcd...32hex,efgh...32hex ARTICLE_API_AUTHOR=admin npm start
-    // ② 或在下面直接配置（settings.js 已被 gitignore，不会入库）。
-    // token 建议用 `node scripts/gen-api-token.js` 生成（32 位十六进制）。
-    // author 为「发布作者」的用户名（必须是站内已存在的启用账号，role 不限）。
-    // 调用方也可在请求体里用 author 字段临时覆盖某一篇的作者。
+    // ===== 开放文章发布 API（v3：已改为应用凭证鉴权，零配置）=====
+    // 旧静态 token（下面的 tokens / ARTICLE_API_TOKENS）对文章/公告/告警 API 均已废弃，
+    // 保留此块仅为历史兼容占位；实际鉴权走后台「应用管理」创建的 AppID + Secret。
+    // 调用方：AppID + 签名 → POST /api/auth/token 换 token → Bearer token 调 API。
     articleApi: {
-        // 每个 token 可单独绑定 author / 备注 label / 作用域 scopes（当前未强制校验 scopes）
-        tokens: [
-            // { token: 'replace-with-a-32-hex-token', author: 'admin', label: 'ai-tool', scopes: [] }
-        ],
-        // 未给 token 单独指定 author 时使用的默认作者
+        tokens: [],
         defaultAuthor: ''
     },
 
-    // ===== 开放接口应用凭证（AppID + Secret → HMAC 签 token，供外部系统/AI 工具发文）=====
-    // 后台「应用管理」创建应用时生成 AppID 与 Secret；Secret 用 encryptionKey 加密后入库，
-    // 明文仅在创建/重置时展示一次。tokenSecret 用于签发短期 access_token。
-    // 生产务必用环境变量注入，勿把真实密钥写进本文件（本文件进版本库）。
-    //   API_APP_ENCRYPTION_KEY = 32 位 hex（改了会导致已存 Secret 无法解密）
-    //   API_APP_TOKEN_SECRET   = 随机长串（改了会让未过期 token 失效）
-    //   API_APP_TOKEN_TTL      = token 有效期秒数，默认 3600
-    apiAuth: {
-        encryptionKey: '',   // 例：'a1b2...（64 位十六进制）'
-        tokenSecret: '',     // 例：'一段足够长的随机字符串'
-        tokenTtl: 3600
-    },
+    // ===== 开放接口应用凭证（零配置，无需在此文件填写任何密钥）=====
+    // 后台「应用管理」创建应用时生成 AppID 与 Secret；主密钥首次启动随机生成并存 MongoDB，
+    // 每个应用用各自 Secret 派生 JWT 签名密钥（应用间隔离）。settings 中不含任何密钥。
+    // 仅多实例共享主密钥时才需设置环境变量 API_APP_ENCRYPTION_KEY（32 位 hex），一般无需配置。
 
-    // ===== 站点更新公告自动发布 API（git commit / CI 调用，见 scripts/announce-release.js）=====
-    // 默认无需新增任何配置：接口和调用方脚本都会自动复用上面 articleApi.tokens[0].token，
-    // 与文章发布 API 保持同一套 settings.js 配置习惯。
-    // 如需与发文权限隔离，可单独配置本节（优先级高于 articleApi.tokens），
-    // 或用环境变量 ANNOUNCEMENT_API_TOKENS=abcd...32hex npm start。
-    // CI 上没有 settings.js（已 gitignore），改由 Secret ANNOUNCE_API_TOKEN 注入。
+    // ===== 站点更新公告自动发布 API（v3：已改为应用凭证鉴权）=====
+    // 与文章 API 同样走 AppID + Secret 换 token，且【仅管理员用户绑定的应用】可调用。
+    // 旧静态 token（tokens / ANNOUNCEMENT_API_TOKENS）已废弃，此块仅历史占位。
+    // CI 脚本需改为：用分配给它的应用凭证换 token，再带 Bearer token 调 /api/announcements。
     // 站点地址可用 ANNOUNCE_API_BASE 覆盖，默认 https://blog.jiangzi.xin。
     announcementApi: {
-        tokens: [
-            // { token: 'replace-with-a-32-hex-token', label: 'git-hook' }
-        ]
+        tokens: []
     }
 };

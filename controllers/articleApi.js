@@ -97,54 +97,75 @@ function resolveToken(req, cfg) {
 }
 
 // ---------------------------------------------------------------------------
-// 鉴权中间件（应用凭证）：Bearer access_token(HS256) → 验签 → 查应用与绑定用户 →
-// 挂 req.apiApp / req.apiAuthor。静态 token 已废弃，文章接口只认应用凭证签发的 token。
-// 注：loadApiConfig / resolveToken 仍导出，供公告/告警接口复用它们各自的静态 token。
+// 统一鉴权工厂（v3）：所有开放 API 共用。Bearer token(HS256) → peek appId →
+// 查应用解密其 Secret → 用该 Secret 派生密钥验签（应用间隔离）→ 查绑定用户 →
+// adminOnly 时校验 role===0 → 挂 req.apiApp / req.apiAuthor。
+// 静态 token 已彻底废弃；loadApiConfig/resolveToken 不再被任何开放 API 使用。
 // ---------------------------------------------------------------------------
-exports.auth = function (req, res, next) {
-    var header = req.headers['authorization'] || req.headers['x-api-token'] || '';
-    var token = '';
-    if (typeof header === 'string' && header.indexOf('Bearer ') === 0) {
-        token = header.slice('Bearer '.length).trim();
-    } else {
-        token = String(header).trim();
-    }
-    if (!token) {
-        return res.status(401).json({ success: false, msg: '缺少 access_token；请先用 AppID + 签名调用 /api/auth/token 换取' });
-    }
-    var payload;
-    try { payload = cred.verifyToken(token); }
-    catch (e) { payload = null; }
-    if (!payload) {
-        return res.status(401).json({ success: false, msg: 'access_token 无效或已过期' });
-    }
-
-    ApiApp.findByAppId(payload.appId, function (appErr, app) {
-        if (appErr) {
-            console.error('[articleApi.auth] 查应用失败：' + appErr.message);
-            return res.status(500).json({ success: false, msg: '服务端错误' });
+function authenticate(opts) {
+    opts = opts || {};
+    var adminOnly = opts.adminOnly === true;
+    return function (req, res, next) {
+        var header = req.headers['authorization'] || req.headers['x-api-token'] || '';
+        var token = '';
+        if (typeof header === 'string' && header.indexOf('Bearer ') === 0) {
+            token = header.slice('Bearer '.length).trim();
+        } else {
+            token = String(header).trim();
         }
-        if (!app) return res.status(401).json({ success: false, msg: '应用不存在或已停用' });
-        if (app.status !== 0) return res.status(403).json({ success: false, msg: '应用已停用' });
-        // 以库中绑定的用户为准，不信 token 里的 uid（用户被改绑后立即生效）
-        User.findById(app.userId, function (uErr, u) {
-            if (uErr) {
-                console.error('[articleApi.auth] 查询作者失败：' + uErr.message);
+        if (!token) {
+            return res.status(401).json({ success: false, msg: '缺少 access_token；请先用 AppID + 签名调用 /api/auth/token 换取' });
+        }
+        if (!cred.ready()) {
+            return res.status(503).json({ success: false, msg: '服务未就绪' });
+        }
+        var appId = cred.peekAppId(token);
+        if (!appId) return res.status(401).json({ success: false, msg: 'access_token 格式错误' });
+
+        ApiApp.findByAppId(appId, function (appErr, app) {
+            if (appErr) {
+                console.error('[apiAuth] 查应用失败：' + appErr.message);
                 return res.status(500).json({ success: false, msg: '服务端错误' });
             }
-            if (!u) return res.status(403).json({ success: false, msg: '应用绑定的用户不存在' });
-            if (u.status !== constants.USER_ENABLE_STATUS) {
-                return res.status(403).json({ success: false, msg: '应用绑定的用户已停用' });
+            if (!app) return res.status(401).json({ success: false, msg: '应用不存在或已停用' });
+            if (app.status !== 0) return res.status(403).json({ success: false, msg: '应用已停用' });
+
+            var secretPlain;
+            try { secretPlain = cred.decryptSecret(app.secretHash); }
+            catch (e) {
+                console.error('[apiAuth] 密钥解密失败：' + e.message);
+                return res.status(500).json({ success: false, msg: '服务端错误' });
             }
-            if (u.muteUntil && new Date(u.muteUntil).getTime() > Date.now()) {
-                return res.status(403).json({ success: false, msg: '应用绑定的用户处于禁言期' });
-            }
-            req.apiAuthor = u;
-            req.apiApp = app;
-            next();
+            var payload = cred.verifyTokenWithSecret(token, secretPlain);
+            if (!payload) return res.status(401).json({ success: false, msg: 'access_token 无效或已过期' });
+
+            // 以库中绑定的用户为准，不信 token 里的 uid（用户被改绑/改角色后立即生效）
+            User.findById(app.userId, function (uErr, u) {
+                if (uErr) {
+                    console.error('[apiAuth] 查询绑定用户失败：' + uErr.message);
+                    return res.status(500).json({ success: false, msg: '服务端错误' });
+                }
+                if (!u) return res.status(403).json({ success: false, msg: '应用绑定的用户不存在' });
+                if (u.status !== constants.USER_ENABLE_STATUS) {
+                    return res.status(403).json({ success: false, msg: '应用绑定的用户已停用' });
+                }
+                if (u.muteUntil && new Date(u.muteUntil).getTime() > Date.now()) {
+                    return res.status(403).json({ success: false, msg: '应用绑定的用户处于禁言期' });
+                }
+                // role===0 为管理员（与 navConfig.ROLE_ADMIN 一致）
+                if (adminOnly && Number(u.role) !== 0) {
+                    return res.status(403).json({ success: false, msg: '该接口仅限管理员应用调用' });
+                }
+                req.apiAuthor = u;
+                req.apiApp = app;
+                next();
+            });
         });
-    });
-};
+    };
+}
+exports.authenticate = authenticate;
+// 文章接口默认鉴权（非 adminOnly），保留 auth 名字兼容既有路由
+exports.auth = authenticate({adminOnly: false});
 
 // ---------------------------------------------------------------------------
 // POST /api/articles  发布（或存草稿）一篇文章

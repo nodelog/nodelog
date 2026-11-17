@@ -9,9 +9,9 @@
  *   - 所有响应先过 sanitize()：删掉敏感键 + 把可能出现在 SMTP 报错里的明文密码打码；
  *   - 收件人只允许多配的 settings.alert.recipients；未配收件人时发给发件账号自己，
  *     因此接口不会被当成任意地址的中继，也不要求为了自检去改配置；
- *   - 鉴权与 articleApi 同源同口径（settings.articleApi.tokens / ARTICLE_API_TOKENS +
- *     timingSafeEqual 常量时间比较），但【故意不 require articleApi】：那条依赖链会连带
- *     models/mongodb.js 连接数据库，而邮件自检必须能在 DB 不可用时独立工作。
+ *   - v3 鉴权统一走应用凭证（articleApi.authenticate({adminOnly:true})），与所有开放 API
+ *     同口径：调用方用 AppID+签名换 token，且绑定用户必须是管理员。鉴权需查库验证应用与
+ *     用户状态，故 DB 不可用时接口不可用（这是统一鉴权的必要代价）。
  *     无 session / cookie，故 csrfGuard 对带 token 的 /api/alert 放行；
  *   - probe 会真发邮件，路由层单独限流（5 次/分钟）。
  *
@@ -96,17 +96,9 @@ function sanitize(value) {
 // ---------------------------------------------------------------------------
 // 鉴权：无状态 API Token（Authorization: Bearer <token> / X-API-Token）
 // ---------------------------------------------------------------------------
+// v3：统一走应用凭证鉴权，且仅限管理员应用调用。旧静态 token 逻辑（loadTokens/resolveToken）已废弃。
 exports.auth = function (req, res, next) {
-    if (!loadTokens().length) {
-        return res.status(503).json({
-            success: false,
-            msg: '告警自检接口未启用：请配置 ARTICLE_API_TOKENS 或 settings.articleApi.tokens'
-        });
-    }
-    if (!resolveToken(req)) {
-        return res.status(401).json({success: false, msg: 'API Token 无效或缺失'});
-    }
-    next();
+    return require('./articleApi').authenticate({adminOnly: true})(req, res, next);
 };
 
 // ---------------------------------------------------------------------------

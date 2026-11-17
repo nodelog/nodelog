@@ -121,7 +121,11 @@ var route = function (app) {
     // P2 AI 辅助（仅管理员，且需配置 AI_API_KEY）
     app.post('/api/ai/summary', filter.authorizeAdmin, ai.summary);
     // ==================== 开放接口应用凭证（AppID + HMAC 签 token）====================
-    // 调用方先用 AppID + 签名换短期 token，再用 token 调文章发布接口。
+    // 零配置：首次启动随机生成主密钥存库，之后自动复用；启动即开始异步初始化。
+    require('./../services/apiCredential').init(function (err) {
+        if (err) console.error('[apiCredential.init] 主密钥初始化失败：' + err.message);
+    });
+    // 调用方先用 AppID + 签名换短期 token，再用 token 调所有开放 API。
     var apiAuthApi = require('./../controllers/apiAuthApi');
     app.post('/api/auth/token',
         rateLimit.limit({max: 30, windowMs: 60 * 1000, key: 'api-auth-token'}),
@@ -163,11 +167,13 @@ var route = function (app) {
 
     // ---- ApiApp 开放接口应用管理（全部 A，仅管理员）----
     app.get('/manager/api-app', filter.authorize, filter.authorizeAdmin, function (req, res) {
-        // 注入启用用户列表供绑定下拉使用（走 User DAO）
+        // 注入启用用户列表供绑定下拉使用（走 User DAO）；role 供前端判断该应用可调用的 API 权限
         require('./../models/User.js').findAll(function (err, users) {
             res.render('manager/apiApp', {
                 currentMenu: 'apiApp', title: '应用管理',
-                users: (users || []).map(function (u) { return {_id: String(u._id), userName: u.userName}; })
+                users: (users || []).map(function (u) {
+                    return {_id: String(u._id), userName: u.userName, role: Number(u.role)};
+                })
             });
         });
     });

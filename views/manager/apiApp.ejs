@@ -7,43 +7,9 @@
 <% var userList = (typeof users !== 'undefined' && Array.isArray(users)) ? users : []; %>
 
 <h3>应用管理
-    <button type="button" id="js-add-app-trigger" class="btn btn-default pull-right js-add-app"
-            aria-expanded="false" aria-controls="js-add-app-panel">添加应用</button>
+    <button type="button" id="js-add-app-trigger" class="btn btn-default pull-right js-add-app" aria-haspopup="dialog">添加应用</button>
 </h3>
 <div class="clearfix"></div>
-
-<div id="js-add-app-panel" class="js-add-app-panel" style="display: none">
-    <h4 class="js-form-title">新增应用</h4>
-    <form name="apiAppForm" role="form" action="javascript:;">
-        <input type="hidden" name="id">
-        <div class="form-group">
-            <label for="app-name">应用名称</label>
-            <input type="text" id="app-name" class="form-control" name="name" maxlength="60" required>
-        </div>
-        <div class="form-group">
-            <label for="app-user">绑定用户</label><span>（该用户将作为此应用发布文章的作者，须为启用状态）</span>
-            <select id="app-user" class="form-control" name="userId" required>
-                <option value="">请选择用户</option>
-                <% userList.forEach(function (u) { %>
-                <option value="<%= u._id %>"><%= u.userName %></option>
-                <% }); %>
-            </select>
-        </div>
-        <div class="form-group js-status-group" style="display: none">
-            <label for="app-status">状态</label>
-            <select id="app-status" class="form-control" name="status">
-                <option value="0">启用</option>
-                <option value="1">停用</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="app-desc">描述</label>
-            <textarea id="app-desc" class="form-control" name="description" rows="2" maxlength="300"></textarea>
-        </div>
-        <button type="button" class="btn btn-default js-app-save">保存</button>
-        <button type="button" class="btn js-app-cancel">取消</button>
-    </form>
-</div>
 
 <p class="js-app-status" role="status" aria-live="polite" aria-atomic="true" style="margin: 8px 0"></p>
 
@@ -65,8 +31,55 @@
 </table>
 <div class="js-app-pager"></div>
 
-<!-- 密钥明文仅在此弹层出现一次；关闭即清除内存中的明文 -->
-<div id="js-secret-layer" class="js-layer" style="display: none; position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0, 0, 0, .5); z-index: 1000; align-items: center; justify-content: center" role="dialog" aria-modal="true" aria-labelledby="js-secret-title">
+<!-- 新增/编辑应用弹窗：遮罩 + 白卡，风格与密钥弹层一致。
+     <select> 是白卡的直接子元素，未设置任何 pointer-events:none / 覆盖层，保证原生下拉可展开。 -->
+<div id="js-app-layer" class="js-layer" style="display: none; position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0, 0, 0, .5); z-index: 2000; align-items: flex-start; justify-content: center; padding: 16px; overflow-y: auto" role="dialog" aria-modal="true" aria-labelledby="js-app-form-title">
+    <div class="js-app-layer-card" style="background: #fff; width: 100%; max-width: 560px; max-height: 88vh; overflow-y: auto; margin: auto; padding: 24px; border-radius: 4px; box-shadow: 0 6px 24px rgba(0, 0, 0, .25)">
+        <h4 id="js-app-form-title" class="js-form-title" style="margin-top: 0">新增应用</h4>
+        <form name="apiAppForm" role="form" action="javascript:;">
+            <input type="hidden" name="id">
+            <div class="form-group">
+                <label for="app-name">应用名称</label>
+                <input type="text" id="app-name" class="form-control" name="name" maxlength="60" required>
+            </div>
+            <div class="form-group">
+                <label for="app-user">绑定用户</label><span>（该用户将作为此应用发布文章的作者，须为启用状态）</span>
+                <select id="app-user" class="form-control" name="userId" required style="appearance: auto; -webkit-appearance: auto; pointer-events: auto">
+                    <% if (!userList.length) { %>
+                    <option value="" disabled>（暂无可用用户，请先在用户管理添加）</option>
+                    <% } else { %>
+                    <option value="">请选择用户</option>
+                    <% userList.forEach(function (u) { %>
+                    <% var roleAttr = (u.role === 0 || u.role === '0') ? '0' : ((u.role === 1 || u.role === '1') ? '1' : ''); %>
+                    <option value="<%= u._id %>" data-role="<%= roleAttr %>"><%= u.userName %></option>
+                    <% }); %>
+                    <% } %>
+                </select>
+            </div>
+            <div class="form-group js-status-group" style="display: none">
+                <label for="app-status">状态</label>
+                <select id="app-status" class="form-control" name="status">
+                    <option value="0">启用</option>
+                    <option value="1">停用</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="app-desc">描述</label>
+                <textarea id="app-desc" class="form-control" name="description" rows="2" maxlength="300"></textarea>
+            </div>
+            <div class="form-group js-api-perms-group">
+                <label>可调用 API（只读，由绑定用户角色决定）</label>
+                <div class="js-api-perms-note" style="color: #666; font-size: 12px; margin-bottom: 6px"></div>
+                <ul class="js-api-perms-list" style="margin: 0; padding-left: 20px"></ul>
+            </div>
+            <button type="button" class="btn btn-primary js-app-save">保存</button>
+            <button type="button" class="btn btn-default js-app-cancel">取消</button>
+        </form>
+    </div>
+</div>
+
+<!-- 密钥明文仅在此弹层出现一次；关闭即清除内存中的明文。z-index 高于固定导航栏(1030)。 -->
+<div id="js-secret-layer" class="js-layer" style="display: none; position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0, 0, 0, .5); z-index: 2000; align-items: center; justify-content: center" role="dialog" aria-modal="true" aria-labelledby="js-secret-title">
     <div style="background: #fff; width: calc(100% - 32px); max-width: 560px; padding: 24px; border-radius: 4px; box-shadow: 0 6px 24px rgba(0, 0, 0, .25)">
         <h4 id="js-secret-title" style="margin-top: 0">请保存应用密钥</h4>
         <p style="color: #c7254e; font-weight: bold">密钥仅显示一次，请立即保存。关闭后无法再次查看明文，遗忘请重置密钥。</p>
@@ -78,7 +91,7 @@
 </div>
 
 <!-- 查看文章弹层：数据来自 GET /manager/api-app/posts -->
-<div id="js-posts-layer" class="js-layer" style="display: none; position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0, 0, 0, .5); z-index: 1000; align-items: center; justify-content: center" role="dialog" aria-modal="true" aria-labelledby="js-posts-title">
+<div id="js-posts-layer" class="js-layer" style="display: none; position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0, 0, 0, .5); z-index: 2000; align-items: center; justify-content: center" role="dialog" aria-modal="true" aria-labelledby="js-posts-title">
     <div style="background: #fff; width: calc(100% - 32px); max-width: 720px; max-height: 80vh; overflow: auto; padding: 24px; border-radius: 4px; box-shadow: 0 6px 24px rgba(0, 0, 0, .25)">
         <h4 id="js-posts-title" style="margin-top: 0">应用发布的文章</h4>
         <p class="js-posts-sub" style="margin: 0 0 12px; color: #666"></p>
@@ -157,11 +170,12 @@
 
   var panel = qs('.js-app-panel');
   var form = qs('form[name=apiAppForm]');
-  var addPanel = qs('.js-add-app-panel');
-  var addBtn = qs('.js-add-app');
+  var appLayer = qs('#js-app-layer');
+  var appTitle = qs('.js-form-title', appLayer);
+  var statusGroup = qs('.js-status-group', appLayer);
+  var permsNote = qs('.js-api-perms-note', appLayer);
+  var permsList = qs('.js-api-perms-list', appLayer);
   var statusEl = qs('.js-app-status');
-  var formTitle = qs('.js-form-title');
-  var statusGroup = qs('.js-status-group');
   var secretLayer = qs('#js-secret-layer');
   var secretAppIdEl = qs('.js-secret-appid');
   var secretValueEl = qs('.js-secret-value');
@@ -172,6 +186,17 @@
   var COLS = 9;
   var currentSecretPlain = '';
   var lastFocused = null;
+
+  // 可调用 API 清单：普通用户三项，管理员额外两项（与后端 adminOnly 规则一致）。
+  var API_NORMAL = [
+    { label: '发文章', path: 'POST /api/articles' },
+    { label: '查询文章', path: 'GET /api/articles' },
+    { label: '列分类', path: 'GET /api/categories' }
+  ];
+  var API_ADMIN_EXTRA = [
+    { label: '发公告', path: 'POST /api/announcements' },
+    { label: '告警自检', path: 'POST /api/alert' }
+  ];
 
   function announce(msg) { if (statusEl) statusEl.textContent = msg; }
 
@@ -254,6 +279,7 @@
     panel.appendChild(tr);
   }
 
+  // 页面加载后仅此一次 list 请求；后端已用一次聚合查询消除 N+1。
   function loadList() {
     if (!panel) return;
     showState('loading', '正在加载应用…');
@@ -280,23 +306,13 @@
       });
   }
 
-  function togglePanel(forceOpen) {
-    if (!addPanel) return;
-    var willShow = (typeof forceOpen === 'boolean')
-      ? forceOpen
-      : (addPanel.style.display === 'none' || addPanel.style.display === '');
-    addPanel.style.display = willShow ? 'block' : 'none';
-    if (addBtn) addBtn.setAttribute('aria-expanded', willShow ? 'true' : 'false');
-    if (willShow) { var n = qs('#app-name'); if (n) n.focus(); }
-  }
-
   function resetForm() {
     if (!form) return;
     form.reset();
     var idEl = qs('input[name=id]', form); if (idEl) idEl.value = '';
     var sel = qs('select[name=userId]', form); if (sel) sel.value = '';
     var st = qs('select[name=status]', form); if (st) st.value = '0';
-    if (formTitle) formTitle.textContent = '新增应用';
+    if (appTitle) appTitle.textContent = '新增应用';
     if (statusGroup) statusGroup.style.display = 'none';
   }
 
@@ -314,7 +330,7 @@
     if (descEl) descEl.value = row.getAttribute('data-description') || '';
     if (statusSel) statusSel.value = row.getAttribute('data-status') === '1' ? '1' : '0';
 
-    // 绑定用户若已不在注入列表中（如被删除），补一个回显项，避免修改时丢失绑定。
+    // 绑定用户若已不在注入列表中（如被删除），补一个回显项，避免修改时丢失绑定。角色未知。
     if (userSel && uid) {
       var exists = false;
       Array.prototype.forEach.call(userSel.options, function (opt) {
@@ -325,12 +341,60 @@
         opt.value = uid;
         opt.textContent = uname ? (uname + '（已不可用）') : '原绑定用户（已不可用）';
         opt.setAttribute('data-fallback', '1');
+        opt.setAttribute('data-role', '');
         userSel.insertBefore(opt, userSel.firstChild);
       }
       userSel.value = uid;
     }
-    if (formTitle) formTitle.textContent = '编辑应用';
+    if (appTitle) appTitle.textContent = '编辑应用';
     if (statusGroup) statusGroup.style.display = 'block';
+  }
+
+  function clearFallbackOptions() {
+    if (!form) return;
+    var userSel = qs('select[name=userId]', form);
+    if (!userSel) return;
+    Array.prototype.slice.call(userSel.options).forEach(function (opt) {
+      if (opt.getAttribute('data-fallback') === '1') userSel.removeChild(opt);
+    });
+  }
+
+  // 当前选中用户的角色：'0'=管理员，'1'=普通，''=角色未知，null=未选用户。
+  function currentRole() {
+    var sel = qs('select[name=userId]', form);
+    if (!sel || !sel.value) return null;
+    var opt = sel.options[sel.selectedIndex];
+    if (!opt) return null;
+    var role = opt.getAttribute('data-role');
+    return role === '0' || role === '1' ? role : '';
+  }
+
+  // 按角色渲染「可调用 API」只读清单；下拉切换用户时实时更新。
+  function renderPerms() {
+    if (!permsList) return;
+    permsList.textContent = '';
+    var role = currentRole();
+    if (role === null) {
+      if (permsNote) permsNote.textContent = '请先选择绑定用户，以查看该应用可调用的 API。';
+      return;
+    }
+    var isAdmin = (role === '0');
+    if (permsNote) {
+      if (role === '') permsNote.textContent = '该用户角色未知，以下按普通用户权限展示。';
+      else permsNote.textContent = isAdmin
+        ? '绑定用户为管理员，可调用以下 API。'
+        : '绑定用户为普通用户，可调用以下 API。';
+    }
+    var list = API_NORMAL.slice();
+    if (isAdmin) list = list.concat(API_ADMIN_EXTRA);
+    list.forEach(function (api) {
+      var li = document.createElement('li');
+      var label = document.createElement('span');
+      label.textContent = api.label;
+      li.appendChild(label);
+      li.appendChild(document.createTextNode('（' + api.path + '）'));
+      permsList.appendChild(li);
+    });
   }
 
   function openLayer(layer) {
@@ -346,6 +410,25 @@
     layer.setAttribute('aria-hidden', 'true');
     if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
     lastFocused = null;
+  }
+
+  function openAppModal(row) {
+    if (!appLayer || !form) return;
+    clearFallbackOptions();
+    if (row) fillFormFromRow(row); else resetForm();
+    renderPerms();
+    openLayer(appLayer);
+    var n = qs('input[name=name]', form);
+    if (n) n.focus();
+  }
+
+  function closeAppModal() {
+    if (!appLayer) return;
+    closeLayer(appLayer);
+    clearFallbackOptions();
+    resetForm();
+    if (permsList) permsList.textContent = '';
+    if (permsNote) permsNote.textContent = '';
   }
 
   function showSecret(appId, secret) {
@@ -460,19 +543,21 @@
     if (!panel || !form) return;
     loadList();
 
-    // 事件委托：一个 document 级 click 覆盖全部按钮。
+    // 事件委托：一个 document 级 click 覆盖全部按钮与遮罩关闭。
     document.addEventListener('click', function (e) {
       var target = e.target;
 
-      // 点击遮罩空白处关闭弹层（须在 closest('a, button') 之前处理）。
+      // 点击遮罩空白处关闭弹层（须在 closest('a, button') 之前处理；
+      // 只判断 e.target 等于遮罩本身，绝不拦截白卡内部的 select 点击）。
+      if (target === appLayer) { e.preventDefault(); closeAppModal(); return; }
       if (target === secretLayer) { e.preventDefault(); closeSecret(); return; }
       if (target === postsLayer) { e.preventDefault(); closeLayer(postsLayer); return; }
 
       var t = target && target.closest ? target.closest('a, button') : null;
       if (!t) return;
 
-      if (t.classList.contains('js-add-app')) { e.preventDefault(); togglePanel(); return; }
-      if (t.classList.contains('js-app-cancel')) { e.preventDefault(); togglePanel(false); resetForm(); return; }
+      if (t.classList.contains('js-add-app')) { e.preventDefault(); openAppModal(null); return; }
+      if (t.classList.contains('js-app-cancel')) { e.preventDefault(); closeAppModal(); return; }
       if (t.classList.contains('js-app-retry')) { e.preventDefault(); loadList(); return; }
       if (t.classList.contains('js-secret-close')) { e.preventDefault(); closeSecret(); return; }
       if (t.classList.contains('js-secret-copy')) { e.preventDefault(); copySecret(); return; }
@@ -481,11 +566,7 @@
       if (t.classList.contains('js-app-edit')) {
         e.preventDefault();
         var row = t.closest('tr');
-        if (!row || !form) return;
-        // 编辑时先清理上次补入的“已不可用”回显项。
-        clearFallbackOptions();
-        fillFormFromRow(row);
-        togglePanel(true);
+        if (row) openAppModal(row);
         return;
       }
 
@@ -578,7 +659,7 @@
             .then(function (data) {
               if (data && data.success) {
                 toast(data.msg || '已保存');
-                togglePanel(false); resetForm(); clearFallbackOptions(); loadList();
+                closeAppModal(); loadList();
               } else toast((data && data.msg) || '保存失败');
             })
             .catch(function () { toast('网络错误，保存未生效'); })
@@ -589,7 +670,7 @@
           postJSON('/manager/api-app/add', payloadA)
             .then(function (data) {
               if (!data || data.success === false) { toast((data && data.msg) || '添加失败'); return; }
-              togglePanel(false); resetForm(); loadList();
+              closeAppModal(); loadList();
               if (!data.secret) { toast('应用已创建，但未获取到密钥，请重置密钥'); return; }
               showSecret(data.appId, data.secret);
             })
@@ -600,21 +681,18 @@
       }
     });
 
-    // Esc 关闭弹层。
+    // 切换绑定用户时，实时刷新「可调用 API」只读清单。
+    document.addEventListener('change', function (e) {
+      if (e.target && e.target.name === 'userId') renderPerms();
+    });
+
+    // Esc 关闭当前弹层。
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' || e.keyCode === 27) {
         if (secretLayer && secretLayer.style.display !== 'none') closeSecret();
         else if (postsLayer && postsLayer.style.display !== 'none') closeLayer(postsLayer);
+        else if (appLayer && appLayer.style.display !== 'none') closeAppModal();
       }
-    });
-  }
-
-  function clearFallbackOptions() {
-    if (!form) return;
-    var userSel = qs('select[name=userId]', form);
-    if (!userSel) return;
-    Array.prototype.slice.call(userSel.options).forEach(function (opt) {
-      if (opt.getAttribute('data-fallback') === '1') userSel.removeChild(opt);
     });
   }
 
