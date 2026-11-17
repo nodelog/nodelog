@@ -32,6 +32,10 @@ var route = function (app) {
     app.get('/about', function (req, res) {
         res.render('about', { title: '关于我们'});
     });
+    // 开发平台：前台公开的开放 API v3 文档页（无需登录；开放接口面向外部系统/AI 工具/CI）
+    app.get('/dev', function (req, res) {
+        res.render('openPlatform', { title: '开发平台', currentMenu: 'openPlatform' });
+    });
     app.post('/user/login', rateLimit.limit({max: 10, windowMs: 5 * 60 * 1000}), user.login);
     app.post('/user/reg', user.addUser);
     app.get('/user/logout', user.logout);

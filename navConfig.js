@@ -43,6 +43,10 @@ var frontGroups = [
                 key: 'log', label: '公告', title: '系统公告',
                 href: '/log?view=log&page=1',
                 className: 'js-log badge-father', badge: true
+            },
+            {
+                key: 'openPlatform', label: '开发平台', title: '开放 API 文档',
+                href: '/dev', className: 'js-open-platform-menu'
             }
         ]
     },

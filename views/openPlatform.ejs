@@ -1,0 +1,459 @@
+<%- include('header') %>
+<ol class="breadcrumb" aria-label="面包屑">
+    <li><a href="/">首页</a></li>
+    <li class="active" aria-current="page">开发平台</li>
+</ol>
+<div class="page-head">
+    <h1>开发平台</h1>
+    <p class="kicker"><%=session.site.name%> 开放接口 · v3 · 面向系统 / AI 工具 / CI 以编程方式调用</p>
+</div>
+
+<style>
+/* =========================================================================
+   开放平台文档页 · 页面专属结构样式
+   配色 / 字号 / 间距 / 圆角 / 动效一律取 theme.css 令牌，不自造数值。
+   ========================================================================= */
+.op-hero { margin-bottom: var(--space-8); }
+.op-hero-head { margin-bottom: var(--space-6); }
+.op-hero-head h2 { margin: var(--space-3) 0 var(--space-2); }
+.op-hero-head p { color: var(--muted); font-size: var(--fs-body-sm); line-height: 1.7; margin: 0; max-width: var(--measure); }
+
+/* 三步流程：纵向连接步骤，非等大卡片平铺 */
+.op-steps { list-style: none; margin: 0; padding: 0; }
+.op-step { position: relative; display: grid; grid-template-columns: 40px minmax(0,1fr); gap: var(--space-4); padding-bottom: var(--space-6); }
+.op-step:last-child { padding-bottom: 0; }
+.op-step:not(:last-child)::before {
+    content: ""; position: absolute; left: 19px; top: 44px; bottom: var(--sp-1);
+    width: 2px; background: var(--border);
+}
+.op-step-num {
+    width: 40px; height: 40px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--accent-weak); color: var(--accent);
+    font-size: var(--fs-body-sm); font-weight: var(--fw-semibold);
+    font-variant-numeric: tabular-nums;
+}
+.op-step-body h3 { font-size: var(--fs-h3); margin: var(--sp-1) 0 var(--space-2); }
+.op-step-body p { color: var(--muted); font-size: var(--fs-body-sm); line-height: 1.7; margin: 0 0 var(--space-2); }
+.op-step-body p:last-child { margin-bottom: 0; }
+
+/* 调用约定条 */
+.op-facts { display: flex; flex-wrap: wrap; gap: var(--space-3) var(--space-6); margin-top: var(--space-6); padding-top: var(--sp-5); border-top: 1px solid var(--border); }
+.op-fact { min-width: 0; }
+.op-fact dt { color: var(--muted); font-size: var(--fs-small); margin: 0 0 var(--sp-1); }
+.op-fact dd { margin: 0; font-size: var(--fs-body-sm); }
+
+/* 行内 code：与 .article-content code 同款（hero 不在 article-content 内，需自带） */
+.op-hero code, .op-content p code, .op-content td code, .op-content li code, .op-fact dd code {
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: var(--radius-xs); padding: 1px var(--sp-1);
+    font-family: var(--font-mono); font-size: .9em; color: var(--accent);
+}
+
+/* 两栏：左 sticky 目录 + 右正文 */
+.op-layout { display: grid; grid-template-columns: var(--aside) minmax(0,1fr); gap: var(--layout-gap); align-items: start; }
+.op-toc { position: sticky; top: calc(var(--navbar-h) + var(--sp-5)); }
+.op-toc-title { font-size: var(--fs-small); color: var(--muted); font-weight: var(--fw-medium); margin: 0 0 var(--space-3); }
+.op-toc ol { list-style: none; margin: 0; padding: 0; }
+.op-toc li + li { margin-top: var(--sp-1); }
+.op-toc a {
+    display: flex; align-items: center; min-height: var(--tap);
+    padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm);
+    color: var(--muted); font-size: var(--fs-body-sm); text-decoration: none;
+    transition: color var(--motion-color) var(--ease-out), background-color var(--motion-color) var(--ease-out);
+}
+.op-toc a::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--border-strong); margin-right: var(--space-3); flex: 0 0 auto; }
+.op-toc a:hover { color: var(--accent); background: var(--surface-2); text-decoration: none; }
+.op-toc a.is-active { color: var(--accent); background: var(--accent-weak); font-weight: var(--fw-medium); }
+.op-toc a.is-active::before { background: var(--accent); }
+
+/* 正文分节：锚点滚动避开 sticky 顶栏 */
+.op-content { min-width: 0; }
+.op-sec { scroll-margin-top: calc(var(--navbar-h) + var(--sp-5)); }
+.op-sec + .op-sec { margin-top: var(--space-6); }
+.op-sec > h2 { font-size: var(--fs-h2); margin-bottom: var(--space-4); }
+.op-sec > h3 { font-size: var(--fs-h3); }
+/* 表格：外层滚动容器吸收窄屏溢出，桌面宽度充足时无滚动条 */
+.op-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
+.op-sec table { font-size: var(--fs-body-sm); }
+.op-sec td, .op-sec th { vertical-align: top; }
+.op-sec ul, .op-sec ol { font-size: var(--fs-body-sm); }
+
+/* 权限单元格：文字表意，颜色仅增强 */
+.op-yes { color: var(--success-ink); font-weight: var(--fw-medium); }
+.op-no { color: var(--danger-ink); font-weight: var(--fw-medium); }
+
+/* 提示条：flex 让图标与文字对齐 */
+.alert.op-alert { display: flex; gap: var(--space-3); align-items: flex-start; }
+.alert.op-alert .op-alert-ico { flex: 0 0 auto; color: var(--warning-ink); margin-top: 2px; }
+.alert.op-alert p { margin: 0; }
+
+/* 代码块：复制按钮 + 复用 pre/code 令牌 */
+.op-code { position: relative; margin: var(--space-4) 0; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--surface-2); }
+.op-code-bar { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border); background: var(--surface); }
+.op-code-lang { font-family: var(--font-mono); font-size: var(--fs-caption); color: var(--muted); }
+.op-copy { min-height: var(--tap); padding: var(--space-1) var(--space-3); font-size: var(--fs-small); }
+.op-copy.is-copied { color: var(--success-ink); border-color: var(--success-ink); }
+.op-code pre { margin: 0; border: 0; border-radius: 0; background: transparent; }
+.op-code pre code { font-size: var(--fs-small); line-height: 1.7; }
+
+/* 底部博客版入口 */
+.op-more { margin-top: var(--space-8); scroll-margin-top: calc(var(--navbar-h) + var(--sp-5)); }
+.op-more h2 { font-size: var(--fs-h3); }
+.op-more p { color: var(--muted); font-size: var(--fs-body-sm); line-height: 1.7; max-width: var(--measure); }
+.op-more .btn svg { flex: 0 0 auto; }
+
+@media (max-width: 1023px) {
+    .op-layout { grid-template-columns: minmax(0,1fr); gap: var(--space-6); }
+    .op-toc { position: static; }
+    .op-toc-title { margin-bottom: var(--space-2); }
+    .op-toc ol { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+    .op-toc li + li { margin-top: 0; }
+    .op-toc a { padding: var(--space-2); }
+}
+</style>
+
+<!-- 首屏主角区：三步接入 -->
+<section class="card op-hero" id="quickstart" aria-labelledby="quickstart-title">
+    <div class="op-hero-head">
+        <span class="pill">快速开始</span>
+        <h2 id="quickstart-title">三步完成接入</h2>
+        <p>开放接口与后台账号登录、扫码登录完全解耦：无会话、无 Cookie、无 CSRF 风险。按下面三步即可用程序发布文章、读取内容。</p>
+    </div>
+    <ol class="op-steps">
+        <li class="op-step">
+            <span class="op-step-num" aria-hidden="true">1</span>
+            <div class="op-step-body">
+                <h3>在后台创建应用，拿到 AppID 与 AppSecret</h3>
+                <p>管理员进入「治理与系统 → 应用管理」创建应用，填写名称、描述并绑定一名站点用户，系统随即生成 <code>appId</code> 与 <code>secret</code>。绑定用户决定该应用的<strong>权限</strong>（是否为管理员）和发布文章的<strong>作者</strong>；选择用户为输入即搜，输入关键字即时返回最多 20 条匹配结果，用户量再大也不卡顿。</p>
+                <p>明文 Secret 仅在创建或重置时展示一次，之后无法再次查看；服务端只保存加密密文。</p>
+            </div>
+        </li>
+        <li class="op-step">
+            <span class="op-step-num" aria-hidden="true">2</span>
+            <div class="op-step-body">
+                <h3>在本地签名，换取 access_token</h3>
+                <p>用 AppSecret 对 <code>appId + 换行 + timestamp + 换行 + nonce</code> 做 HMAC-SHA256 签名，调用 <code>POST /api/auth/token</code> 换取有效期 1 小时的 token。签名在调用方本地计算，Secret 全程不上网。</p>
+            </div>
+        </li>
+        <li class="op-step">
+            <span class="op-step-num" aria-hidden="true">3</span>
+            <div class="op-step-body">
+                <h3>带上 Bearer token 调用业务接口</h3>
+                <p>在请求头加 <code>Authorization: Bearer &lt;access_token&gt;</code> 即可发布文章、列出分类、读取文章；公告与告警接口需要管理员应用的 token。token 过期后重复第 2 步重新换取。</p>
+            </div>
+        </li>
+    </ol>
+    <dl class="op-facts">
+        <div class="op-fact"><dt>生产 Base URL</dt><dd><code>https://blog.jiangzi.xin</code></dd></div>
+        <div class="op-fact"><dt>内容类型</dt><dd><code>Content-Type: application/json</code></dd></div>
+        <div class="op-fact"><dt>响应格式</dt><dd>统一 JSON：<code>{ "success": true, "msg": "..." }</code></dd></div>
+    </dl>
+</section>
+
+<div class="op-layout">
+    <nav class="op-toc card" aria-label="文档目录">
+        <p class="op-toc-title">本页目录</p>
+        <ol>
+            <li><a href="#quickstart">快速开始</a></li>
+            <li><a href="#auth">鉴权模型</a></li>
+            <li><a href="#permissions">权限矩阵</a></li>
+            <li><a href="#publish">发布文章</a></li>
+            <li><a href="#query">查询接口</a></li>
+            <li><a href="#announcements">公告与告警</a></li>
+            <li><a href="#examples">调用示例</a></li>
+            <li><a href="#security">限流与安全</a></li>
+        </ol>
+    </nav>
+
+    <div class="op-content">
+        <section class="card op-sec article-content" id="auth" aria-labelledby="auth-title">
+            <h2 id="auth-title">鉴权模型</h2>
+            <h3 id="auth-token">换取 access_token：<code>POST /api/auth/token</code></h3>
+            <p>请求体四个字段：</p>
+            <div class="op-table-wrap">
+            <table>
+                <thead><tr><th>字段</th><th>类型</th><th>说明</th></tr></thead>
+                <tbody>
+                    <tr><td><code>appId</code></td><td>string</td><td>后台创建应用时生成的应用标识</td></tr>
+                    <tr><td><code>timestamp</code></td><td>number</td><td>毫秒 Unix 时间，允许与服务端相差 ±5 分钟（防重放）</td></tr>
+                    <tr><td><code>nonce</code></td><td>string</td><td>随机串，不超过 128 字符，每次请求取新值</td></tr>
+                    <tr><td><code>signature</code></td><td>string</td><td>HMAC-SHA256 签名的小写 hex</td></tr>
+                </tbody>
+            </table>
+            </div>
+            <p>签名算法：<code>HMAC_SHA256(AppSecret, appId + "\n" + timestamp + "\n" + nonce)</code>，其中 <code>\n</code> 为换行符。</p>
+            <div class="alert alert-warning op-alert" role="note">
+                <svg class="op-alert-ico" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+                <p><strong>Secret 不上网：</strong>AppSecret 只保存在调用方与服务端（服务端加密入库），永不通过请求体或 URL 传输。签名请在本地计算；明文 Secret 仅在创建 / 重置时展示一次，之后无法再查看。</p>
+            </div>
+            <div class="op-code">
+                <div class="op-code-bar"><span class="op-code-lang">json · 请求体</span><button type="button" class="btn btn-sm op-copy" data-copy aria-label="复制请求体示例">复制</button></div>
+                <pre><code>{
+  "appId": "app_xxxxxxxxxxxxxxxx",
+  "timestamp": 1731000000000,
+  "nonce": "&lt;随机串，不超过128字符&gt;",
+  "signature": "&lt;HMAC-SHA256 hex&gt;"
+}</code></pre>
+            </div>
+            <p>成功响应 <code>200</code>：</p>
+            <div class="op-code">
+                <div class="op-code-bar"><span class="op-code-lang">json · 响应</span><button type="button" class="btn btn-sm op-copy" data-copy aria-label="复制成功响应示例">复制</button></div>
+                <pre><code>{
+  "success": true,
+  "access_token": "&lt;jwt&gt;",
+  "token_type": "Bearer",
+  "expires_in": 3600
+}</code></pre>
+            </div>
+            <p>失败：<code>400</code> 参数缺失 / <code>401</code> 签名错误、AppID 未知或时间戳越窗 / <code>403</code> 应用或绑定用户停用 / <code>429</code> 限流。</p>
+            <h3>业务接口鉴权</h3>
+            <p>所有业务接口共用同一鉴权流程：解析 <code>Authorization: Bearer &lt;token&gt;</code>（也支持 <code>X-API-Token</code>）→ 从 token 读出 appId 定位应用 → 用该应用自己的 Secret 派生的密钥验签（应用间隔离）→ 校验应用启用、绑定用户存在且启用、未被禁言 → 敏感接口要求管理员角色。改绑或停用用户即时生效，无需等待 token 过期。<code>access_token</code> 是 HS256 JWT，payload 含 <code>appId / aid / uid / iat / exp</code>。</p>
+        </section>
+
+        <section class="card op-sec article-content" id="permissions" aria-labelledby="permissions-title">
+            <h2 id="permissions-title">权限矩阵</h2>
+            <p>权限由应用绑定的用户角色决定：绑定普通用户为普通应用，绑定管理员用户（<code>role=0</code>）为管理员应用。</p>
+            <div class="op-table-wrap">
+            <table>
+                <thead><tr><th>接口</th><th>普通应用</th><th>管理员应用</th></tr></thead>
+                <tbody>
+                    <tr><td>发文章 / 查文章 / 列分类</td><td class="op-yes">支持</td><td class="op-yes">支持</td></tr>
+                    <tr><td>发公告 <code>/api/announcements</code></td><td class="op-no">不支持（403）</td><td class="op-yes">支持</td></tr>
+                    <tr><td>告警 <code>/api/alert/status</code>、<code>/api/alert/probe</code></td><td class="op-no">不支持（403）</td><td class="op-yes">支持</td></tr>
+                </tbody>
+            </table>
+            </div>
+            <p><strong>管理员权限是叠加，不是替换。</strong>管理员应用同样能发文章和查分类，只额外开放公告与告警接口。只想用一个应用打通全部接口，创建管理员应用即可。</p>
+        </section>
+
+        <section class="card op-sec article-content" id="publish" aria-labelledby="publish-title">
+            <h2 id="publish-title">发布文章</h2>
+            <p><code>POST /api/articles</code> · 需 Bearer token（普通应用即可）。请求体字段：</p>
+            <div class="op-table-wrap">
+            <table>
+                <thead><tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr></thead>
+                <tbody>
+                    <tr><td><code>title</code></td><td>string</td><td>是</td><td>文章标题。<code>title</code> 与 <code>name</code> 互为别名，传其一即可（优先 <code>name</code>，缺省用 <code>title</code> 兜底）；同名返回 409</td></tr>
+                    <tr><td><code>content</code></td><td>string</td><td>是</td><td>正文，支持 Markdown 或 HTML，由 <code>contentType</code> 决定</td></tr>
+                    <tr><td><code>category</code></td><td>string</td><td>否</td><td>分类名称或 24 位 ObjectId；留空则服务端自动语义匹配（父子同分优先二级叶子分类），匹配不到归「未分类」</td></tr>
+                    <tr><td><code>tags</code></td><td>array / string</td><td>否</td><td>标签数组 <code>["A","B"]</code> 或逗号串 <code>"A,B"</code>；留空则从标题 / 正文提取 Top5</td></tr>
+                    <tr><td><code>contentType</code></td><td>string</td><td>否</td><td><code>markdown</code> 或 <code>html</code>（默认 <code>html</code>，入库前清洗 XSS）</td></tr>
+                    <tr><td><code>visibility</code></td><td>string</td><td>否</td><td><code>public</code>（默认）/ <code>draft</code> / <code>private</code></td></tr>
+                    <tr><td><code>seo</code></td><td>object</td><td>否</td><td><code>{ "title": "", "keywords": "", "description": "" }</code></td></tr>
+                    <tr><td><code>slug</code> / <code>excerpt</code> / <code>cover</code> / <code>original</code></td><td>string</td><td>否</td><td>永久链接 / 摘要 / 封面 URL / 原创声明</td></tr>
+                    <tr><td><code>author</code></td><td>string</td><td>否</td><td><strong>已忽略：</strong>作者强制为应用绑定用户，传了也不生效</td></tr>
+                </tbody>
+            </table>
+            </div>
+            <h3>行为要点</h3>
+            <ul>
+                <li><strong>来源不可篡改：</strong>API 发布的文章自动写入 <code>source="api"</code> 与 <code>sourceAppId=&lt;应用id&gt;</code>；两者在 schema 上不可变，后台编辑不读取、更新白名单也不含，三重保障后台无法去除来源标识。</li>
+                <li><strong>去重幂等：</strong>标题已存在返回 <code>409</code> 并带上已有 <code>id</code> / <code>url</code>，可安全重试。</li>
+                <li><strong>HTML 清洗：</strong><code>contentType:"html"</code> 时经白名单过滤，<code>a</code> 标签强制补 <code>rel</code> / <code>target</code>。</li>
+                <li><strong>标签维护：</strong>落库后自动重算标签计数。</li>
+            </ul>
+            <p>成功返回 <code>201</code>，含 <code>id</code>、<code>url</code>、<code>status</code>、<code>visibility</code>、<code>source</code>、<code>sourceAppId</code>。失败：<code>401</code> token 无效 / <code>403</code> 应用或用户异常 / <code>400</code> 参数校验失败 / <code>409</code> 重名 / <code>429</code> 限流。</p>
+        </section>
+
+        <section class="card op-sec article-content" id="query" aria-labelledby="query-title">
+            <h2 id="query-title">查询接口</h2>
+            <h3><code>GET /api/categories</code> · 列出分类</h3>
+            <p>需 Bearer token（普通应用即可）。响应含 <code>parent</code> 字段（<code>null</code> 表示顶级分类），可还原二级分类树；发布文章时优先选择二级叶子分类。</p>
+            <h3><code>GET /api/articles/:id</code> · 获取文章</h3>
+            <p>需 Bearer token。<code>:id</code> 为 24 位 hex，否则 <code>400</code>；不存在返回 <code>404</code>。响应含标题、正文、分类、标签、SEO、状态、URL，以及 <code>source</code> / <code>sourceAppId</code>。</p>
+        </section>
+
+        <section class="card op-sec article-content" id="announcements" aria-labelledby="announcements-title">
+            <h2 id="announcements-title">公告与告警</h2>
+            <p>以下接口<strong>仅管理员应用</strong>可调用（绑定 <code>role=0</code> 用户），普通应用调用返回 <code>403</code>。</p>
+            <h3><code>POST /api/announcements</code> · 发布更新公告</h3>
+            <p>供 git post-commit hook / CI / 补发脚本调用，按 commit 幂等：同一提交只产生一条公告，重复调用返回 <code>{"success":true,"duplicate":true}</code>。请求体：</p>
+            <div class="op-code">
+                <div class="op-code-bar"><span class="op-code-lang">json · 请求体</span><button type="button" class="btn btn-sm op-copy" data-copy aria-label="复制发布公告请求体示例">复制</button></div>
+                <pre><code>{
+  "commit": "&lt;git commit hash&gt;",
+  "subject": "feat: 新增某功能",
+  "body": "&lt;变更说明&gt;",
+  "author": "匠子心",
+  "date": "2026-11-17",
+  "repoUrl": "&lt;仓库地址&gt;"
+}</code></pre>
+            </div>
+            <p>标题与 HTML 正文一律由服务端生成并转义，不接受调用方传 HTML（防 XSS）；非「新功能 / 优化升级」范围的提交返回 <code>400</code>。限流 120 次 / 分钟。</p>
+            <h3>告警自检</h3>
+            <ul>
+                <li><code>GET /api/alert/status</code>：返回当前 SMTP 配置（脱敏，不含密码 / token）。</li>
+                <li><code>POST /api/alert/probe</code>，请求体 <code>{ "to": "&lt;收件人&gt;" }</code>：真实投递一封测试邮件，返回投递结果；收件人须在白名单，否则 <code>502</code>。限流 5 次 / 分钟。</li>
+            </ul>
+        </section>
+
+        <section class="card op-sec article-content" id="examples" aria-labelledby="examples-title">
+            <h2 id="examples-title">调用示例</h2>
+            <p>示例中的 <code>&lt;你的AppID&gt;</code> / <code>&lt;你的AppSecret&gt;</code> / <code>&lt;access_token&gt;</code> 均为占位符，请替换为自己的值。</p>
+            <h3>1）Node.js 换取 token（签名在本地算，Secret 不上网）</h3>
+            <div class="op-code">
+                <div class="op-code-bar"><span class="op-code-lang">javascript</span><button type="button" class="btn btn-sm op-copy" data-copy aria-label="复制 Node.js 换取 token 示例">复制</button></div>
+                <pre><code>import crypto from 'node:crypto';
+
+const appId = '&lt;你的AppID&gt;';
+const secret = '&lt;你的AppSecret&gt;';       // 只在本地，绝不放请求体 / URL
+const timestamp = Date.now();
+const nonce = crypto.randomBytes(16).toString('hex');
+const signature = crypto.createHmac('sha256', secret)
+  .update(`${appId}\n${timestamp}\n${nonce}`).digest('hex');
+
+const resp = await fetch('https://blog.jiangzi.xin/api/auth/token', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ appId, timestamp, nonce, signature })
+});
+const { access_token } = await resp.json();</code></pre>
+            </div>
+            <h3>2）用 token 发布文章</h3>
+            <div class="op-code">
+                <div class="op-code-bar"><span class="op-code-lang">bash</span><button type="button" class="btn btn-sm op-copy" data-copy aria-label="复制发布文章示例">复制</button></div>
+                <pre><code>curl -X POST https://blog.jiangzi.xin/api/articles \
+  -H "Authorization: Bearer &lt;access_token&gt;" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "此处替换为标题",
+    "content": "此处替换为正文（支持 Markdown）",
+    "contentType": "markdown",
+    "category": "技术",
+    "tags": ["标签1", "标签2"],
+    "visibility": "public"
+  }'</code></pre>
+            </div>
+            <h3>3）拉取分类 / 取文章</h3>
+            <div class="op-code">
+                <div class="op-code-bar"><span class="op-code-lang">bash</span><button type="button" class="btn btn-sm op-copy" data-copy aria-label="复制查询接口示例">复制</button></div>
+                <pre><code>curl https://blog.jiangzi.xin/api/categories -H "Authorization: Bearer &lt;access_token&gt;"
+curl https://blog.jiangzi.xin/api/articles/&lt;文章id&gt; -H "Authorization: Bearer &lt;access_token&gt;"</code></pre>
+            </div>
+            <h3>4）发布更新公告（需管理员应用的 token）</h3>
+            <div class="op-code">
+                <div class="op-code-bar"><span class="op-code-lang">bash</span><button type="button" class="btn btn-sm op-copy" data-copy aria-label="复制发布公告示例">复制</button></div>
+                <pre><code>curl -X POST https://blog.jiangzi.xin/api/announcements \
+  -H "Authorization: Bearer &lt;管理员应用access_token&gt;" \
+  -H "Content-Type: application/json" \
+  -d '{"commit":"&lt;40位commit&gt;","subject":"feat: 新增某功能","author":"匠子心","date":"2026-11-17","repoUrl":"https://gitee.com/nodelog/nodelog"}'</code></pre>
+            </div>
+            <p><code>access_token</code> 默认 1 小时有效，过期后重新走第 1 步换取。</p>
+        </section>
+
+        <section class="card op-sec article-content" id="security" aria-labelledby="security-title">
+            <h2 id="security-title">限流与安全</h2>
+            <h3>限流</h3>
+            <div class="op-table-wrap">
+            <table>
+                <thead><tr><th>路由</th><th>阈值</th></tr></thead>
+                <tbody>
+                    <tr><td><code>POST /api/auth/token</code></td><td>30 次 / 分钟</td></tr>
+                    <tr><td><code>POST /api/articles</code></td><td>60 次 / 分钟</td></tr>
+                    <tr><td><code>POST /api/announcements</code></td><td>120 次 / 分钟</td></tr>
+                    <tr><td><code>POST /api/alert/probe</code></td><td>5 次 / 分钟</td></tr>
+                </tbody>
+            </table>
+            </div>
+            <h3>安全边界</h3>
+            <ul>
+                <li><strong>无状态：</strong>业务接口不建 session、不写 Cookie。</li>
+                <li><strong>Secret 零暴露：</strong>唯一一次明文出现在创建 / 重置响应；库中加密、列表脱敏、日志不打印、网络不传输。</li>
+                <li><strong>应用隔离：</strong>JWT 签名密钥由各应用 Secret 派生，跨应用 token 不可互用。</li>
+                <li><strong>最小权限：</strong>token → 应用 → 绑定用户三级校验，用户禁用 / 禁言即时生效；敏感接口要求管理员角色；作者不可伪造。</li>
+                <li><strong>来源不可篡改：</strong>不可变字段 + 控制器不读 + 更新白名单不含，三重保障。</li>
+                <li><strong>幂等去重：</strong>文章重名返回 409；公告按 commit 去重。</li>
+            </ul>
+        </section>
+    </div>
+</div>
+
+<section class="card op-more" aria-labelledby="more-title">
+    <h2 id="more-title">需要更多帮助？</h2>
+    <p>本文也以博客文章形式发布，支持在文末评论交流。若文档有遗漏，或接口行为与描述不符，欢迎在博客版留言反馈。</p>
+    <a class="btn btn-primary" href="https://blog.jiangzi.xin/content/detail?id=6afc7fda20b874aabca99c8b" target="_blank" rel="noopener noreferrer">查看博客版文档 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg></a>
+</section>
+
+<script>
+(function () {
+    /* 代码块一键复制：navigator.clipboard 优先，失败降级 execCommand */
+    var buttons = Array.prototype.slice.call(document.querySelectorAll('[data-copy]'));
+    function flash(btn, text, copied) {
+        btn.textContent = text;
+        btn.classList.toggle('is-copied', !!copied);
+        if (btn._t) clearTimeout(btn._t);
+        btn._t = setTimeout(function () {
+            btn.textContent = '复制';
+            btn.classList.remove('is-copied');
+        }, 1800);
+    }
+    function fallback(text) {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.top = '-1000px';
+        document.body.appendChild(ta);
+        ta.select();
+        var ok = false;
+        try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+        document.body.removeChild(ta);
+        return ok;
+    }
+    buttons.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var box = btn.closest('.op-code');
+            var code = box && box.querySelector('code');
+            if (!code) return;
+            var text = code.textContent;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(function () {
+                    flash(btn, '已复制', true);
+                }).catch(function () {
+                    var ok = fallback(text);
+                    flash(btn, ok ? '已复制' : '复制失败', ok);
+                });
+            } else {
+                var ok = fallback(text);
+                flash(btn, ok ? '已复制' : '复制失败', ok);
+            }
+        });
+    });
+
+    /* 目录滚动高亮：rAF 节流的 scroll 监听，无动画、reduced-motion 下同样可用 */
+    var links = Array.prototype.slice.call(document.querySelectorAll('.op-toc a[href^="#"]'));
+    var sections = links.map(function (a) {
+        return document.getElementById(a.getAttribute('href').slice(1));
+    }).filter(Boolean);
+    if (!sections.length) return;
+    function activate(id) {
+        links.forEach(function (a) {
+            var on = a.getAttribute('href') === '#' + id;
+            a.classList.toggle('is-active', on);
+            if (on) a.setAttribute('aria-current', 'location');
+            else a.removeAttribute('aria-current');
+        });
+    }
+    function update() {
+        var y = window.pageYOffset || document.documentElement.scrollTop || 0;
+        var line = y + 128;
+        var current = sections[0];
+        for (var i = 0; i < sections.length; i++) {
+            var rect = sections[i].getBoundingClientRect();
+            if (rect.top + y <= line) current = sections[i];
+        }
+        if (current) activate(current.id);
+    }
+    var ticking = false;
+    window.addEventListener('scroll', function () {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(function () { update(); ticking = false; });
+    }, { passive: true });
+    window.addEventListener('resize', update);
+    update();
+})();
+</script>
+
+<%- include('footer') %>

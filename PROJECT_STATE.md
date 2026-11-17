@@ -70,8 +70,8 @@
 | 是否落地生产 | **授权落地改生产文件**（用户确认）；参考站 jiangzi.xin / saas.jiangzi.xin 经实抓分析判定**不参考**（两套体系不统一、品类不匹配、手法触发 P0）——但 saas 的「蓝绿双色 / 圆润 / 柔光 / 留白」调性被抽取为 Cloudletter 母本 |
 
 ## 5. 下一步
-1. 用户本地 `node ./bin/www`（需 MongoDB）起服，Chrome 复验首页/列表/文章三页明暗 × 桌面/移动，重点看蓝绿双色、featured/grid 卡片、720 阅读栏、评论卡、深色 navy 调性是否对齐呈现页 `design-language/cloudletter-preview.html`。
-2. 若需微调：网格卡无封面时的高度参差、深色 `--muted` 小字号偏淡（已知小项，可按 §3 微调）。
+1. **当前（2026-11-18）**：新增前台公开「开发平台」入口 + 独立开放 API v3 文档页 `/dev`（小组档，前端成员产出 `views/openPlatform.ejs`，主理人集成 `navConfig.js` / `routes/index.js`）；博客版文档保留。完成后需部署生产并 Chrome 复验桌面/移动。
+2. 用户本地 `node ./bin/www`（需 MongoDB）起服，Chrome 复验首页/列表/文章三页明暗 × 桌面/移动，重点看蓝绿双色、featured/grid 卡片、720 阅读栏、评论卡、深色 navy 调性是否对齐呈现页 `design-language/cloudletter-preview.html`。
 3. 后台 `views/manager/**` 仍走 `style.css`/`docs.min.css`，本次只动了前台 `theme.css` 令牌——后台渐变依赖 `--accent-2` 已从青绿改为绿 `#10B981`，需顺手在后台起服时扫一眼导航/按钮配色。
 
 ## 6. 边界与约束（实读事实，勿重复排查）
