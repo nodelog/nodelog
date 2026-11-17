@@ -29,7 +29,10 @@ var ContentSchema = new Schema({
     draft: {type: Boolean, default: false},                 // 是否草稿
     readingTime: {type: Number, default: 0},                // 预计阅读分钟
     contentType: {type: String, default: 'html', enum: ['html', 'markdown']}, // 内容格式
-    htmlBackup: {type: String}   // 富文本原文备份（首次转 Markdown 时留存，供回滚）
+    htmlBackup: {type: String},  // 富文本原文备份（首次转 Markdown 时留存，供回滚）
+    // ---- 开放接口来源溯源（immutable：创建后不可改，后台编辑无法抹除来源）----
+    source: {type: String, enum: ['api', 'manual'], default: 'manual', immutable: true},
+    sourceAppId: {type: ObjectId, default: null, immutable: true, index: true}
 }, {
     collection: "content" //对应mongodb的集合表
 });
@@ -39,6 +42,7 @@ ContentSchema.index({ createTime: -1 });           // 列表按时间倒序分�
 ContentSchema.index({ author: 1, status: 1 });     // 我的日志 / 按作者+状态查询
 ContentSchema.index({ category: 1, status: 1 });   // 按分类+状态查询
 ContentSchema.index({ name: 1 });                  // 标题搜索
+ContentSchema.index({ sourceAppId: 1, createTime: -1 }); // 应用来源溯源列表
 // P1 全文检索：标题 + 正文 + 标签（注意正文较大，索引会占用空间，按需建立）
 ContentSchema.index({ name: 'text', content: 'text', tags: 'text' });
 
@@ -299,6 +303,19 @@ ContentDAO.prototype.getCountByUser = function (author, callback) {
     ContentModel.count({"author": author, "status": {$ne: constants.CONTENT_UNABLE_STATUS}}, function (err, total) {
         callback(err, total);
     });
+};
+// 开放接口来源溯源：按应用 id 统计/查询其发布的文章。
+ContentDAO.prototype.countBySourceApp = function (appId, callback) {
+    ContentModel.count({"sourceAppId": appId, "status": {$ne: constants.CONTENT_UNABLE_STATUS}}, function (err, total) {
+        callback(err, total);
+    });
+};
+ContentDAO.prototype.findBySourceApp = function (appId, callback) {
+    ContentModel.find({"sourceAppId": appId})
+        .select('name createTime status draft')
+        .sort({createTime: -1}).limit(200).exec(function (err, docs) {
+            callback(err, docs || []);
+        });
 };
 ContentDAO.prototype.getCountByWord = function (word, currentUser, callback) {
     var term;

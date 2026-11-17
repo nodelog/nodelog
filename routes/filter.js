@@ -124,6 +124,9 @@ exports.csrfGuard = function (req, res, next) {
     if (isOpenApi && (req.headers['authorization'] || req.headers['x-api-token'])) {
         return next();
     }
+    // /api/auth/token 用 AppID + HMAC 签名换取 token，无 session/cookie，不受 CSRF 约束。
+    // 它在 body 里带签名而非 Authorization 头，故单独无条件放行（限流由路由层负责）。
+    if (p === '/api/auth/token') return next();
     var origin = req.headers.origin;
     var referer = req.headers.referer;
     if (!origin && !referer) {

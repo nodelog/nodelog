@@ -21,6 +21,8 @@ var Content = require('./../models/Content.js');
 var Category = require('./../models/Category.js');
 var User = require('./../models/User.js');
 var Tag = require('./../models/Tag.js');
+var ApiApp = require('./../models/ApiApp.js');
+var cred = require('./../services/apiCredential');          // 应用凭证：HS256 token 校验
 var markdown = require('./markdown');
 var autoClassify = require('./../services/autoClassify');   // 分类语义匹配 + 标签提取
 var guard = require('./moderation/moderationGuard');          // W6：与后台编辑器同一套风控守卫
@@ -95,44 +97,52 @@ function resolveToken(req, cfg) {
 }
 
 // ---------------------------------------------------------------------------
-// 鉴权中间件：解析 token → 解析作者账号 → 挂到 req.apiAuthor。失败一律 401/503。
+// 鉴权中间件（应用凭证）：Bearer access_token(HS256) → 验签 → 查应用与绑定用户 →
+// 挂 req.apiApp / req.apiAuthor。静态 token 已废弃，文章接口只认应用凭证签发的 token。
+// 注：loadApiConfig / resolveToken 仍导出，供公告/告警接口复用它们各自的静态 token。
 // ---------------------------------------------------------------------------
 exports.auth = function (req, res, next) {
-    var cfg = loadApiConfig();
-    if (!cfg.entries.length) {
-        return res.status(503).json({ success: false, msg: '文章发布接口未启用：请配置 ARTICLE_API_TOKENS 或 settings.articleApi.tokens' });
+    var header = req.headers['authorization'] || req.headers['x-api-token'] || '';
+    var token = '';
+    if (typeof header === 'string' && header.indexOf('Bearer ') === 0) {
+        token = header.slice('Bearer '.length).trim();
+    } else {
+        token = String(header).trim();
     }
-    var entry = resolveToken(req, cfg);
-    if (!entry) {
-        return res.status(401).json({ success: false, msg: 'API Token 无效或缺失' });
+    if (!token) {
+        return res.status(401).json({ success: false, msg: '缺少 access_token；请先用 AppID + 签名调用 /api/auth/token 换取' });
+    }
+    var payload;
+    try { payload = cred.verifyToken(token); }
+    catch (e) { payload = null; }
+    if (!payload) {
+        return res.status(401).json({ success: false, msg: 'access_token 无效或已过期' });
     }
 
-    // 作者解析优先级：请求体 author > token 绑定 author > 默认作者
-    var authorName = (req.body && typeof req.body.author === 'string' && req.body.author.trim())
-        ? req.body.author.trim()
-        : (entry.author || cfg.defaultAuthor);
-    if (!authorName) {
-        return res.status(400).json({ success: false, msg: '未指定发布作者，请在请求体设置 author 或配置默认作者' });
-    }
-
-    User.findByName(authorName, function (err, u) {
-        if (err) {
-            console.error('[articleApi.auth] 查询作者失败：' + err.message);
+    ApiApp.findByAppId(payload.appId, function (appErr, app) {
+        if (appErr) {
+            console.error('[articleApi.auth] 查应用失败：' + appErr.message);
             return res.status(500).json({ success: false, msg: '服务端错误' });
         }
-        if (!u) {
-            return res.status(403).json({ success: false, msg: '作者账号不存在：' + authorName });
-        }
-        if (u.status !== constants.USER_ENABLE_STATUS) {
-            return res.status(403).json({ success: false, msg: '作者账号已停用：' + authorName });
-        }
-        // W6：无 session 链路也必须遵守禁言期（后台由 guard.assertActive 兜底，API 在 auth 先挡一次）。
-        if (u.muteUntil && new Date(u.muteUntil).getTime() > Date.now()) {
-            return res.status(403).json({ success: false, msg: '作者账号处于禁言期：' + authorName });
-        }
-        req.apiAuthor = u;
-        req.apiTokenEntry = entry;
-        next();
+        if (!app) return res.status(401).json({ success: false, msg: '应用不存在或已停用' });
+        if (app.status !== 0) return res.status(403).json({ success: false, msg: '应用已停用' });
+        // 以库中绑定的用户为准，不信 token 里的 uid（用户被改绑后立即生效）
+        User.findById(app.userId, function (uErr, u) {
+            if (uErr) {
+                console.error('[articleApi.auth] 查询作者失败：' + uErr.message);
+                return res.status(500).json({ success: false, msg: '服务端错误' });
+            }
+            if (!u) return res.status(403).json({ success: false, msg: '应用绑定的用户不存在' });
+            if (u.status !== constants.USER_ENABLE_STATUS) {
+                return res.status(403).json({ success: false, msg: '应用绑定的用户已停用' });
+            }
+            if (u.muteUntil && new Date(u.muteUntil).getTime() > Date.now()) {
+                return res.status(403).json({ success: false, msg: '应用绑定的用户处于禁言期' });
+            }
+            req.apiAuthor = u;
+            req.apiApp = app;
+            next();
+        });
     });
 };
 
@@ -194,7 +204,7 @@ exports.publish = function (req, res) {
         }
 
         f.category = catId;                       // null 或 ObjectId 字符串
-        f.author = req.apiAuthor._id;
+        f.author = req.apiAuthor._id;             // 作者强制 = 应用绑定用户，忽略请求体 author
         f.draft = draft;
 
         // html 格式正文入库前清洗（markdown 由渲染层兜底，原样存储）
@@ -231,7 +241,9 @@ exports.publish = function (req, res) {
                 draft: f.draft,
                 contentType: f.contentType,
                 readingTime: f.readingTime,
-                status: status
+                status: status,
+                source: 'api',                     // 来源不可篡改：immutable + 仅此入口写入
+                sourceAppId: req.apiApp._id
             };
 
             // W6（开放 API 风控）：与后台 content.add 同一套 8 字段守卫，且覆盖自动生成的标签。
@@ -265,9 +277,11 @@ exports.publish = function (req, res) {
                             url: articleUrl(saved._id),
                             status: status,
                             draft: draft,
-                            visibility: visibility,
-                            publishedAt: saved.createTime
-                        });
+                        visibility: visibility,
+                        source: 'api',
+                        sourceAppId: String(req.apiApp._id),
+                        publishedAt: saved.createTime
+                    });
                     });
                 });
             });
@@ -329,6 +343,8 @@ exports.getArticle = function (req, res) {
                 draft: doc.draft === true,
                 url: articleUrl(doc._id),
                 view: doc.view || 0,
+                source: doc.source || 'manual',
+                sourceAppId: doc.sourceAppId ? String(doc.sourceAppId) : null,
                 createTime: doc.createTime,
                 modifyTime: doc.modifyTime
             }

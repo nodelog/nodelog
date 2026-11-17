@@ -120,8 +120,14 @@ var route = function (app) {
     app.get('/tags', tag.list);
     // P2 AI 辅助（仅管理员，且需配置 AI_API_KEY）
     app.post('/api/ai/summary', filter.authorizeAdmin, ai.summary);
+    // ==================== 开放接口应用凭证（AppID + HMAC 签 token）====================
+    // 调用方先用 AppID + 签名换短期 token，再用 token 调文章发布接口。
+    var apiAuthApi = require('./../controllers/apiAuthApi');
+    app.post('/api/auth/token',
+        rateLimit.limit({max: 30, windowMs: 60 * 1000, key: 'api-auth-token'}),
+        apiAuthApi.token);
     // ==================== 开放文章发布 API（供外部系统 / AI 工具调用）====================
-    // 无状态 Token 鉴权，不走 session/cookie，故 csrfGuard 对带 token 的这些路径放行（见 filter.csrfGuard）。
+    // 应用凭证 token 鉴权，不走 session/cookie，故 csrfGuard 对带 token 的这些路径放行（见 filter.csrfGuard）。
     var articleApi = require('./../controllers/articleApi');
     app.post('/api/articles', rateLimit.limit({max: 60, windowMs: 60 * 1000, key: 'api-articles'}), articleApi.auth, articleApi.publish);
     app.get('/api/articles/:id', articleApi.auth, articleApi.getArticle);
@@ -154,6 +160,23 @@ var route = function (app) {
     // 权限：A = authorize + authorizeAdmin；L = authorize（归属在 controller/DAO 内部按 session 判定）。
     function A(req, res, next) { return filter.authorize(req, res, function () { return filter.authorizeAdmin(req, res, next); }); }
     var L = filter.authorize;
+
+    // ---- ApiApp 开放接口应用管理（全部 A，仅管理员）----
+    app.get('/manager/api-app', filter.authorize, filter.authorizeAdmin, function (req, res) {
+        // 注入启用用户列表供绑定下拉使用（走 User DAO）
+        require('./../models/User.js').findAll(function (err, users) {
+            res.render('manager/apiApp', {
+                currentMenu: 'apiApp', title: '应用管理',
+                users: (users || []).map(function (u) { return {_id: String(u._id), userName: u.userName}; })
+            });
+        });
+    });
+    app.get('/manager/api-app/list', A, apiAuthApi.list);
+    app.post('/manager/api-app/add', A, apiAuthApi.add);
+    app.post('/manager/api-app/modify', A, apiAuthApi.modify);
+    app.post('/manager/api-app/delete', A, apiAuthApi.delete);
+    app.post('/manager/api-app/reset-secret', A, apiAuthApi.resetSecret);
+    app.get('/manager/api-app/posts', A, apiAuthApi.posts);
 
     // ---- Content（modify/status 为 L+归属；batch/import/export 为 A）----
     app.post('/manager/content/modify', L, content.modify);

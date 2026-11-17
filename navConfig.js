@@ -124,6 +124,7 @@ var adminGroups = [
         id: 'governance', label: '治理与系统',
         items: [
             { key: 'audit', label: '操作日志', href: '/manager/audit/page', roles: 'admin' },
+            { key: 'apiApp', label: '应用管理', href: '/manager/api-app', roles: 'admin' },
             {
                 key: 'sensitiveWord', label: '敏感词', href: '/manager/sensitive-word',
                 roles: 'admin', aliases: ['sensitive-word']

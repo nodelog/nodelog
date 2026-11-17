@@ -112,6 +112,19 @@ module.exports = {
         defaultAuthor: ''
     },
 
+    // ===== 开放接口应用凭证（AppID + Secret → HMAC 签 token，供外部系统/AI 工具发文）=====
+    // 后台「应用管理」创建应用时生成 AppID 与 Secret；Secret 用 encryptionKey 加密后入库，
+    // 明文仅在创建/重置时展示一次。tokenSecret 用于签发短期 access_token。
+    // 生产务必用环境变量注入，勿把真实密钥写进本文件（本文件进版本库）。
+    //   API_APP_ENCRYPTION_KEY = 32 位 hex（改了会导致已存 Secret 无法解密）
+    //   API_APP_TOKEN_SECRET   = 随机长串（改了会让未过期 token 失效）
+    //   API_APP_TOKEN_TTL      = token 有效期秒数，默认 3600
+    apiAuth: {
+        encryptionKey: '',   // 例：'a1b2...（64 位十六进制）'
+        tokenSecret: '',     // 例：'一段足够长的随机字符串'
+        tokenTtl: 3600
+    },
+
     // ===== 站点更新公告自动发布 API（git commit / CI 调用，见 scripts/announce-release.js）=====
     // 默认无需新增任何配置：接口和调用方脚本都会自动复用上面 articleApi.tokens[0].token，
     // 与文章发布 API 保持同一套 settings.js 配置习惯。

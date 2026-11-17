@@ -1,0 +1,630 @@
+<%- include('header') %>
+<ol class="breadcrumb">
+    <li><a href="/manager">后台首页</a></li>
+    <li class="active">应用管理</li>
+</ol>
+
+<% var userList = (typeof users !== 'undefined' && Array.isArray(users)) ? users : []; %>
+
+<h3>应用管理
+    <button type="button" id="js-add-app-trigger" class="btn btn-default pull-right js-add-app"
+            aria-expanded="false" aria-controls="js-add-app-panel">添加应用</button>
+</h3>
+<div class="clearfix"></div>
+
+<div id="js-add-app-panel" class="js-add-app-panel" style="display: none">
+    <h4 class="js-form-title">新增应用</h4>
+    <form name="apiAppForm" role="form" action="javascript:;">
+        <input type="hidden" name="id">
+        <div class="form-group">
+            <label for="app-name">应用名称</label>
+            <input type="text" id="app-name" class="form-control" name="name" maxlength="60" required>
+        </div>
+        <div class="form-group">
+            <label for="app-user">绑定用户</label><span>（该用户将作为此应用发布文章的作者，须为启用状态）</span>
+            <select id="app-user" class="form-control" name="userId" required>
+                <option value="">请选择用户</option>
+                <% userList.forEach(function (u) { %>
+                <option value="<%= u._id %>"><%= u.userName %></option>
+                <% }); %>
+            </select>
+        </div>
+        <div class="form-group js-status-group" style="display: none">
+            <label for="app-status">状态</label>
+            <select id="app-status" class="form-control" name="status">
+                <option value="0">启用</option>
+                <option value="1">停用</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="app-desc">描述</label>
+            <textarea id="app-desc" class="form-control" name="description" rows="2" maxlength="300"></textarea>
+        </div>
+        <button type="button" class="btn btn-default js-app-save">保存</button>
+        <button type="button" class="btn js-app-cancel">取消</button>
+    </form>
+</div>
+
+<p class="js-app-status" role="status" aria-live="polite" aria-atomic="true" style="margin: 8px 0"></p>
+
+<table class="table table-hover">
+    <thead>
+    <tr>
+        <th>AppID</th>
+        <th>名称</th>
+        <th>绑定用户</th>
+        <th>状态</th>
+        <th>描述</th>
+        <th>最近使用时间</th>
+        <th>文章数</th>
+        <th>密钥</th>
+        <th>操作</th>
+    </tr>
+    </thead>
+    <tbody class="js-app-panel"></tbody>
+</table>
+<div class="js-app-pager"></div>
+
+<!-- 密钥明文仅在此弹层出现一次；关闭即清除内存中的明文 -->
+<div id="js-secret-layer" class="js-layer" style="display: none; position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0, 0, 0, .5); z-index: 1000; align-items: center; justify-content: center" role="dialog" aria-modal="true" aria-labelledby="js-secret-title">
+    <div style="background: #fff; width: calc(100% - 32px); max-width: 560px; padding: 24px; border-radius: 4px; box-shadow: 0 6px 24px rgba(0, 0, 0, .25)">
+        <h4 id="js-secret-title" style="margin-top: 0">请保存应用密钥</h4>
+        <p style="color: #c7254e; font-weight: bold">密钥仅显示一次，请立即保存。关闭后无法再次查看明文，遗忘请重置密钥。</p>
+        <p>AppID：<code class="js-secret-appid" style="word-break: break-all"></code></p>
+        <p>AppSecret：<code class="js-secret-value" style="word-break: break-all"></code></p>
+        <button type="button" class="btn btn-default js-secret-copy">复制密钥</button>
+        <button type="button" class="btn js-secret-close">我已保存，关闭</button>
+    </div>
+</div>
+
+<!-- 查看文章弹层：数据来自 GET /manager/api-app/posts -->
+<div id="js-posts-layer" class="js-layer" style="display: none; position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0, 0, 0, .5); z-index: 1000; align-items: center; justify-content: center" role="dialog" aria-modal="true" aria-labelledby="js-posts-title">
+    <div style="background: #fff; width: calc(100% - 32px); max-width: 720px; max-height: 80vh; overflow: auto; padding: 24px; border-radius: 4px; box-shadow: 0 6px 24px rgba(0, 0, 0, .25)">
+        <h4 id="js-posts-title" style="margin-top: 0">应用发布的文章</h4>
+        <p class="js-posts-sub" style="margin: 0 0 12px; color: #666"></p>
+        <table class="table table-hover">
+            <thead>
+            <tr>
+                <th>标题</th>
+                <th>发布时间</th>
+            </tr>
+            </thead>
+            <tbody class="js-posts-panel"></tbody>
+        </table>
+        <button type="button" class="btn js-posts-close">关闭</button>
+    </div>
+</div>
+
+<%- include('footer') %>
+<script>
+/* 去框架化：原生 DOM + fetch + 事件委托，零 jQuery，用户字段一律 DOM 接口渲染。
+   所有 POST 均为同源 JSON 请求（Content-Type: application/json），由 csrfGuard 的同源校验放行。
+   明文 secret 只在 add / reset-secret 响应的弹层中出现一次，绝不写入列表或 DOM 属性。 */
+(function () {
+  'use strict';
+
+  function qs(sel, root) { return (root || document).querySelector(sel); }
+
+  // URL 协议白名单：仅 https?:// 或单个 / 开头的站内路径。拒绝 javascript:/data: 等危险协议。
+  function safeUrl(u) {
+    u = String(u == null ? '' : u).trim();
+    if (/^https?:\/\//i.test(u)) return u;
+    if (/^\/(?!\/)/.test(u)) return u;
+    return null;
+  }
+
+  // 防御性脱敏：后端已返回含 * 的脱敏值则原样显示；否则一律遮罩，杜绝明文落到列表。
+  function maskSecret(v) {
+    if (v == null || v === '') return '—';
+    var s = String(v);
+    if (s.indexOf('*') !== -1) return s;
+    if (s.length <= 8) return '****';
+    return s.slice(0, 3) + '****' + s.slice(-4);
+  }
+
+  function check(resp) {
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    return resp.json();
+  }
+
+  function getJSON(url) {
+    return fetch(url, { credentials: 'same-origin' }).then(check);
+  }
+
+  function postJSON(url, data) {
+    return fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data || {})
+    }).then(check);
+  }
+
+  function toast(msg) { if (window.NL && typeof NL.toast === 'function') NL.toast(msg); }
+  function confirmBox(msg, cb) {
+    if (window.NL && typeof NL.alert === 'function') NL.alert(msg, { onConfirm: cb });
+    else if (window.confirm(msg)) cb();
+  }
+
+  function fmtTime(v) {
+    if (!v) return '—';
+    var d = new Date(v);
+    if (isNaN(d.getTime())) return String(v);
+    function pad(n) { return n < 10 ? '0' + n : String(n); }
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
+      ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  var panel = qs('.js-app-panel');
+  var form = qs('form[name=apiAppForm]');
+  var addPanel = qs('.js-add-app-panel');
+  var addBtn = qs('.js-add-app');
+  var statusEl = qs('.js-app-status');
+  var formTitle = qs('.js-form-title');
+  var statusGroup = qs('.js-status-group');
+  var secretLayer = qs('#js-secret-layer');
+  var secretAppIdEl = qs('.js-secret-appid');
+  var secretValueEl = qs('.js-secret-value');
+  var secretCloseBtn = qs('.js-secret-close');
+  var postsLayer = qs('#js-posts-layer');
+  var postsPanel = qs('.js-posts-panel');
+  var postsSub = qs('.js-posts-sub');
+  var COLS = 9;
+  var currentSecretPlain = '';
+  var lastFocused = null;
+
+  function announce(msg) { if (statusEl) statusEl.textContent = msg; }
+
+  function cell(tr, text) {
+    var td = document.createElement('td');
+    td.textContent = (text == null ? '' : String(text));
+    tr.appendChild(td);
+    return td;
+  }
+
+  function actionLink(cls, label) {
+    var a = document.createElement('a');
+    a.href = 'javascript:;';
+    a.className = cls;
+    a.textContent = label;
+    return a;
+  }
+
+  // 用户字段一律 createElement + textContent + setAttribute，禁止字符串拼 HTML。
+  function makeRow(item) {
+    var tr = document.createElement('tr');
+    var id = item.id == null ? '' : String(item.id);
+    tr.setAttribute('data-id', id);
+    tr.setAttribute('data-app-id', item.appId == null ? '' : String(item.appId));
+    tr.setAttribute('data-name', item.name == null ? '' : String(item.name));
+    tr.setAttribute('data-user-id', item.userId == null ? '' : String(item.userId));
+    tr.setAttribute('data-user-name', item.userName == null ? '' : String(item.userName));
+    tr.setAttribute('data-description', item.description == null ? '' : String(item.description));
+    tr.setAttribute('data-status', Number(item.status) === 1 ? '1' : '0');
+
+    cell(tr, item.appId);                                 // AppID
+    cell(tr, item.name);                                  // 名称
+    cell(tr, item.userName == null || item.userName === '' ? '—' : item.userName); // 绑定用户
+    cell(tr, Number(item.status) === 1 ? '停用' : '启用');   // 状态
+    cell(tr, item.description);                           // 描述
+    cell(tr, fmtTime(item.lastUsedAt));                   // 最近使用时间
+    cell(tr, item.postCount == null ? '0' : String(item.postCount)); // 文章数
+
+    // 密钥：仅展示脱敏值，绝不展示 add/reset 返回的明文。
+    var secretFromServer = (item.secretMasked != null) ? item.secretMasked : item.secret;
+    cell(tr, maskSecret(secretFromServer));
+
+    var op = document.createElement('td');
+    var actions = [
+      actionLink('js-app-edit', '编辑'),
+      actionLink('js-app-toggle', Number(item.status) === 1 ? '启用' : '停用'),
+      actionLink('js-app-delete', '删除'),
+      actionLink('js-app-reset', '重置密钥'),
+      actionLink('js-app-posts', '查看文章')
+    ];
+    actions.forEach(function (a, i) {
+      op.appendChild(a);
+      if (i < actions.length - 1) op.appendChild(document.createTextNode('  '));
+    });
+    tr.appendChild(op);
+
+    return tr;
+  }
+
+  // 失败绝不降级为“暂无应用”：error 态带重试按钮，保留清晰错误提示。
+  function showState(kind, text) {
+    if (!panel) return;
+    panel.textContent = '';
+    var tr = document.createElement('tr');
+    var td = document.createElement('td');
+    td.colSpan = COLS;
+    td.className = 'empty';
+    td.setAttribute('role', kind === 'error' ? 'alert' : 'status');
+    if (kind === 'error') {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-sm js-app-retry';
+      btn.textContent = '重试';
+      td.appendChild(btn);
+      td.appendChild(document.createTextNode('  ' + (text || '应用列表加载失败，请重试')));
+    } else {
+      td.textContent = text || '暂无应用';
+    }
+    tr.appendChild(td);
+    panel.appendChild(tr);
+  }
+
+  function loadList() {
+    if (!panel) return;
+    showState('loading', '正在加载应用…');
+    getJSON('/manager/api-app/list')
+      .then(function (data) {
+        if (!data || data.success === false) {
+          showState('error', (data && data.msg) || '应用列表加载失败，请重试');
+          announce('应用列表加载失败');
+          return;
+        }
+        var docs = data.data || [];
+        panel.textContent = '';
+        if (!docs.length) {
+          showState('empty', '暂无应用');
+          announce('暂无应用');
+        } else {
+          docs.forEach(function (item) { panel.appendChild(makeRow(item)); });
+          announce('已加载 ' + docs.length + ' 个应用');
+        }
+      })
+      .catch(function () {
+        showState('error', '应用列表加载失败，请重试');
+        announce('应用列表加载失败，请重试');
+      });
+  }
+
+  function togglePanel(forceOpen) {
+    if (!addPanel) return;
+    var willShow = (typeof forceOpen === 'boolean')
+      ? forceOpen
+      : (addPanel.style.display === 'none' || addPanel.style.display === '');
+    addPanel.style.display = willShow ? 'block' : 'none';
+    if (addBtn) addBtn.setAttribute('aria-expanded', willShow ? 'true' : 'false');
+    if (willShow) { var n = qs('#app-name'); if (n) n.focus(); }
+  }
+
+  function resetForm() {
+    if (!form) return;
+    form.reset();
+    var idEl = qs('input[name=id]', form); if (idEl) idEl.value = '';
+    var sel = qs('select[name=userId]', form); if (sel) sel.value = '';
+    var st = qs('select[name=status]', form); if (st) st.value = '0';
+    if (formTitle) formTitle.textContent = '新增应用';
+    if (statusGroup) statusGroup.style.display = 'none';
+  }
+
+  function fillFormFromRow(row) {
+    var idEl = qs('input[name=id]', form);
+    var nameEl = qs('input[name=name]', form);
+    var descEl = qs('textarea[name=description]', form);
+    var userSel = qs('select[name=userId]', form);
+    var statusSel = qs('select[name=status]', form);
+    var uid = row.getAttribute('data-user-id') || '';
+    var uname = row.getAttribute('data-user-name') || '';
+
+    if (idEl) idEl.value = row.getAttribute('data-id') || '';
+    if (nameEl) nameEl.value = row.getAttribute('data-name') || '';
+    if (descEl) descEl.value = row.getAttribute('data-description') || '';
+    if (statusSel) statusSel.value = row.getAttribute('data-status') === '1' ? '1' : '0';
+
+    // 绑定用户若已不在注入列表中（如被删除），补一个回显项，避免修改时丢失绑定。
+    if (userSel && uid) {
+      var exists = false;
+      Array.prototype.forEach.call(userSel.options, function (opt) {
+        if (String(opt.value) === String(uid)) exists = true;
+      });
+      if (!exists) {
+        var opt = document.createElement('option');
+        opt.value = uid;
+        opt.textContent = uname ? (uname + '（已不可用）') : '原绑定用户（已不可用）';
+        opt.setAttribute('data-fallback', '1');
+        userSel.insertBefore(opt, userSel.firstChild);
+      }
+      userSel.value = uid;
+    }
+    if (formTitle) formTitle.textContent = '编辑应用';
+    if (statusGroup) statusGroup.style.display = 'block';
+  }
+
+  function openLayer(layer) {
+    if (!layer) return;
+    lastFocused = document.activeElement;
+    layer.style.display = 'flex';
+    layer.setAttribute('aria-hidden', 'false');
+  }
+
+  function closeLayer(layer) {
+    if (!layer) return;
+    layer.style.display = 'none';
+    layer.setAttribute('aria-hidden', 'true');
+    if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+    lastFocused = null;
+  }
+
+  function showSecret(appId, secret) {
+    currentSecretPlain = (secret == null) ? '' : String(secret);
+    if (secretAppIdEl) secretAppIdEl.textContent = (appId == null ? '' : String(appId));
+    if (secretValueEl) secretValueEl.textContent = currentSecretPlain;
+    openLayer(secretLayer);
+    if (secretCloseBtn) secretCloseBtn.focus();
+  }
+
+  function closeSecret() {
+    currentSecretPlain = '';
+    if (secretValueEl) secretValueEl.textContent = '';
+    if (secretAppIdEl) secretAppIdEl.textContent = '';
+    closeLayer(secretLayer);
+  }
+
+  function copySecret() {
+    if (!currentSecretPlain) { toast('当前无可复制的密钥'); return; }
+    function done() { toast('密钥已复制到剪贴板'); }
+    function fallback() {
+      if (!secretValueEl) return;
+      var range = document.createRange();
+      range.selectNodeContents(secretValueEl);
+      var sel = window.getSelection();
+      if (sel) { sel.removeAllRanges(); sel.addRange(range); }
+      try { if (document.execCommand('copy')) done(); else toast('复制失败，请手动选中复制'); }
+      catch (e) { toast('复制失败，请手动选中复制'); }
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(currentSecretPlain).then(done).catch(fallback);
+    } else {
+      fallback();
+    }
+  }
+
+  function loadPosts(row) {
+    var id = row.getAttribute('data-id') || '';
+    var name = row.getAttribute('data-name') || '该应用';
+    if (postsSub) postsSub.textContent = '应用：' + name;
+    if (postsPanel) {
+      postsPanel.textContent = '';
+      var t = document.createElement('tr');
+      var td = document.createElement('td');
+      td.colSpan = 2;
+      td.setAttribute('role', 'status');
+      td.textContent = '正在加载文章…';
+      t.appendChild(td);
+      postsPanel.appendChild(t);
+    }
+    openLayer(postsLayer);
+    getJSON('/manager/api-app/posts?id=' + encodeURIComponent(id))
+      .then(function (data) {
+        if (!data || data.success === false) {
+          renderPostsError((data && data.msg) || '文章加载失败，请重试');
+          return;
+        }
+        renderPosts(data.data || []);
+      })
+      .catch(function () { renderPostsError('文章加载失败，请重试'); });
+  }
+
+  function renderPostsError(msg) {
+    if (!postsPanel) return;
+    postsPanel.textContent = '';
+    var tr = document.createElement('tr');
+    var td = document.createElement('td');
+    td.colSpan = 2;
+    td.textContent = msg || '文章加载失败，请重试';
+    td.setAttribute('role', 'alert');
+    tr.appendChild(td);
+    postsPanel.appendChild(tr);
+  }
+
+  function renderPosts(list) {
+    if (!postsPanel) return;
+    postsPanel.textContent = '';
+    if (!list.length) {
+      var tr = document.createElement('tr');
+      var td = document.createElement('td');
+      td.colSpan = 2;
+      td.className = 'empty';
+      td.textContent = '该应用尚未发布文章';
+      tr.appendChild(td);
+      postsPanel.appendChild(tr);
+      return;
+    }
+    list.forEach(function (p) {
+      var tr = document.createElement('tr');
+      var titleTd = document.createElement('td');
+      var raw = p.url == null ? '' : String(p.url);
+      var safe = safeUrl(raw);
+      if (safe) {
+        var a = document.createElement('a');
+        a.textContent = (p.name == null || p.name === '') ? '（无标题）' : String(p.name);
+        a.setAttribute('href', safe);
+        a.setAttribute('target', '_blank');
+        a.setAttribute('rel', 'noopener noreferrer');
+        titleTd.appendChild(a);
+      } else {
+        var span = document.createElement('span');
+        span.textContent = (p.name == null || p.name === '') ? '（无标题）' : String(p.name);
+        titleTd.appendChild(span);
+      }
+      tr.appendChild(titleTd);
+      cell(tr, fmtTime(p.createTime));
+      postsPanel.appendChild(tr);
+    });
+  }
+
+  function boot() {
+    if (!panel || !form) return;
+    loadList();
+
+    // 事件委托：一个 document 级 click 覆盖全部按钮。
+    document.addEventListener('click', function (e) {
+      var target = e.target;
+
+      // 点击遮罩空白处关闭弹层（须在 closest('a, button') 之前处理）。
+      if (target === secretLayer) { e.preventDefault(); closeSecret(); return; }
+      if (target === postsLayer) { e.preventDefault(); closeLayer(postsLayer); return; }
+
+      var t = target && target.closest ? target.closest('a, button') : null;
+      if (!t) return;
+
+      if (t.classList.contains('js-add-app')) { e.preventDefault(); togglePanel(); return; }
+      if (t.classList.contains('js-app-cancel')) { e.preventDefault(); togglePanel(false); resetForm(); return; }
+      if (t.classList.contains('js-app-retry')) { e.preventDefault(); loadList(); return; }
+      if (t.classList.contains('js-secret-close')) { e.preventDefault(); closeSecret(); return; }
+      if (t.classList.contains('js-secret-copy')) { e.preventDefault(); copySecret(); return; }
+      if (t.classList.contains('js-posts-close')) { e.preventDefault(); closeLayer(postsLayer); return; }
+
+      if (t.classList.contains('js-app-edit')) {
+        e.preventDefault();
+        var row = t.closest('tr');
+        if (!row || !form) return;
+        // 编辑时先清理上次补入的“已不可用”回显项。
+        clearFallbackOptions();
+        fillFormFromRow(row);
+        togglePanel(true);
+        return;
+      }
+
+      if (t.classList.contains('js-app-toggle')) {
+        e.preventDefault();
+        var toggleRow = t.closest('tr');
+        if (!toggleRow) return;
+        var nextStatus = toggleRow.getAttribute('data-status') === '1' ? 0 : 1;
+        var payloadM = {
+          id: toggleRow.getAttribute('data-id') || '',
+          name: toggleRow.getAttribute('data-name') || '',
+          userId: toggleRow.getAttribute('data-user-id') || '',
+          description: toggleRow.getAttribute('data-description') || '',
+          status: nextStatus
+        };
+        if (!payloadM.id || !payloadM.userId) { toast('应用数据不完整，无法切换状态'); return; }
+        t.style.pointerEvents = 'none';
+        postJSON('/manager/api-app/modify', payloadM)
+          .then(function (data) {
+            if (data && data.success) { toast(data.msg || (nextStatus === 1 ? '已停用' : '已启用')); loadList(); }
+            else toast((data && data.msg) || '状态更新失败');
+          })
+          .catch(function () { toast('网络错误，状态更新未生效'); })
+          .then(function () { t.style.pointerEvents = ''; });
+        return;
+      }
+
+      if (t.classList.contains('js-app-delete')) {
+        e.preventDefault();
+        var delRow = t.closest('tr');
+        if (!delRow) return;
+        var did = delRow.getAttribute('data-id') || '';
+        var dname = delRow.getAttribute('data-name') || '该应用';
+        confirmBox('确定删除应用「' + dname + '」吗？删除后该应用的凭证立即失效，且不可恢复。', function () {
+          postJSON('/manager/api-app/delete', { id: did })
+            .then(function (data) {
+              if (data && data.success) { toast(data.msg || '已删除'); loadList(); }
+              else toast((data && data.msg) || '删除失败');
+            })
+            .catch(function () { toast('网络错误，删除未生效'); });
+        });
+        return;
+      }
+
+      if (t.classList.contains('js-app-reset')) {
+        e.preventDefault();
+        var resetRow = t.closest('tr');
+        if (!resetRow) return;
+        var rid = resetRow.getAttribute('data-id') || '';
+        var rname = resetRow.getAttribute('data-name') || '该应用';
+        confirmBox('重置「' + rname + '」的密钥后，旧密钥立即失效。确定继续吗？', function () {
+          postJSON('/manager/api-app/reset-secret', { id: rid })
+            .then(function (data) {
+              if (!data || data.success === false) { toast((data && data.msg) || '重置失败'); return; }
+              showSecret(resetRow.getAttribute('data-app-id'), data.secret);
+              toast(data.msg || '密钥已重置');
+              loadList();
+            })
+            .catch(function () { toast('网络错误，重置未生效'); });
+        });
+        return;
+      }
+
+      if (t.classList.contains('js-app-posts')) {
+        e.preventDefault();
+        var postsRow = t.closest('tr');
+        if (postsRow) loadPosts(postsRow);
+        return;
+      }
+
+      if (t.classList.contains('js-app-save')) {
+        e.preventDefault();
+        var idEl = qs('input[name=id]', form);
+        var nameEl = qs('input[name=name]', form);
+        var userSel2 = qs('select[name=userId]', form);
+        var descEl = qs('textarea[name=description]', form);
+        var statusSel2 = qs('select[name=status]', form);
+        var id = idEl ? idEl.value.trim() : '';
+        var name = nameEl ? nameEl.value.trim() : '';
+        var uid = userSel2 ? userSel2.value : '';
+        var desc = descEl ? descEl.value.trim() : '';
+        if (!name) { toast('应用名称不能为空'); return; }
+        if (!uid) { toast('请选择绑定用户'); return; }
+
+        if (id) {
+          var payloadU = { id: id, name: name, userId: uid, description: desc,
+            status: statusSel2 ? parseInt(statusSel2.value, 10) : 0 };
+          t.style.pointerEvents = 'none';
+          postJSON('/manager/api-app/modify', payloadU)
+            .then(function (data) {
+              if (data && data.success) {
+                toast(data.msg || '已保存');
+                togglePanel(false); resetForm(); clearFallbackOptions(); loadList();
+              } else toast((data && data.msg) || '保存失败');
+            })
+            .catch(function () { toast('网络错误，保存未生效'); })
+            .then(function () { t.style.pointerEvents = ''; });
+        } else {
+          var payloadA = { name: name, userId: uid, description: desc };
+          t.style.pointerEvents = 'none';
+          postJSON('/manager/api-app/add', payloadA)
+            .then(function (data) {
+              if (!data || data.success === false) { toast((data && data.msg) || '添加失败'); return; }
+              togglePanel(false); resetForm(); loadList();
+              if (!data.secret) { toast('应用已创建，但未获取到密钥，请重置密钥'); return; }
+              showSecret(data.appId, data.secret);
+            })
+            .catch(function () { toast('网络错误，添加未生效'); })
+            .then(function () { t.style.pointerEvents = ''; });
+        }
+        return;
+      }
+    });
+
+    // Esc 关闭弹层。
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' || e.keyCode === 27) {
+        if (secretLayer && secretLayer.style.display !== 'none') closeSecret();
+        else if (postsLayer && postsLayer.style.display !== 'none') closeLayer(postsLayer);
+      }
+    });
+  }
+
+  function clearFallbackOptions() {
+    if (!form) return;
+    var userSel = qs('select[name=userId]', form);
+    if (!userSel) return;
+    Array.prototype.slice.call(userSel.options).forEach(function (opt) {
+      if (opt.getAttribute('data-fallback') === '1') userSel.removeChild(opt);
+    });
+  }
+
+  function whenReady(fn) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', fn, { once: true });
+    } else {
+      fn();
+    }
+  }
+  whenReady(boot);
+})();
+</script>
