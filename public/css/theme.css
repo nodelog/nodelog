@@ -1,49 +1,49 @@
 /* =========================================================================
    NODELOG 前台设计系统 · 唯一视觉源
-   云笺 · Cloudletter —— 以 saas.jiangzi.xin 的「轻盈 / 温暖 / 蓝绿双色 / 柔光」调性
-   为母本，重构为面向长文阅读与内容展示的博客设计语言。
-   数值全部取自 design-language/cloudletter-design-language.md。
-   bootstrap.css 只承载 collapse / dropdown 结构，layer.css 只承载弹层结构。
+   视觉基线：链付收银SAAS 设计语言（/css/tokens.css 变量源，§8 六步接入）
+   NODELOG 作为内容站沿用「云笺」的版式骨架（720 阅读栏 / 双栏 / 长文节奏），
+   但颜色 · 字体栈 · 语义色 · 圆角 · 阴影 · 动效全部对齐 tokens.css 基线。
    ========================================================================= */
 
-/* ---- 1. 令牌：浅色（蓝绿双色 · 柔光 · 留白） --------------------------- */
+/* ---- 1. 令牌：浅色（对齐 tokens.css 基线变量） ------------------------ */
 :root {
-    /* 1. 页面 / 表面 / 描边 */
-    --bg:            #EEF2FA;   /* 浅薰衣草蓝底，全站统一 */
-    --surface:       #FFFFFF;   /* 卡片 / 导航 / 浮层 */
-    --surface-2:     #F4F6FB;   /* 区块底 / 代码块 / 引用底 / 输入框底 */
-    --border:        #E3E8F0;   /* 装饰分隔，不承载信息 */
-    --border-strong: #CBD5E1;   /* 控件边界 ≥3:1 */
+    /* 1. 页面 / 表面 / 描边 —— 指向链付语义层 */
+    --bg:            var(--brand-surface);   /* #F8FAFC 链付页面浅底 */
+    --surface:       var(--neutral-surface); /* #FFFFFF */
+    --surface-2:     #F4F6FB;                /* 内容站次表面（tokens 无对应档，保留） */
+    --border:        var(--neutral-border);  /* #E2E8F0 */
+    --border-strong: var(--neutral-border-strong); /* #CBD5E1 */
 
     /* 2. 墨色 */
-    --ink:           #1F2937;
-    --muted:         #64748B;
+    --ink:           var(--brand-ink);       /* #1E293B */
+    --muted:         var(--neutral-muted);   /* #64748B */
 
-    /* 3. 主色（蓝）/ 次色（绿，温暖） */
-    --accent:        #2563EB;
-    --accent-hover:  #1D4ED8;
-    --accent-press:  #1E40AF;
-    --accent-weak:   #E8F0FE;   /* 主色弱底（pastel blue） */
-    --accent-ink:    #FFFFFF;
-    --accent-2:      #10B981;   /* 次色：订阅 / 写文章 / 成功；同时兼容后台渐变别名 */
-    --accent-2-hover:#059669;
-    --on-accent:     #FFFFFF;
-    --brand-from:    #4A54E8;   /* 品牌渐变起（仅 logo / 可选 hero） */
-    --brand-to:      #5B6CFF;   /* 品牌渐变止 */
-    --ring:          #2563EB;
+    /* 3. 主色（品牌蓝）/ 次色（品牌绿）—— 全部指向 tokens.css 品牌层 */
+    --accent:        var(--brand-primary);        /* #2563EB 唯一主色 */
+    --accent-hover:  var(--brand-primary-hover);  /* #1D4ED8 */
+    --accent-press:  var(--brand-primary-hover);  /* 深阶派生，tokens 无独立 press 档 */
+    --accent-weak:   var(--color-info-bg);        /* #EFF6FF */
+    --accent-ink:    var(--brand-primary-ink);    /* #FFFFFF */
+    --accent-2:      var(--brand-accent);         /* #10B981 */
+    --accent-2-hover:var(--color-success-ink);    /* #059669 */
+    --on-accent:     var(--brand-primary-ink);
+    /* 品牌渐变锁定 蓝→靛（红线2）：原蓝紫渐变已废弃，改由品牌层变量供能 */
+    --brand-from:    var(--brand-primary);        /* #2563EB */
+    --brand-to:      var(--brand-indigo);         /* #4F46E5 */
+    --ring:          var(--brand-primary);
 
-    /* Pastel 点缀（极小面积：标签 / 图标底，不进主色族） */
-    --pastel-blue:   #E8F0FE;
-    --pastel-green:  #E6F6EF;
+    /* Pastel 点缀（极小面积：标签 / 图标底；peach/pink 为内容站辅助色，不进主色族） */
+    --pastel-blue:   var(--color-info-bg);    /* #EFF6FF */
+    --pastel-green:  var(--color-success-bg); /* #ECFDF5 */
     --pastel-peach:  #FDEFE6;
     --pastel-pink:   #FCE8F1;
 
-    /* 语义四件套 tint / ink：状态必配图标 + 深一档字 + 人话文案 */
-    --info:        #2563EB;  --info-tint:    #E8F0FE;  --info-ink:    #1D4ED8;
-    --warning:     #D97706;  --warning-tint: #FEF3E2;  --warning-ink: #9A5800;
-    --danger:      #DC2626;  --danger-tint:  #FDECEC;  --danger-ink:  #B91C1C;
-    --success:     #10B981;  --success-tint: #E6F6EF;  --success-ink: #047857;
-    --danger: var(--danger-ink);   /* 旧单色别名，供 .btn-danger / .alert 使用 */
+    /* 语义四件套：三统一 success #10B981 / danger #EF4444 / warning #F59E0B */
+    --info:        var(--color-info);       --info-tint:    var(--color-info-bg);    --info-ink:    var(--color-info-ink);
+    --warning:     var(--color-warning);    --warning-tint: var(--color-warning-bg); --warning-ink: var(--color-warning-ink);
+    --danger:      var(--color-danger);     --danger-tint:  var(--color-danger-bg);  --danger-ink:  var(--color-danger-ink);
+    --success:     var(--color-success);    --success-tint: var(--color-success-bg); --success-ink: var(--color-success-ink);
+    --danger: var(--danger-ink);   /* 旧单色别名，供 .btn-danger / .alert 使用（深一档保证对比） */
     --warn:   var(--warning-ink);
     --success: var(--success-ink);
 
@@ -61,15 +61,14 @@
     --primary: var(--accent);
     --primary-weak: var(--accent-weak);
 
-    /* 3. 字族（全无衬线，与原站一致） */
-    --font-sans:  -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei",
-                  "Hiragino Sans GB", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    /* 3. 字体栈：链付标准 5 族中文栈（原云笺 8 族已退役） */
+    --font-sans:  "PingFang SC", "Microsoft YaHei", "Noto Sans SC", -apple-system, sans-serif;
     --font-serif: Georgia, "Iowan Old Style", "Palatino Linotype", "Songti SC", "Noto Serif CJK SC", serif;
-    --font-mono:  "SF Mono", "JetBrains Mono", "Fira Code", Consolas, "Courier New", monospace;
+    --font-mono:  ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     --font:  var(--font-sans);
     --font-ui: var(--font-sans);
 
-    /* 4. 八档字号（阅读基线稳定：正文 17 / 1.8） */
+    /* 4. 八档字号（内容站阅读基线：正文 17 / 1.8；寄存器例外，见 §0） */
     --fs-caption:   12px;  --lh-caption: 1.50;
     --fs-small:     13px;  --lh-small:   1.50;   /* 胶囊标签 / 脚注 */
     --fs-body-sm:   15px;  --lh-body-sm: 1.70;   /* 元信息 / 侧栏 / 按钮 */
@@ -93,13 +92,13 @@
     --section-gap: 96px;
     --entry-gap:   32px;
 
-    /* 6. 圆角刻度（一致圆润） */
+    /* 6. 圆角刻度（对齐 tokens.css 四档 8/12/16/full；无 6px/10px 孤值） */
     --radius-none: 0;
-    --radius-xs: 6px;     /* 行内 code */
-    --radius-sm: 8px;     /* 控件 / 代码块 / 引用 */
-    --radius: 12px;       /* 较大控件 / 输入框 */
-    --radius-lg: 16px;    /* 卡片 / 封面 */
-    --radius-pill: 999px; /* 按钮 / 胶囊标签 */
+    --radius-xs: 8px;     /* = radius-sm，行内 code 也走刻度 */
+    --radius-sm: 8px;
+    --radius: 12px;       /* = radius-md */
+    --radius-lg: 16px;
+    --radius-pill: 999px; /* = radius-full */
     --radius-control: 8px;
 
     --wrap: 1200px;        /* 全站唯一容器 */
@@ -112,11 +111,11 @@
     --layout-gap: 48px;
     --navbar-h: 64px;
 
-    /* 7. 阴影三档（柔光签名）+ 主按钮彩色微光 */
-    --shadow-sm: 0 1px 2px rgba(15,23,42,.04), 0 1px 3px rgba(15,23,42,.05);  /* 表面卡 */
-    --shadow:    0 4px 14px rgba(15,23,42,.06), 0 2px 4px rgba(15,23,42,.04);  /* 悬浮卡（hover 加深） */
-    --shadow-lg: 0 12px 32px rgba(15,23,42,.12);                                /* 下拉 / 弹层浮层 */
-    --glow-accent: 0 6px 16px rgba(37,99,235,.22);                              /* 主按钮彩色微光 */
+    /* 7. 阴影三档（对齐 tokens.css 基色 rgba(16,24,40)，柔光双层为内容站签名） */
+    --shadow-sm: 0 1px 3px rgba(16,24,40,.06);                                        /* 表面卡 = tokens sm */
+    --shadow:    0 1px 2px rgba(16,24,40,.04), 0 10px 30px rgba(16,24,40,.07);        /* hover = tokens md */
+    --shadow-lg: 0 20px 40px rgba(37,99,235,.12);                                     /* 浮层 = tokens lg */
+    --glow-accent: 0 6px 16px rgba(37,99,235,.16);                                    /* 主按钮彩色微光（同品牌蓝调） */
     --elev:      var(--shadow-lg);
 
     /* 8. 动效预算（克制）：颜色/下划线 150 · 浮层 200 · 状态 160 · 按压 120 · 唯一循环 = 加载圈 700 */
@@ -132,40 +131,42 @@
     --z-modal: 400; --z-toast: 500; --z-tooltip: 600;
 }
 :root[data-theme="dark"] {
-    --bg:            #0F172A;
-    --surface:       #192334;
-    --surface-2:     #121B29;
-    --border:        #2A3647;
-    --border-strong: #3C4A5E;
-    --ink:           #E8EDF4;
+    /* 深色令牌对齐 tokens.css [data-theme="dark"] 登记例外；蓝 / 靛 / 深底三色 */
+    --bg:            #0a0e27;
+    --surface:       #111935;
+    --surface-2:     #0d1430;
+    --border:        rgba(148,163,184,.18);
+    --border-strong: rgba(148,163,184,.32);
+    --ink:           #E2E8F0;
     --muted:         #94A3B8;
-    --accent:        #5B8DEF;
-    --accent-hover:  #3B6FD6;
-    --accent-press:  #2F5BB8;
+    --accent:        #3B82F6;   /* 深色底可辨识蓝（tokens dark primary） */
+    --accent-hover:  #60A5FA;
+    --accent-press:  #93C5FD;
     --accent-weak:   #1E2A44;
-    --accent-ink:    #0F172A;
+    --accent-ink:    #0a0e27;
     --accent-2:      #34D399;
-    --accent-2-hover:#22B07E;
-    --on-accent:     #0F172A;
-    --brand-from:    #4A54E8;
-    --brand-to:      #5B6CFF;
+    --accent-2-hover:#6EE7B7;
+    --on-accent:     #0a0e27;
+    /* 深色渐变同样锁蓝→靛（#3B82F6→#4F46E5），非蓝紫 */
+    --brand-from:    #3B82F6;
+    --brand-to:      #4F46E5;
     --pastel-blue:   #1E2A44;
     --pastel-green:  #16302A;
     --pastel-peach:  #33271C;
     --pastel-pink:   #33202F;
-    --info:        #5B8DEF;  --info-tint:    #1E2A44;  --info-ink:    #9DC2EC;
-    --warning:     #E7BA69;  --warning-tint: #33271C;  --warning-ink: #E7BA69;
-    --danger:      #F29B95;  --danger-tint:  #33202A;  --danger-ink:  #F29B95;
-    --success:     #34D399;  --success-tint: #16302A;  --success-ink: #34D399;
+    --info:        #3B82F6;  --info-tint:    #1E2A44;  --info-ink:    #9DC2EC;
+    --warning:     #FBBF24;  --warning-tint: #33271C;  --warning-ink: #FBBF24;
+    --danger:      #F87171;  --danger-tint:  #33202A;  --danger-ink:  #F87171;
+    --success:     #34D399;  --success-tint: #16302A;  --success-ink: #6EE7B7;
     --danger: var(--danger-ink);
     --warn:   var(--warning-ink);
     --success: var(--success-ink);
     --manager-nav-bg: #12151A;
     --manager-nav-fg: #E8EDF4;
-    --shadow-sm: 0 1px 2px rgba(0,0,0,.35);
-    --shadow:    0 4px 14px rgba(0,0,0,.40);
-    --shadow-lg: 0 12px 32px rgba(0,0,0,.55);
-    --glow-accent: 0 6px 16px rgba(91,141,239,.30);
+    --shadow-sm: none;                              /* tokens dark: sm = none */
+    --shadow:    0 8px 24px rgba(0,0,0,.24);        /* tokens dark: md */
+    --shadow-lg: 0 20px 50px rgba(0,0,0,.3);        /* tokens dark: lg */
+    --glow-accent: 0 6px 16px rgba(59,130,246,.30);
     --elev:      var(--shadow-lg);
     --entry-gap: 32px;
 }
@@ -204,7 +205,7 @@ time, .meta, .badge, .pager-link, .state-title { font-variant-numeric: tabular-n
 ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
 
 /* 标题高亮（蓝词）：每篇最多 1 个关键词，主色底 + 主色字（不用 color-mix） */
-.hl { background: var(--pastel-blue); color: var(--accent); border-radius: 4px; padding: 0 6px; }
+.hl { background: var(--pastel-blue); color: var(--accent); border-radius: var(--radius-sm); padding: 0 6px; }
 
 /* 跳转链接：第一个可聚焦元素 */
 .skip-link {
@@ -271,7 +272,7 @@ body:not(.manager) .page-shell { padding-top: var(--space-8); padding-bottom: va
 .navbar .nav-primary > li > a { position: relative; }
 .navbar .nav-primary > li > a::after {
     content: ""; position: absolute; left: var(--space-3); right: var(--space-3); bottom: 6px; height: 2px;
-    background: var(--accent); border-radius: 2px;
+    background: var(--accent); border-radius: var(--radius-sm);
     transform: scaleX(0); transform-origin: left;
     transition: transform var(--motion-color) var(--ease-out);
 }
@@ -287,9 +288,9 @@ body:not(.manager) .page-shell { padding-top: var(--space-8); padding-bottom: va
 .navbar .navbar-brand:hover { color: var(--ink); text-decoration: none; }
 /* 品牌标记：蓝紫渐变方标 + 站名 + BLOG 胶囊 */
 .brand-mark-sq {
-    width: 34px; height: 34px; border-radius: 10px; flex: 0 0 auto;
+    width: 34px; height: 34px; border-radius: var(--radius); flex: 0 0 auto;
     background: linear-gradient(135deg, var(--brand-from), var(--brand-to));
-    color: #fff; display: inline-flex; align-items: center; justify-content: center;
+    color: var(--brand-primary-ink); display: inline-flex; align-items: center; justify-content: center;
     font-weight: var(--fw-bold); font-size: 17px;
 }
 .navbar .navbar-brand .blog-tag {
@@ -465,8 +466,8 @@ body:not(.manager) .page-shell { padding-top: var(--space-8); padding-bottom: va
     background: var(--pastel-blue); color: var(--accent);
 }
 .cat.g { background: var(--pastel-green); color: var(--accent-2); }
-.cat.p { background: var(--pastel-peach); color: #C2683B; }
-.cat.k { background: var(--pastel-pink); color: #C2457E; }
+.cat.p { background: var(--pastel-peach); color: var(--color-warning-ink); }
+.cat.k { background: var(--pastel-pink); color: var(--color-danger-ink); }
 
 /* 栏目头范式：胶囊标签 → 大标题 → 一行描述（居中） */
 .section-head { text-align: center; margin: var(--sp-9) 0 var(--sp-6); }
@@ -481,7 +482,7 @@ body:not(.manager) .page-shell { padding-top: var(--space-8); padding-bottom: va
 /* 品牌「关于本站」侧栏：平整卡片 + 渐变标 + 标语 */
 .card--brand { background: var(--surface); border-color: var(--border); }
 .brand-mark { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: var(--fw-bold); color: var(--ink); margin-bottom: var(--space-3); }
-.brand-mark::before { content: ""; width: 26px; height: 26px; border-radius: 8px; flex: 0 0 auto; background: linear-gradient(135deg, var(--brand-from), var(--brand-to)); }
+.brand-mark::before { content: ""; width: 26px; height: 26px; border-radius: var(--radius-sm); flex: 0 0 auto; background: linear-gradient(135deg, var(--brand-from), var(--brand-to)); }
 .brand-desc { font-size: var(--fs-body-sm); color: var(--muted); line-height: 1.6; margin: 0 0 var(--space-4); }
 .brand-cta { width: 100%; }
 

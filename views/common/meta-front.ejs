@@ -14,7 +14,8 @@
 <!--alexa排名验证-->
 <meta name="alexaVerifyID" content="UmbHL7uQNFzJnFyC4OkkDx5CA3E"/>
 <title><%if(locals.title){%><%=title%><%}%>-打造最快的搜索体验</title>
-<!-- 前台样式：theme.css（设计令牌 + 组件库）为唯一视觉源；app.css 仅补齐栅格 / 工具类 / 弹层等零依赖结构层（替代 bootstrap.css + layer.css） -->
+<!-- 前台样式：tokens.css（链付收银SAAS 设计语言基线变量源）→ theme.css（NODELOG 语义别名 + 组件库）→ app.css（结构层） -->
+<link rel="stylesheet" href="/css/tokens.css">
 <link rel="stylesheet" href="/css/theme.css">
 <link rel="stylesheet" href="/css/app.css">
 <% if (typeof needEditor !== 'undefined' && needEditor) { %>

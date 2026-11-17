@@ -76,8 +76,8 @@
     background: rgba(0,0,0,.86); padding: 24px; cursor: zoom-out; }
   .nl-lightbox.is-open { display: flex; }
   .nl-lightbox img { max-width: 96vw; max-height: 92vh; width: auto; height: auto; object-fit: contain;
-    border-radius: 4px; cursor: default; box-shadow: 0 8px 40px rgba(0,0,0,.5); }
-  .nl-lightbox__close { position: absolute; top: 16px; right: 22px; color: #fff; font-size: 30px; line-height: 1;
+    border-radius: var(--radius-sm); cursor: default; box-shadow: var(--shadow-lg); }
+  .nl-lightbox__close { position: absolute; top: 16px; right: 22px; color: var(--brand-primary-ink); font-size: 30px; line-height: 1;
     background: none; border: 0; cursor: pointer; padding: 4px 10px; }
 </style>
 <div class="nl-lightbox" role="dialog" aria-modal="true" aria-label="查看原图" aria-hidden="true">
