@@ -33,7 +33,7 @@ var route = function (app) {
         res.render('about', { title: '关于我们'});
     });
     // 开放平台：前台公开的开放 API v3 文档页（无需登录；开放接口面向外部系统/AI 工具/CI）
-    app.get('/dev', function (req, res) {
+    app.get('/open-platform', function (req, res) {
         res.render('openPlatform', { title: '开放平台', currentMenu: 'openPlatform' });
     });
     app.post('/user/login', rateLimit.limit({max: 10, windowMs: 5 * 60 * 1000}), user.login);
