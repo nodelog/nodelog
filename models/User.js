@@ -5,7 +5,7 @@ var constants = require('./constants');
 var Schema = mongodb.mongoose.Schema;
 var ObjectId = Schema.ObjectId;
 var UserSchema = new Schema({
-    userName: {type: 'String', required: true},
+    userName: {type: 'String', required: true, index: true},
     realName: {type: 'String', required: true},
     password: {type: 'String', required: true},
     email: {type: 'String', required: false},
@@ -74,20 +74,26 @@ UserDAO.prototype.findAll = function (callback) {
         });
 };
 // 按 id 批量拉取（供 Content.enrichDocs 消 N+1，避免逐条查询）
-// 应用管理绑定下拉专用：只取必要字段并限量，避免把整张用户表（含 password 哈希、
-// 风控字段等）全量灌进页面 select —— 用户量一大就会拖慢页面渲染并让弹窗卡死。
-// 返回字段固定为 {_id, userName, role}；BINDING_USER_LIMIT 可用环境变量覆盖。
-UserDAO.prototype.findForBinding = function (callback) {
-    var limit = parseInt(process.env.API_APP_BINDING_USER_LIMIT, 10) || 500;
-    if (limit < 1) limit = 500;
-    if (limit > 2000) limit = 2000;
-    UserModel.find({"status": {$lt: constants.USER_DELETE_STATUS}})
+// 绑定用户远程搜索：只返回关键字匹配的前 20 条，字段固定 _id/userName/role。
+// 12,800 或 1 亿用户都只走一次受限查询，不再把整张表灌进页面。
+// userName 已建索引；用转义后的正则做「开头/包含」匹配，避免正则注入。
+UserDAO.prototype.searchForBinding = function (keyword, callback) {
+    var kw = String(keyword == null ? '' : keyword).trim();
+    if (!kw) return callback(null, []);
+    if (kw.length > 60) kw = kw.slice(0, 60);
+    var escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    var re = new RegExp(escaped, 'i');
+    UserModel.find({
+        userName: re,
+        status: {$lt: constants.USER_DELETE_STATUS}
+    })
         .select('_id userName role')
         .sort({userName: 1})
-        .limit(limit)
-        .maxTimeMS(3000)
+        .limit(20)
+        .maxTimeMS(1500)
         .exec(function (err, docs) { callback(err, docs || []); });
 };
+// 已绑定用户回显：按 id 精确取回 userName/role，支持下拉搜索外的历史用户或已停用用户。
 UserDAO.prototype.findByIds = function (ids, callback) {
     if (!ids || !ids.length) return callback(null, []);
     UserModel.find({"_id": {$in: ids}}).select('_id userName role').maxTimeMS(3000)

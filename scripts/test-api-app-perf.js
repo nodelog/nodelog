@@ -1,8 +1,9 @@
 // 回归测试：应用管理页性能与防卡死护栏（无需 MongoDB，用 stub 驱动）。
-//  1) User.findForBinding 只投影 _id/userName/role 且限流
+//  1) User.searchForBinding 关键字搜索：正则转义、投影、limit 20、maxTimeMS、过滤停用
 //  2) User.findByIds 只投影必要字段
 //  3) Content.countBySourceApps 带 maxTimeMS，且始终一次聚合（非 N+1）
 //  4) apiAuth.list 下游超时时能降级返回已有主数据，不空、不 >5s
+//  5) 页面渲染不再拉全量用户（路由层静态核验）
 'use strict';
 var assert = require('assert');
 var Module = require('module');
@@ -15,7 +16,8 @@ function check(label, cond) {
 }
 
 // ---- 捕获查询构造过程 ----
-var userQuery = { select: [], limit: null, maxTimeMs: null, sort: null };
+var userQuery = { select: [], limit: null, maxTimeMs: null, sort: null, filter: null };
+var searchCalls = 0;
 var aggPipelines = [];
 var aggOptions = [];
 // 模拟真实慢点：主数据查询很快，只有文章数聚合卡死；主数据必须先返回且不能被空列表吞掉。
@@ -38,7 +40,7 @@ function fakeQuery(kind) {
 }
 
 var fakeUserModel = {
-    find: function () { return fakeQuery('find'); }
+    find: function (filter) { userQuery.filter = filter; searchCalls++; return fakeQuery('find'); }
 };
 var fakeContentModel = {
     aggregate: function (pipeline) {
@@ -105,15 +107,30 @@ Module._load = function (request) {
 var User = require('../models/User.js');
 var Content = require('../models/Content.js');
 var apiAuthApi = require('../controllers/apiAuthApi.js');
+var routeSrc = require('fs').readFileSync(require('path').join(__dirname, '..', 'routes', 'index.js'), 'utf8');
 
 console.log('应用管理页性能护栏回归');
 
-User.findForBinding(function () {
-    check('findForBinding 只投影 _id/userName/role', userQuery.select.indexOf('_id userName role') !== -1);
-    check('findForBinding 有 limit 上限', userQuery.limit > 0 && userQuery.limit <= 2000);
-    check('findForBinding 有 maxTimeMS 保护', userQuery.maxTimeMs === 3000);
+check('页面渲染不再全量拉用户（无 User.findAll/findForBinding）',
+    /app\.get\('\/manager\/api-app'[\s\S]{0,600}?res\.render/.test(routeSrc) &&
+    !/app\.get\('\/manager\/api-app',[\s\S]{0,500}?findAll/.test(routeSrc));
+check('已挂载远程搜索路由', /\/manager\/api-app\/user-search/.test(routeSrc));
 
-    Content.countBySourceApps(['a1b2c3d4e5f60718293a4b5c'], function () {
+// 正则注入串必须被转义，不能原样进 RegExp
+var injected = 'a.(*[]';
+User.searchForBinding(injected, function () {
+    var filter = userQuery.filter || {};
+    check('搜索走 userName 正则匹配', filter.userName instanceof RegExp);
+    check('关键字已转义（无正则注入）', String(filter.userName.source).indexOf('(*') === -1);
+    check('过滤停用/删除用户', !!filter.status && filter.status.$lt === 2);
+    check('搜索只投影 _id/userName/role', userQuery.select.indexOf('_id userName role') !== -1);
+    check('搜索 limit=20（12k/1亿用户都只回20条）', userQuery.limit === 20);
+    check('搜索带 maxTimeMS=1500', userQuery.maxTimeMs === 1500);
+
+    User.searchForBinding('', function () {
+        check('空关键字不发查询', searchCalls === 1);
+
+        Content.countBySourceApps(['a1b2c3d4e5f60718293a4b5c'], function () {
         check('countBySourceApps 只发一条聚合（非 N+1）', aggPipelines.length === 1);
         check('countBySourceApps 带 maxTimeMS=2000', aggOptions.length === 1 && aggOptions[0].maxTimeMS === 2000);
 
@@ -136,4 +153,5 @@ User.findForBinding(function () {
             process.exit(failed ? 1 : 0);
         }, 4000);
     });
+});
 });

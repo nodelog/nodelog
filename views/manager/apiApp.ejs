@@ -4,7 +4,9 @@
     <li class="active">应用管理</li>
 </ol>
 
-<% var userList = (typeof users !== 'undefined' && Array.isArray(users)) ? users : []; %>
+<%
+// 绑定用户改为输入即搜，页面不再拿到全量用户列表。
+%>
 
 <h3>应用管理
     <button type="button" id="js-add-app-trigger" class="btn btn-default pull-right js-add-app" aria-haspopup="dialog">添加应用</button>
@@ -42,24 +44,14 @@
                 <label for="app-name">应用名称</label>
                 <input type="text" id="app-name" class="form-control" name="name" maxlength="60" required>
             </div>
-            <div class="form-group">
-                <label for="app-user">绑定用户</label><span>（该用户将作为此应用发布文章的作者，须为启用状态）</span>
-                <% if (typeof userListTruncated !== 'undefined' && userListTruncated) { %>
-                <div style="color:#8a6d3b;background:#fcf8e3;border:1px solid #faebcc;padding:6px 8px;margin:4px 0;border-radius:4px;font-size:12px">
-                    用户较多，下拉仅显示按名称排序的前若干位。若找不到目标用户，请调整 API_APP_BINDING_USER_LIMIT 后重启服务。
-                </div>
-                <% } %>
-                <select id="app-user" class="form-control" name="userId" required style="appearance: auto; -webkit-appearance: auto; pointer-events: auto">
-                    <% if (!userList.length) { %>
-                    <option value="" disabled>（暂无可用用户，请先在用户管理添加）</option>
-                    <% } else { %>
-                    <option value="">请选择用户</option>
-                    <% userList.forEach(function (u) { %>
-                    <% var roleAttr = (u.role === 0 || u.role === '0') ? '0' : ((u.role === 1 || u.role === '1') ? '1' : ''); %>
-                    <option value="<%= u._id %>" data-role="<%= roleAttr %>"><%= u.userName %></option>
-                    <% }); %>
-                    <% } %>
-                </select>
+            <div class="form-group" style="position:relative">
+                <label for="app-user-search">绑定用户</label>
+                <span>（输入用户名搜索，该用户将作为此应用发布文章的作者，须为启用状态）</span>
+                <input type="hidden" name="userId" id="app-user-id">
+                <input type="hidden" name="userRole" id="app-user-role">
+                <input type="text" id="app-user-search" class="form-control" autocomplete="off" placeholder="输入用户名搜索（至少 1 个字符）" style="appearance: auto; -webkit-appearance: auto; pointer-events: auto">
+                <div id="app-user-results" class="app-user-results" role="listbox" style="display:none; position:absolute; left:0; right:0; top:100%; z-index:10; background:#fff; border:1px solid #ccc; border-top:0; max-height:220px; overflow-y:auto; box-shadow:0 4px 12px rgba(0,0,0,.15)"></div>
+                <div id="app-user-picked" class="app-user-picked" style="margin-top:6px; font-size:12px; color:#333"></div>
             </div>
             <div class="form-group js-status-group" style="display: none">
                 <label for="app-status">状态</label>
@@ -197,6 +189,16 @@
   var permsNote = qs('.js-api-perms-note', appLayer);
   var permsList = qs('.js-api-perms-list', appLayer);
   var statusEl = qs('.js-app-status');
+  var userSearchEl = qs('#app-user-search');
+  var userResultsEl = qs('#app-user-results');
+  var userIdEl = qs('#app-user-id');
+  var userRoleEl = qs('#app-user-role');
+  var userPickedEl = qs('#app-user-picked');
+  var userSearchTimer = null;
+  var userSearchSeq = 0;
+  var COLS = 9;
+  var currentSecretPlain = '';
+  var lastFocused = null;
   var secretLayer = qs('#js-secret-layer');
   var secretAppIdEl = qs('.js-secret-appid');
   var secretValueEl = qs('.js-secret-value');
@@ -204,9 +206,6 @@
   var postsLayer = qs('#js-posts-layer');
   var postsPanel = qs('.js-posts-panel');
   var postsSub = qs('.js-posts-sub');
-  var COLS = 9;
-  var currentSecretPlain = '';
-  var lastFocused = null;
 
   // 可调用 API 清单：普通用户三项，管理员额外两项（与后端 adminOnly 规则一致）。
   var API_NORMAL = [
@@ -245,6 +244,7 @@
     tr.setAttribute('data-name', item.name == null ? '' : String(item.name));
     tr.setAttribute('data-user-id', item.userId == null ? '' : String(item.userId));
     tr.setAttribute('data-user-name', item.userName == null ? '' : String(item.userName));
+    tr.setAttribute('data-user-role', item.userRole == null ? '' : String(item.userRole));
     tr.setAttribute('data-description', item.description == null ? '' : String(item.description));
     tr.setAttribute('data-status', Number(item.status) === 1 ? '1' : '0');
 
@@ -334,12 +334,69 @@
       });
   }
 
+  function setPickedUser(id, name, role, unavailable) {
+    if (userIdEl) userIdEl.value = id || '';
+    if (userRoleEl) userRoleEl.value = (role === 0 || role === '0') ? '0' : ((role === 1 || role === '1') ? '1' : '');
+    if (userSearchEl) userSearchEl.value = name || '';
+    if (userPickedEl) {
+      userPickedEl.textContent = id
+        ? ('已选用户：' + (name || id) + (unavailable ? '（该用户当前不可用，仅用于回显原绑定）' : '') +
+           ' · 角色：' + ((role === 0 || role === '0') ? '管理员' : '普通用户'))
+        : '';
+    }
+    hideUserResults();
+    renderPerms();
+  }
+
+  function hideUserResults() {
+    if (userResultsEl) { userResultsEl.style.display = 'none'; userResultsEl.textContent = ''; }
+  }
+
+  // 输入即搜：防抖 250ms，请求带序号，旧响应不会覆盖新输入的结果。
+  function searchUsers(kw) {
+    var seq = ++userSearchSeq;
+    kw = String(kw || '').trim();
+    if (!kw) { hideUserResults(); return; }
+    getJSON('/manager/api-app/user-search?q=' + encodeURIComponent(kw))
+      .then(function (data) {
+        if (seq !== userSearchSeq) return;   // 过期响应丢弃
+        if (!data || data.success === false || !userResultsEl) { hideUserResults(); return; }
+        var list = data.data || [];
+        userResultsEl.textContent = '';
+        if (!list.length) {
+          var empty = document.createElement('div');
+          empty.className = 'app-user-result-empty';
+          empty.style.cssText = 'padding:8px 10px;color:#999;font-size:12px';
+          empty.textContent = '未找到匹配用户，换个关键字试试';
+          userResultsEl.appendChild(empty);
+        } else {
+          list.forEach(function (u) {
+            var opt = document.createElement('div');
+            opt.className = 'app-user-result';
+            opt.setAttribute('role', 'option');
+            opt.setAttribute('tabindex', '0');
+            opt.style.cssText = 'padding:7px 10px;cursor:pointer;border-bottom:1px solid #eee;font-size:13px';
+            opt.textContent = u.userName + ((Number(u.role) === 0) ? '  [管理员]' : '');
+            opt.addEventListener('click', function () { setPickedUser(u.id, u.userName, u.role, false); });
+            opt.addEventListener('keydown', function (e) {
+              if (e.key === 'Enter' || e.keyCode === 13) { e.preventDefault(); setPickedUser(u.id, u.userName, u.role, false); }
+            });
+            userResultsEl.appendChild(opt);
+          });
+        }
+        userResultsEl.style.display = 'block';
+      })
+      .catch(function () { if (seq === userSearchSeq) hideUserResults(); });
+  }
+
   function resetForm() {
     if (!form) return;
     form.reset();
     var idEl = qs('input[name=id]', form); if (idEl) idEl.value = '';
-    var sel = qs('select[name=userId]', form); if (sel) sel.value = '';
     var st = qs('select[name=status]', form); if (st) st.value = '0';
+    userSearchSeq++;
+    setPickedUser('', '', '', false);
+    hideUserResults();
     if (appTitle) appTitle.textContent = '新增应用';
     if (statusGroup) statusGroup.style.display = 'none';
   }
@@ -348,52 +405,27 @@
     var idEl = qs('input[name=id]', form);
     var nameEl = qs('input[name=name]', form);
     var descEl = qs('textarea[name=description]', form);
-    var userSel = qs('select[name=userId]', form);
     var statusSel = qs('select[name=status]', form);
     var uid = row.getAttribute('data-user-id') || '';
     var uname = row.getAttribute('data-user-name') || '';
+    var urole = row.getAttribute('data-user-role') || '';
 
     if (idEl) idEl.value = row.getAttribute('data-id') || '';
     if (nameEl) nameEl.value = row.getAttribute('data-name') || '';
     if (descEl) descEl.value = row.getAttribute('data-description') || '';
     if (statusSel) statusSel.value = row.getAttribute('data-status') === '1' ? '1' : '0';
 
-    // 绑定用户若已不在注入列表中（如被删除），补一个回显项，避免修改时丢失绑定。角色未知。
-    if (userSel && uid) {
-      var exists = false;
-      Array.prototype.forEach.call(userSel.options, function (opt) {
-        if (String(opt.value) === String(uid)) exists = true;
-      });
-      if (!exists) {
-        var opt = document.createElement('option');
-        opt.value = uid;
-        opt.textContent = uname ? (uname + '（已不可用）') : '原绑定用户（已不可用）';
-        opt.setAttribute('data-fallback', '1');
-        opt.setAttribute('data-role', '');
-        userSel.insertBefore(opt, userSel.firstChild);
-      }
-      userSel.value = uid;
-    }
+    // 直接回显已绑定用户，无需在 12841 条里去找；编辑不改绑定时保持原值。
+    userSearchSeq++;
+    setPickedUser(uid, uname, urole, false);
     if (appTitle) appTitle.textContent = '编辑应用';
     if (statusGroup) statusGroup.style.display = 'block';
   }
 
-  function clearFallbackOptions() {
-    if (!form) return;
-    var userSel = qs('select[name=userId]', form);
-    if (!userSel) return;
-    Array.prototype.slice.call(userSel.options).forEach(function (opt) {
-      if (opt.getAttribute('data-fallback') === '1') userSel.removeChild(opt);
-    });
-  }
-
   // 当前选中用户的角色：'0'=管理员，'1'=普通，''=角色未知，null=未选用户。
   function currentRole() {
-    var sel = qs('select[name=userId]', form);
-    if (!sel || !sel.value) return null;
-    var opt = sel.options[sel.selectedIndex];
-    if (!opt) return null;
-    var role = opt.getAttribute('data-role');
+    if (!userIdEl || !userIdEl.value) return null;
+    var role = userRoleEl ? userRoleEl.value : '';
     return role === '0' || role === '1' ? role : '';
   }
 
@@ -442,9 +474,7 @@
 
   function openAppModal(row) {
     if (!appLayer || !form) return;
-    clearFallbackOptions();
     if (row) fillFormFromRow(row); else resetForm();
-    renderPerms();
     openLayer(appLayer);
     var n = qs('input[name=name]', form);
     if (n) n.focus();
@@ -453,7 +483,7 @@
   function closeAppModal() {
     if (!appLayer) return;
     closeLayer(appLayer);
-    clearFallbackOptions();
+    hideUserResults();
     resetForm();
     if (permsList) permsList.textContent = '';
     if (permsNote) permsNote.textContent = '';
@@ -669,15 +699,14 @@
         e.preventDefault();
         var idEl = qs('input[name=id]', form);
         var nameEl = qs('input[name=name]', form);
-        var userSel2 = qs('select[name=userId]', form);
         var descEl = qs('textarea[name=description]', form);
         var statusSel2 = qs('select[name=status]', form);
         var id = idEl ? idEl.value.trim() : '';
         var name = nameEl ? nameEl.value.trim() : '';
-        var uid = userSel2 ? userSel2.value : '';
+        var uid = userIdEl ? userIdEl.value.trim() : '';
         var desc = descEl ? descEl.value.trim() : '';
         if (!name) { toast('应用名称不能为空'); return; }
-        if (!uid) { toast('请选择绑定用户'); return; }
+        if (!uid) { toast('请搜索并选择绑定用户'); return; }
 
         if (id) {
           var payloadU = { id: id, name: name, userId: uid, description: desc,
@@ -709,14 +738,26 @@
       }
     });
 
-    // 切换绑定用户时，实时刷新「可调用 API」只读清单。
-    document.addEventListener('change', function (e) {
-      if (e.target && e.target.name === 'userId') renderPerms();
-    });
+    // 绑定用户输入即搜：防抖触发远程搜索；手工改动搜索框即清空已选 id，避免「显示 A 实际存 B」。
+    if (userSearchEl) {
+      userSearchEl.addEventListener('input', function () {
+        if (userIdEl) userIdEl.value = '';
+        if (userRoleEl) userRoleEl.value = '';
+        if (userPickedEl) userPickedEl.textContent = '';
+        renderPerms();
+        if (userSearchTimer) clearTimeout(userSearchTimer);
+        var kw = userSearchEl.value;
+        userSearchTimer = setTimeout(function () { searchUsers(kw); }, 250);
+      });
+      userSearchEl.addEventListener('focus', function () {
+        if (userSearchEl.value.trim()) searchUsers(userSearchEl.value);
+      });
+    }
 
-    // Esc 关闭当前弹层。
+    // Esc：先关搜索结果，再关弹层。
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' || e.keyCode === 27) {
+        if (userResultsEl && userResultsEl.style.display === 'block') { hideUserResults(); return; }
         if (secretLayer && secretLayer.style.display !== 'none') closeSecret();
         else if (postsLayer && postsLayer.style.display !== 'none') closeLayer(postsLayer);
         else if (appLayer && appLayer.style.display !== 'none') closeAppModal();

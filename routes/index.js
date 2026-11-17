@@ -167,18 +167,13 @@ var route = function (app) {
 
     // ---- ApiApp 开放接口应用管理（全部 A，仅管理员）----
     app.get('/manager/api-app', filter.authorize, filter.authorizeAdmin, function (req, res) {
-        // 绑定下拉只取 _id/userName/role 且限量（findForBinding），避免全量用户文档拖慢首屏与弹窗。
-        require('./../models/User.js').findForBinding(function (err, users) {
-            if (err) console.error('[manager/api-app] 加载绑定用户失败：' + err.message);
-            res.render('manager/apiApp', {
-                currentMenu: 'apiApp', title: '应用管理',
-                userListTruncated: (users || []).length >= (parseInt(process.env.API_APP_BINDING_USER_LIMIT, 10) || 500),
-                users: (users || []).map(function (u) {
-                    return {_id: String(u._id), userName: u.userName, role: Number(u.role)};
-                })
-            });
+        // 不再注入全量用户：绑定用户改为弹窗内输入即搜（/manager/api-app/user-search），
+        // 页面首屏零用户表扫描，12841 或 1 亿用户都不影响打开速度。
+        res.render('manager/apiApp', {
+            currentMenu: 'apiApp', title: '应用管理'
         });
     });
+    app.get('/manager/api-app/user-search', A, apiAuthApi.searchUsers);
     app.get('/manager/api-app/list', A, apiAuthApi.list);
     app.post('/manager/api-app/add', A, apiAuthApi.add);
     app.post('/manager/api-app/modify', A, apiAuthApi.modify);

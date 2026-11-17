@@ -84,6 +84,28 @@ exports.token = function (req, res) {
 };
 
 // ---------------------------------------------------------------------------
+// 后台：绑定用户远程搜索（输入即查，最多 20 条，绝不返回整张用户表）
+// ---------------------------------------------------------------------------
+exports.searchUsers = function (req, res) {
+    var kw = String((req.query || {}).q || '').trim();
+    if (!kw) return res.json({success: true, data: []});
+    User.searchForBinding(kw, function (err, docs) {
+        if (err) {
+            console.error('[apiAuth.searchUsers] 失败：' + err.message);
+            return res.status(500).json({success: false, msg: '搜索用户失败'});
+        }
+        var data = (docs || []).map(function (u) {
+            return {
+                id: String(u._id),
+                userName: u.userName,
+                role: Number(u.role)
+            };
+        });
+        return res.json({success: true, data: data});
+    });
+};
+
+// ---------------------------------------------------------------------------
 // 后台：应用列表
 // ---------------------------------------------------------------------------
 exports.list = function (req, res) {
@@ -115,14 +137,17 @@ exports.list = function (req, res) {
         User.findByIds(userIds, function (uErr, users) {
             if (uErr) console.error('[apiAuth.list] 查绑定用户失败：' + uErr.message);
             var userMap = {};
-            (users || []).forEach(function (u) { userMap[String(u._id)] = u.userName; });
+            (users || []).forEach(function (u) {
+                userMap[String(u._id)] = {name: u.userName, role: Number(u.role)};
+            });
             var data = apps.map(function (a) {
                 return {
                     id: String(a._id),
                     appId: a.appId,
                     name: a.name,
                     userId: String(a.userId),
-                    userName: userMap[String(a.userId)] || '(用户已删除)',
+                    userName: userMap[String(a.userId)] ? userMap[String(a.userId)].name : '(用户已删除)',
+                    userRole: userMap[String(a.userId)] ? userMap[String(a.userId)].role : null,
                     status: a.status,
                     description: a.description || '',
                     secret: cred.maskSecret(a.secretHash),       // 脱敏，绝不返回明文
