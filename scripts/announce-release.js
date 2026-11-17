@@ -12,7 +12,9 @@
  *
  * 鉴权（v3 应用凭证，零静态 token）：
  *   先在后台「应用管理」创建应用并绑定一个管理员用户（role===0），复制其 AppID / AppSecret。
- *   凭据读取顺序：命令行 --app-id / --app-secret > 环境变量 ANNOUNCE_APP_ID / ANNOUNCE_APP_SECRET。
+ *   凭据读取顺序：命令行 --app-id / --app-secret > 环境变量 ANNOUNCE_APP_ID / ANNOUNCE_APP_SECRET
+ *                > 本地忽略文件 .workbuddy/api-app.local.json（post-commit hook 无环境变量时回退，
+ *                  该文件已被 .gitignore 忽略，不会进版本库；CI/其他 clone 请用前两种方式）。
  *   脚本用 AppID + AppSecret 在本地做 HMAC-SHA256 签名，POST /api/auth/token 换取短期 access_token，
  *   再以 Bearer <access_token> 调用公告接口；token 进程内缓存，到期前 60 秒视为过期并重新换取。
  *   settings.js 已零密钥且被 gitignore，不再从中读取任何 token / secret。
@@ -152,10 +154,30 @@ function repoUrl() {
     return raw;
 }
 
-// v3：不再读 settings.js / 静态 token，凭据只来自 CLI 参数或环境变量
+// v3：不再读 settings.js / 静态 token。
+// 凭据读取顺序：CLI --app-id/--app-secret > 环境变量 ANNOUNCE_APP_ID/ANNOUNCE_APP_SECRET
+//                > 本地忽略文件 .workbuddy/api-app.local.json（供 post-commit hook 无环境变量时使用）
+var LOCAL_CRED_FILE = path.join(ROOT, '.workbuddy', 'api-app.local.json');
+function readLocalCredential() {
+    try {
+        if (!fs.existsSync(LOCAL_CRED_FILE)) return { appId: '', appSecret: '' };
+        var obj = JSON.parse(fs.readFileSync(LOCAL_CRED_FILE, 'utf8'));
+        return {
+            appId: String(obj.appId || '').trim(),
+            appSecret: String(obj.appSecret || '').trim()
+        };
+    } catch (e) {
+        return { appId: '', appSecret: '' };
+    }
+}
 function credentials() {
     var appId = String(opt.appId || process.env.ANNOUNCE_APP_ID || '').trim();
     var appSecret = String(opt.appSecret || process.env.ANNOUNCE_APP_SECRET || '').trim();
+    if (!appId || !appSecret) {
+        var local = readLocalCredential();
+        if (!appId) appId = local.appId;
+        if (!appSecret) appSecret = local.appSecret;
+    }
     return { appId: appId, appSecret: appSecret };
 }
 
