@@ -45,7 +45,7 @@ var frontGroups = [
                 className: 'js-log badge-father', badge: true
             },
             {
-                key: 'openPlatform', label: '开发平台', title: '开放 API 文档',
+                key: 'openPlatform', label: '开放平台', title: '开放 API 文档',
                 href: '/dev', className: 'js-open-platform-menu'
             }
         ]
