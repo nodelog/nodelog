@@ -25,6 +25,8 @@
 ## 2. 已完成
 > 只写产物路径，不写「做完了」。
 
+- [x] 开发平台入口（2026-11-18，commit `eaa6a67`）：`navConfig.js` 前台 primary 区新增「开发平台 → /dev」、`routes/index.js` 新增 `/dev` 公开路由、`views/openPlatform.ejs`（459 行，9 节锚点/7 代码块带复制/三步快速开始/权限矩阵/双栏 sticky 目录，复用 theme.css 令牌）。开放 API v3 文档独立成页，v3 博客保留并链接。验收：EJS 编译通过；playwright 精确实测 390/1440 三档 `scrollW<=clientW`（修过一次表格溢出）；无真实凭据泄漏。`feat` 提交触发公告 hook 自动发布 1 条，队列 0。已双推 gitee+github。
+
 - [x] 现状诊断（读 `DESIGN.md` / `design-tokens.json` / `design-choice.json` / `public/css/theme.css` / 三页面 EJS）→ 口头结论 + 本文件
 - [x] 编排单按内容站形态重取（`design_query.py --brief`，否决 `--plan` 误判的营销页编排）
 - [x] 团队与任务台账 → `nodelog-design-language`
