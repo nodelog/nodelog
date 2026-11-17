@@ -87,14 +87,33 @@ exports.token = function (req, res) {
 // 后台：应用列表
 // ---------------------------------------------------------------------------
 exports.list = function (req, res) {
+    var t0 = Date.now();
+    var replied = false;
+    var fallbackData = null;   // 已拿到的主数据，超时时用它降级返回，绝不误报「暂无应用」
+    // 全局兜底：3.5s 内无论下游查询卡在哪，都把已拿到的数据先返回，不让接口超过 5s。
+    // 文章数属于锦上添花，超时后前端显示 0，不阻塞列表。
+    var deadline = setTimeout(function () {
+        if (replied) return;
+        replied = true;
+        console.error('[apiAuth.list] 下游查询超时(>3.5s)，降级返回' + (fallbackData ? '(含主数据)' : '(空)'));
+        return res.json({success: true, data: fallbackData || [], degraded: true});
+    }, 3500);
+    function done(payload, status) {
+        if (replied) return;
+        replied = true;
+        clearTimeout(deadline);
+        if (status) res.status(status);
+        return res.json(payload);
+    }
     ApiApp.findAll(function (err, apps) {
         if (err) {
             console.error('[apiAuth.list] 失败：' + err.message);
-            return res.status(500).json({success: false, msg: '服务端错误'});
+            return done({success: false, msg: '服务端错误'}, 500);
         }
         apps = apps || [];
         var userIds = apps.map(function (a) { return String(a.userId); });
         User.findByIds(userIds, function (uErr, users) {
+            if (uErr) console.error('[apiAuth.list] 查绑定用户失败：' + uErr.message);
             var userMap = {};
             (users || []).forEach(function (u) { userMap[String(u._id)] = u.userName; });
             var data = apps.map(function (a) {
@@ -108,15 +127,18 @@ exports.list = function (req, res) {
                     description: a.description || '',
                     secret: cred.maskSecret(a.secretHash),       // 脱敏，绝不返回明文
                     lastUsedAt: a.lastUsedAt || null,
-                    createTime: a.createTime
+                    createTime: a.createTime,
+                    postCount: 0
                 };
             });
+            fallbackData = data;   // 主数据就绪，后续聚合再慢也不影响降级内容
             // 一次聚合统计所有应用的文章数（消除 N+1，页面打开不再慢）
             Content.countBySourceApps(data.map(function (r) { return r.id; }), function (cErr, map) {
                 if (cErr) console.error('[apiAuth.list] 文章数聚合失败：' + cErr.message);
                 map = map || {};
                 data.forEach(function (row) { row.postCount = map[row.id] || 0; });
-                return res.json({success: true, data: data});
+                console.log('[apiAuth.list] 完成 ' + data.length + ' 条，耗时 ' + (Date.now() - t0) + 'ms');
+                return done({success: true, data: data});
             });
         });
     });

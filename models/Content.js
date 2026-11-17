@@ -326,10 +326,11 @@ ContentDAO.prototype.countBySourceApps = function (appIds, callback) {
         try { oids.push(new ObjectIdType(String(id))); } catch (e) { /* 跳过非法 id */ }
     });
     if (!oids.length) return callback(null, {});
+    // maxTimeMS：单条慢聚合不得拖住整个 list 接口；超时走 err 分支降级为空统计。
     ContentModel.aggregate([
         {$match: {sourceAppId: {$in: oids}, status: {$ne: constants.CONTENT_UNABLE_STATUS}}},
         {$group: {_id: '$sourceAppId', n: {$sum: 1}}}
-    ]).exec(function (err, rows) {
+    ]).option({maxTimeMS: 2000}).exec(function (err, rows) {
         if (err) return callback(err);
         var map = {};
         (rows || []).forEach(function (r) { map[String(r._id)] = r.n; });

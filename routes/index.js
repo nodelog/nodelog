@@ -167,10 +167,12 @@ var route = function (app) {
 
     // ---- ApiApp 开放接口应用管理（全部 A，仅管理员）----
     app.get('/manager/api-app', filter.authorize, filter.authorizeAdmin, function (req, res) {
-        // 注入启用用户列表供绑定下拉使用（走 User DAO）；role 供前端判断该应用可调用的 API 权限
-        require('./../models/User.js').findAll(function (err, users) {
+        // 绑定下拉只取 _id/userName/role 且限量（findForBinding），避免全量用户文档拖慢首屏与弹窗。
+        require('./../models/User.js').findForBinding(function (err, users) {
+            if (err) console.error('[manager/api-app] 加载绑定用户失败：' + err.message);
             res.render('manager/apiApp', {
                 currentMenu: 'apiApp', title: '应用管理',
+                userListTruncated: (users || []).length >= (parseInt(process.env.API_APP_BINDING_USER_LIMIT, 10) || 500),
                 users: (users || []).map(function (u) {
                     return {_id: String(u._id), userName: u.userName, role: Number(u.role)};
                 })

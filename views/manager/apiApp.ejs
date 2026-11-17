@@ -44,6 +44,11 @@
             </div>
             <div class="form-group">
                 <label for="app-user">绑定用户</label><span>（该用户将作为此应用发布文章的作者，须为启用状态）</span>
+                <% if (typeof userListTruncated !== 'undefined' && userListTruncated) { %>
+                <div style="color:#8a6d3b;background:#fcf8e3;border:1px solid #faebcc;padding:6px 8px;margin:4px 0;border-radius:4px;font-size:12px">
+                    用户较多，下拉仅显示按名称排序的前若干位。若找不到目标用户，请调整 API_APP_BINDING_USER_LIMIT 后重启服务。
+                </div>
+                <% } %>
                 <select id="app-user" class="form-control" name="userId" required style="appearance: auto; -webkit-appearance: auto; pointer-events: auto">
                     <% if (!userList.length) { %>
                     <option value="" disabled>（暂无可用用户，请先在用户管理添加）</option>
@@ -140,17 +145,33 @@
     return resp.json();
   }
 
+  // 统一超时：接口慢时 fetch 会 reject 走 catch，按钮的 pointerEvents 一定在最后恢复，
+  // 杜绝「按钮变灰后永久卡死」。8s 远大于服务端 3.5s 兜底，正常情况下先收到响应。
+  var FETCH_TIMEOUT_MS = 8000;
+  function requestJSON(url, options) {
+    var ctrl = (typeof AbortController === 'function') ? new AbortController() : null;
+    var opts = Object.assign({ credentials: 'same-origin' }, options || {});
+    if (ctrl) opts.signal = ctrl.signal;
+    var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, FETCH_TIMEOUT_MS) : null;
+    return fetch(url, opts).then(check)
+      .catch(function (e) {
+        if (e && e.name === 'AbortError') throw new Error('请求超时，请稍后重试');
+        throw e;
+      })
+      .then(function (v) { if (timer) clearTimeout(timer); return v; },
+            function (e) { if (timer) clearTimeout(timer); throw e; });
+  }
+
   function getJSON(url) {
-    return fetch(url, { credentials: 'same-origin' }).then(check);
+    return requestJSON(url);
   }
 
   function postJSON(url, data) {
-    return fetch(url, {
+    return requestJSON(url, {
       method: 'POST',
-      credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data || {})
-    }).then(check);
+    });
   }
 
   function toast(msg) { if (window.NL && typeof NL.toast === 'function') NL.toast(msg); }
@@ -290,11 +311,18 @@
           announce('应用列表加载失败');
           return;
         }
+        if (data.degraded) announce('列表查询较慢，文章数暂未加载，请刷新重试');
         var docs = data.data || [];
         panel.textContent = '';
         if (!docs.length) {
-          showState('empty', '暂无应用');
-          announce('暂无应用');
+          // 降级且无数据 = 查询超时而非真的没有应用，必须显示可重试错误态，绝不误报「暂无应用」
+          if (data.degraded) {
+            showState('error', '应用列表查询超时，请重试');
+            announce('应用列表查询超时');
+          } else {
+            showState('empty', '暂无应用');
+            announce('暂无应用');
+          }
         } else {
           docs.forEach(function (item) { panel.appendChild(makeRow(item)); });
           announce('已加载 ' + docs.length + ' 个应用');

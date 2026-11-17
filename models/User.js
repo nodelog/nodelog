@@ -74,11 +74,26 @@ UserDAO.prototype.findAll = function (callback) {
         });
 };
 // 按 id 批量拉取（供 Content.enrichDocs 消 N+1，避免逐条查询）
+// 应用管理绑定下拉专用：只取必要字段并限量，避免把整张用户表（含 password 哈希、
+// 风控字段等）全量灌进页面 select —— 用户量一大就会拖慢页面渲染并让弹窗卡死。
+// 返回字段固定为 {_id, userName, role}；BINDING_USER_LIMIT 可用环境变量覆盖。
+UserDAO.prototype.findForBinding = function (callback) {
+    var limit = parseInt(process.env.API_APP_BINDING_USER_LIMIT, 10) || 500;
+    if (limit < 1) limit = 500;
+    if (limit > 2000) limit = 2000;
+    UserModel.find({"status": {$lt: constants.USER_DELETE_STATUS}})
+        .select('_id userName role')
+        .sort({userName: 1})
+        .limit(limit)
+        .maxTimeMS(3000)
+        .exec(function (err, docs) { callback(err, docs || []); });
+};
 UserDAO.prototype.findByIds = function (ids, callback) {
     if (!ids || !ids.length) return callback(null, []);
-    UserModel.find({"_id": {$in: ids}}, function (err, docs) {
-        callback(err, docs || []);
-    });
+    UserModel.find({"_id": {$in: ids}}).select('_id userName role').maxTimeMS(3000)
+        .exec(function (err, docs) {
+            callback(err, docs || []);
+        });
 };
 UserDAO.prototype.getCount = function (callback) {
     UserModel.count(
