@@ -10,17 +10,18 @@
 <header class="site-header">
 <nav class="navbar nav-bg bottom-border" role="navigation" aria-label="主导航">
     <div class="navbar-header">
+        <!-- 常规顺序：品牌 logo + 站名在左，汉堡在右（两端对齐） -->
+        <a class="navbar-brand" href="/">
+            <span class="brand-mark-sq"><%= (session.site.name || 'N').charAt(0) %></span>
+            <span class="brand-name"><%=session.site.name %></span>
+            <span class="blog-tag">BLOG</span>
+        </a>
         <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#example-navbar-collapse" aria-controls="example-navbar-collapse" aria-expanded="false">
             <span class="sr-only">展开导航</span>
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
         </button>
-        <a class="navbar-brand" href="/">
-            <span class="brand-mark-sq"><%= (session.site.name || 'N').charAt(0) %></span>
-            <span class="brand-name"><%=session.site.name %></span>
-            <span class="blog-tag">BLOG</span>
-        </a>
     </div>
     <div class="collapse navbar-collapse" id="example-navbar-collapse">
         <!-- 区一：内容导航——只放"去哪里"，紧贴品牌 -->
