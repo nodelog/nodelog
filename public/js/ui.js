@@ -159,7 +159,19 @@
   }
 
   /* Toast：替代 layer.msg / myMsg */
-  function toast(message, ms) {
+  /* Toast 语义：显式 kind 优先，否则按文案自动判定（不改任何调用点即可着色） */
+  var TOAST_ICON = {
+    success: '<path d="M20 6 9 17l-5-5"/>',
+    error: '<circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/>',
+    info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/>'
+  };
+  function detectToastKind(msg) {
+    var s = String(msg || '');
+    if (/失败|错误|未生效|未更新|异常|超时|拒绝|不能|无法|重试/.test(s)) return 'error';
+    if (/成功|已保存|已删除|已完成|已更新|完成|已发布|已通过/.test(s)) return 'success';
+    return 'info';
+  }
+  function toast(message, ms, kind) {
     var host = document.getElementById('nl-toast-host');
     if (!host) {
       host = document.createElement('div');
@@ -169,15 +181,19 @@
       host.setAttribute('aria-live', 'polite');
       document.body.appendChild(host);
     }
+    var k = kind || detectToastKind(message);
+    if (!TOAST_ICON[k]) k = 'info';
     var t = document.createElement('div');
-    t.className = 'nl-toast';
-    t.textContent = message;
+    t.className = 'nl-toast nl-toast--' + k;
+    t.setAttribute('role', k === 'error' ? 'alert' : 'status');
+    t.innerHTML = '<span class="nl-toast-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + TOAST_ICON[k] + '</svg></span>' +
+      '<span class="nl-toast-text"></span>';
+    t.querySelector('.nl-toast-text').textContent = message;
     host.appendChild(t);
-    var life = (typeof ms === 'number') ? ms : 2000;
+    var life = (typeof ms === 'number') ? ms : 2400;
     setTimeout(function () {
-      t.style.opacity = '0';
-      t.style.transition = 'opacity .2s ease';
-      setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 220);
+      t.classList.add('is-leaving');
+      setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 250);
     }, life);
     return t;
   }

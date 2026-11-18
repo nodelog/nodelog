@@ -40,13 +40,17 @@ var frontGroups = [
                 type: 'dropdown', className: 'js-category-content'
             },
             {
+                key: 'tags', label: '标签', title: '按标签浏览',
+                href: '/tags', className: 'js-tags-menu'
+            },
+            {
                 key: 'log', label: '公告', title: '系统公告',
                 href: '/log?view=log&page=1',
                 className: 'js-log badge-father', badge: true
             },
             {
-                key: 'openPlatform', label: '开放平台', title: '开放 API 文档',
-                href: '/open-platform', className: 'js-open-platform-menu'
+                key: 'about', label: '关于', title: '关于本站',
+                href: '/about', className: 'js-about-menu'
             }
         ]
     },

@@ -4,6 +4,31 @@
 <!-- Toast 宿主必须是 body 直属节点，不能放进会被 layer 移走/卸载的 .hide 弹层容器 -->
 <div id="nl-toast-host" class="toast-host" role="status" aria-live="polite" aria-atomic="true"></div>
 
+<!-- 顶栏搜索浮层开关：点击放大镜展开 / 点 X 或 Esc 收起 -->
+<script>
+(function () {
+  var toggle = document.getElementById('nlSearchToggle');
+  var panel = document.getElementById('nlSearchPanel');
+  var input = document.getElementById('nl-site-search');
+  var close = document.getElementById('nlSearchClose');
+  if (!toggle || !panel) return;
+  function open() {
+    panel.hidden = false;
+    toggle.setAttribute('aria-expanded', 'true');
+    if (input) { input.focus(); input.select(); }
+  }
+  function shut() {
+    panel.hidden = true;
+    toggle.setAttribute('aria-expanded', 'false');
+  }
+  toggle.addEventListener('click', function () { panel.hidden ? open() : shut(); });
+  if (close) close.addEventListener('click', shut);
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !panel.hidden) { shut(); toggle.focus(); }
+  });
+})();
+</script>
+
 <!-- 返回顶部：全局悬浮按钮，滚动超过一屏出现，纯原生无依赖 -->
 <button type="button" id="nlBackToTop" class="back-to-top" aria-label="返回顶部" title="返回顶部">
   <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
@@ -78,10 +103,14 @@
       el.click();
     }
   });
-  // 错误页「去搜索」动作：回到首页后把焦点交给顶栏检索框
+  // 错误页「去搜索」动作：回到首页后展开搜索浮层并把焦点交给检索框
   if (location.hash === '#nl-site-search') {
     window.addEventListener('load', function () {
       var el = document.getElementById('nl-site-search');
+      var panel = document.getElementById('nlSearchPanel');
+      var toggle = document.getElementById('nlSearchToggle');
+      if (panel) panel.hidden = false;
+      if (toggle) toggle.setAttribute('aria-expanded', 'true');
       if (el) el.focus();
     });
   }
