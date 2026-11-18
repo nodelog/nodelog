@@ -36,7 +36,7 @@
             </li>
             <% }else{ %>
             <li>
-                <a href="<%= item.href %>" title="<%= item.title %>" class="color-white <%= item.className %> <%if(active){%>current-menu<%}%>" <%if(active){%>aria-current="page"<%}%><%= item.label %><%if(item.badge){%> <span class="badge js-log-count"></span><%}%></a>
+                <a href="<%= item.href %>" title="<%= item.title %>" class="color-white <%= item.className %> <%= active ? 'current-menu' : '' %>" <%= active ? 'aria-current="page"' : '' %> ><%= item.label %><%if(item.badge){%> <span class="badge js-log-count"></span><%}%></a>
             </li>
             <% } %>
             <% }); %>
@@ -81,7 +81,7 @@
     </div>
 </nav>
 <!-- 搜索浮层：点击放大镜展开，输入实时出建议，Esc / 点 X 收起 -->
-<div class="nav-search-panel" id="nlSearchPanel" hidden>
+<div class="nav-search-panel js-search-bar" id="nlSearchPanel" hidden>
     <div class="nav-search-inner">
         <svg class="nav-search-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <input type="search" id="nl-site-search" maxlength="50" class="nav-search-input js-search"
