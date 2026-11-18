@@ -2,8 +2,9 @@
 <% if (doc != null) { %>
 <input type="hidden" class="js-doc-id" value="<%- doc._id %>"/>
 
-<div class="article-shell">
-<article class="article-detail reading">
+<div class="layout">
+<div class="layout-main">
+<article class="article-detail">
     <ol class="breadcrumb" aria-label="面包屑">
         <li><a href="/" title="首页">首页</a></li>
         <li><a href="/content/category?categoryId=<%= doc.category %>&page=1" title="<%= doc.categoryName || '未分类' %>"><%= doc.categoryName || '未分类' %></a></li>
@@ -60,7 +61,9 @@
                 data-id="<%= doc._id %>" data-email="<%= doc.email %>" data-name="<%= doc.name %>" disabled>发表评论</button>
     </form>
 </section>
-</div>
+</div><!-- /.layout-main -->
+<%- include('common/sidebar') %>
+</div><!-- /.layout -->
 
 <% } else { %>
 <h1 class="sr-only">文章没有找到</h1>

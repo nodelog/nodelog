@@ -4,6 +4,31 @@
 <!-- Toast 宿主必须是 body 直属节点，不能放进会被 layer 移走/卸载的 .hide 弹层容器 -->
 <div id="nl-toast-host" class="toast-host" role="status" aria-live="polite" aria-atomic="true"></div>
 
+<!-- 返回顶部：全局悬浮按钮，滚动超过一屏出现，纯原生无依赖 -->
+<button type="button" id="nlBackToTop" class="back-to-top" aria-label="返回顶部" title="返回顶部">
+  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script>
+(function () {
+  var btn = document.getElementById('nlBackToTop');
+  if (!btn) return;
+  var ticking = false;
+  function update() {
+    var y = window.pageYOffset || document.documentElement.scrollTop || 0;
+    btn.classList.toggle('is-visible', y >= (window.innerHeight || 600) * 0.8);
+    ticking = false;
+  }
+  window.addEventListener('scroll', function () {
+    if (!ticking) { ticking = true; window.requestAnimationFrame(update); }
+  }, { passive: true });
+  window.addEventListener('load', update);
+  update();
+  btn.addEventListener('click', function () {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+})();
+</script>
+
 <script>
 /* 前台状态 HTML 的唯一生成器：JS 动态刷新区域无法调用 EJS，这里与 common/state.ejs 保持同一套 DOM 契约。
    交互反馈仍统一走 layer 弹层，本函数只负责「空 / 加载 / 失败」三类就地状态，不造第二套 Toast。 */
