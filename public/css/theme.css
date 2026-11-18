@@ -883,11 +883,23 @@ html body .layui-layer-dialog .layui-layer-content { background: var(--surface) 
     .navbar .navbar-brand .blog-tag { display: none; }
     /* 手机端面包屑右对齐（按用户要求） */
     .breadcrumb { justify-content: flex-end; }
-    /* 展开菜单整体居右（汉堡在右，菜单贴右才连贯） */
-    .navbar .nav { flex-wrap: wrap; flex-direction: column; align-items: flex-end; gap: var(--space-1); }
-    .navbar .nav > li > a { justify-content: flex-end; text-align: right; }
-    .nav-tools, .nav-account-zone { align-self: flex-end; }
-    .nav-account-zone { justify-content: flex-end; }
+    /* 展开菜单：整宽通栏 + 左对齐 + 按钮整宽，对齐 saas 主站移动端观感
+       （SaaS 的菜单项是 block 占满整行、文字左起，登录/注册是整宽按钮） */
+    .navbar .nav { flex-wrap: wrap; flex-direction: column; align-items: stretch; gap: var(--space-1); }
+    .navbar .nav > li { width: 100%; }
+    .navbar .nav > li > a {
+        display: flex; width: 100%; justify-content: flex-start; text-align: left;
+        padding: var(--space-3) var(--space-2);
+    }
+    .nav-tools, .nav-account-zone { align-self: stretch; width: 100%; }
+    .nav-tools { flex-direction: row; flex-wrap: wrap; gap: var(--space-2); }
+    .nav-tools > li { width: auto; }
+    .nav-account-zone { flex-direction: column; align-items: stretch; }
+    .nav-account-zone > li > a.nav-cta,
+    .nav-account-zone > li > a.nav-login {
+        display: flex; width: 100%; justify-content: center; text-align: center;
+    }
+    .nav-account-zone > li > a.nav-account-toggle { justify-content: flex-start; }
     .navbar .nav-primary > li > a::after { display: none; }
     .post-card--lead .cover { aspect-ratio: 16 / 9; }
     .post-card--grid { padding: 0; }
