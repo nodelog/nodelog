@@ -121,7 +121,8 @@ var route = function (app) {
     });
     // P0/P1 标签体系
     app.get('/tag/:slug', tag.findBySlug);
-    app.get('/tags', tag.list);
+    app.get('/tags/all', tag.all);      // 标签总览页（HTML，给人看）
+    app.get('/tags', tag.list);         // 标签云 JSON API（侧栏 fetch 用）
     // P2 AI 辅助（仅管理员，且需配置 AI_API_KEY）
     app.post('/api/ai/summary', filter.authorizeAdmin, ai.summary);
     // ==================== 开放接口应用凭证（AppID + HMAC 签 token）====================

@@ -499,6 +499,13 @@ body:not(.manager) .page-shell { padding-top: var(--space-8); padding-bottom: va
     background: var(--accent-weak); border-color: var(--accent);
     color: var(--accent-hover); text-decoration: none;
 }
+/* 标签总览页：chip 后跟文章数，弱一档显示 */
+.tag-chips--overview { gap: var(--space-3); }
+.tag-chips--overview .chip { font-size: var(--fs-body-sm); padding: var(--space-2) var(--space-3); }
+.chip-count {
+    margin-left: var(--space-2); font-size: var(--fs-caption);
+    color: var(--neutral-muted); font-variant-numeric: tabular-nums;
+}
 .post-card .tag-chips { margin-top: var(--space-4); }
 .post-card h1 { font-size: var(--fs-display); line-height: 1.25; font-weight: var(--fw-bold); }
 .post-card--grid h3 { font-size: var(--fs-h3); font-weight: var(--fw-semibold); line-height: 1.4; }

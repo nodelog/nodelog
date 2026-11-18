@@ -41,7 +41,7 @@ var frontGroups = [
             },
             {
                 key: 'tags', label: '标签', title: '按标签浏览',
-                href: '/tags', className: 'js-tags-menu'
+                href: '/tags/all', className: 'js-tags-menu'   // /tags 是 JSON API，页面走 /tags/all
             },
             {
                 key: 'log', label: '公告', title: '系统公告',

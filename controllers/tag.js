@@ -63,6 +63,20 @@ exports.list = function (req, res) {
     });
 };
 
+// 标签总览页（HTML，给人看）：列出全部标签 chip，点进各自的 /tag/:slug。
+// 与上面的 list（JSON API）分开，避免导航点"标签"看到裸数据。
+exports.all = function (req, res) {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    Tag.findAll(function (err, docs) {
+        var tags = (docs || []).filter(function (t) { return t && t.status === 0 && (t.name || t.slug); });
+        res.render('tags', {
+            tags: tags,
+            title: '全部标签',
+            url: '/tags/all?'
+        });
+    });
+};
+
 // 一键重算全部标签计数（委托唯一实现 syncTags，覆盖写，幂等安全）。供后台「重新计算标签计数」按钮调用。
 exports.reconcile = function (req, res) {
     Tag.reconcileAllCounts(function (err) {

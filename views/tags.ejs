@@ -1,0 +1,30 @@
+<%- include('header') %>
+<div class="layout">
+    <div class="layout-main">
+        <ol class="breadcrumb" aria-label="面包屑">
+            <li><a href="/">首页</a></li>
+            <li class="active" aria-current="page">全部标签</li>
+        </ol>
+        <div class="page-head">
+            <h1>全部标签</h1>
+            <p class="kicker">共 <%= tags.length %> 个 · 按文章数排列</p>
+        </div>
+
+        <% if (tags && tags.length) { %>
+        <div class="card">
+            <div class="tag-chips tag-chips--overview">
+                <% tags.forEach(function(t){ %>
+                <a class="chip" href="/tag/<%= encodeURIComponent(t.slug || t.name) %>" title="<%= t.name %> · <%= t.count || 0 %> 篇文章">
+                    <%= t.name %><span class="chip-count"><%= t.count || 0 %></span>
+                </a>
+                <% }); %>
+            </div>
+        </div>
+        <% } else { %>
+        <%- include('common/state', { kind: 'empty', size: 'block', title: '还没有标签', text: '发表文章后标签会在这里汇总', actionHref: '/', actionText: '回首页' }) %>
+        <% } %>
+    </div>
+    <%- include('common/sidebar') %>
+</div>
+<input type="hidden" class="js-current-menu" value="js-tags-menu"/>
+<%- include('footer') %>
