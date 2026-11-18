@@ -8,6 +8,7 @@
     <p class="footer-meta">
         &copy; <%= new Date().getFullYear() %> <%= session.site.copyRight %>
         <% if (session.site.icp) { %>&nbsp;·&nbsp;<a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener"><%= session.site.icp %></a><% } %>
+        &nbsp;·&nbsp;本站由 <a href="https://gitee.com/nodelog/nodelog" target="_blank" rel="noopener" title="NODELOG 开源源码（Node.js + Express + MongoDB 博客系统）">NODELOG 开源驱动</a>
     </p>
     <% if (session.site.statistical) { %><div class="site-stat"><%- session.site.statistical %></div><% } %>
 </footer>
