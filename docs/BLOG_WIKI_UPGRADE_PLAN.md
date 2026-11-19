@@ -411,3 +411,23 @@ C. 不破坏回归基线（任一红项阻断发布）
 **生产 --report 发现并修复（commit `ee48e05`）**：932 篇老文章无 `contentType` 字段，原 `toSearchBody` 仅在 `contentType==='html'` 时剥标签，导致 `<p style=...>`、`<u<strike<i<b` 畸形标签原样写进 `searchBody` 污染索引。已改为无条件剥标签（先移除代码块避免误伤代码里的 `< >`，再剥标准/畸形标签与实体）。用用户 report 的真实样例复测通过——标准 HTML→纯文本、畸形标签→`xx`、实体→干净文本、MD 行内 `a < b` 保留。静态断言仍 32/32。
 
 下一步 WP2：后台"新建文档"入口 + `.md` 导入接口。
+
+### 11.5 WP2 实施记录（2026-11-20 已落地，commit `5075744`）
+
+**状态**：已实现，待在服务器重启应用后验证 UI。
+
+改动文件：
+- `views/addContent.ejs` / `views/editContent.ejs`：新增"文档类型"下拉（博客文章 / Wiki 文档）；新增页支持 `?docType=wiki` 预选，编辑页回显 `doc.docType`。
+- `public/js/common.js`：`/content/add` 提交带 `docType`，缺省 `blog`（未渲染该控件的页面行为不变）。
+- `routes/index.js`：`/content/addPage` 传 docType；新增 `GET/POST /manager/wiki/import`（A，管理员）。
+- `controllers/wikiImport.js`（新增）：接收 Markdown 文本或 `data:...;base64`，标题取显式 name → 一级标题 → 首行，复用 `buildFields`/风控/标签重算/审计，docType 固定 wiki，按标题幂等判重（409）。暴露 `_internals` 供自检。
+- `views/manager/wikiImport.ejs`（新增）：后台导入页，支持选 .md 文件读入 + 粘贴，fetch 提交。
+- `navConfig.js`：前台 cta 加"新建文档"，后台内容组加"导入文档"。
+
+**实现期修正**：CSV columns 仍不改（沿用 §3.4）。导入走独立接口，不碰 `adminIo` 的严格表头校验。
+
+自检：`node --check` 4 文件全过；EJS 编译 3 页全过；静态断言 32/32；导入纯函数 6/6。
+
+**待验（需服务器重启）**：前台"新建文档"入口预选 Wiki；编辑已有文章 docType 正确回显；后台导入页选文件/粘贴 → 生成 wiki 文档；同名重复导入返回 409。
+
+下一步 WP3：检索底座——重建 text 索引 + `GET /content/search` 组合过滤 + 中文两路召回。
