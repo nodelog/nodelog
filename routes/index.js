@@ -106,7 +106,10 @@ var route = function (app) {
         }),
         content.add);
     app.get('/content/addPage', function (req, res) {
-        res.render("addContent", {"title": "写文章",currentMenu:"content"});
+        res.render("addContent", {
+            "title": "写文章", currentMenu: "content",
+            docType: req.query.docType === 'wiki' ? 'wiki' : 'blog'
+        });
     });
     app.post('/comment/add', filter.authorize, rateLimit.limit({max: 10, windowMs: 60 * 1000}), comment.add);
     app.get('/comment/all', comment.findByPageAndContent);
@@ -245,6 +248,13 @@ var route = function (app) {
     // ---- Audit（仅管理员只读；JSON + 页面）----
     app.get('/manager/audit', A, audit.list);
     app.get('/manager/audit/page', A, audit.auditPage);
+
+    // ---- Wiki 文档导入（A，仅管理员；复用 buildFields/风控/标签重算；不改 CSV columns）----
+    var wikiImport = require('./../controllers/wikiImport');
+    app.get('/manager/wiki/import', A, function (req, res) {
+        res.render('manager/wikiImport', {title: '导入 Wiki 文档', currentMenu: 'wikiImport'});
+    });
+    app.post('/manager/wiki/import', A, wikiImport.import);
 
     // ---- 方案D：4 条纯增量后台 JSON 列表端点（只读、A）----
     // 与下方 4 个 SSR 页 /manager/{content,category,user,log} 并存、不混：那 4 页继续承担 E01 分页兼容，

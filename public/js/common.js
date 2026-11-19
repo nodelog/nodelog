@@ -320,11 +320,13 @@
       var rawTags = val(qs('.js-tags-value')).trim();
       var tags = rawTags || extractTags(name, content).join(', '); // 标签留空则发布/保存时自动提取
       var contentType = val(qs('.js-content-type')) || 'markdown';
+      var docType = val(qs('.js-doc-type')) || 'blog'; // 文档类型：未渲染该控件的页面默认 blog
       if (name === '') { myMsg('标题不能为空'); return; }
       if (content.trim() === '') { myMsg('内容不能为空'); return; }
       loading();
       postForm('/content/add', {
         id: id, name: name, content: content, contentType: contentType,
+        docType: docType,
         category: category, oldName: oldName, original: original, tags: tags
       }).then(function (data) {
         closeLayer();
