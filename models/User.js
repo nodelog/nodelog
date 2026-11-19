@@ -96,7 +96,10 @@ UserDAO.prototype.searchForBinding = function (keyword, callback) {
 // 已绑定用户回显：按 id 精确取回 userName/role，支持下拉搜索外的历史用户或已停用用户。
 UserDAO.prototype.findByIds = function (ids, callback) {
     if (!ids || !ids.length) return callback(null, []);
-    UserModel.find({"_id": {$in: ids}}).select('_id userName role').maxTimeMS(3000)
+    // realName 必须一并投影：Content.enrichDocs 用它回填文章作者显示名。
+    // 此前只选 _id/userName/role，导致 u.realName 恒为 undefined、
+    // 作者位回退到账号 userName（显示 nodelog 而非用户真名）。
+    UserModel.find({"_id": {$in: ids}}).select('_id userName realName role').maxTimeMS(3000)
         .exec(function (err, docs) {
             callback(err, docs || []);
         });
