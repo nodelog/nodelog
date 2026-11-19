@@ -122,7 +122,7 @@ ContentDAO.prototype.findById = function (id, callback) {
 };
 ContentDAO.prototype.findByPage = function (page, currentUser, callback) {
     var query = ContentModel.find(visibleTerm(currentUser));
-    query.select('name author category createTime modifyTime view status original slug cover excerpt tags');
+    query.select('name author source category createTime modifyTime view status original slug cover excerpt tags');
     query.sort({"createTime": -1});
     query.limit(constants.PER_PAGE_COUNT);
     query.skip((page - 1) * constants.PER_PAGE_COUNT);
@@ -142,7 +142,7 @@ ContentDAO.prototype.findByCategory = function (page, category, currentUser, cal
         ]};
     }
     var query = ContentModel.find(term);
-    query.select('name author category modifyTime view original slug cover excerpt tags');
+    query.select('name author source category modifyTime view original slug cover excerpt tags');
     query.sort({"createTime": -1});
     query.limit(constants.PER_PAGE_COUNT);
     query.skip((page - 1) * constants.PER_PAGE_COUNT);
@@ -162,7 +162,7 @@ ContentDAO.prototype.findByWord = function (page, word, currentUser, callback) {
         ]};
     }
     var query = ContentModel.find(term);
-    query.select('name author category modifyTime view original slug cover excerpt tags');
+    query.select('name author source category modifyTime view original slug cover excerpt tags');
     query.sort({"createTime": -1});
     query.limit(constants.PER_PAGE_COUNT);
     query.skip((page - 1) * constants.PER_PAGE_COUNT);
@@ -183,7 +183,7 @@ ContentDAO.prototype.searchText = function (page, word, currentUser, callback) {
         ]};
     }
     var query = ContentModel.find(term, {score: {$meta: "textScore"}});
-    query.select('name author category modifyTime view original slug cover excerpt tags');
+    query.select('name author source category modifyTime view original slug cover excerpt tags');
     query.sort({"score": {$meta: "textScore"}});
     query.limit(constants.PER_PAGE_COUNT);
     query.skip((page - 1) * constants.PER_PAGE_COUNT);
@@ -209,7 +209,7 @@ ContentDAO.prototype.findAllByWord = function (word, currentUser, callback) {
 };
 ContentDAO.prototype.findByUser = function (page, author, callback) {
     var query = ContentModel.find({"author": author, "status": {$ne: constants.CONTENT_UNABLE_STATUS}});
-    query.select('name author category createTime modifyTime view status original slug cover excerpt tags');
+    query.select('name author source category createTime modifyTime view status original slug cover excerpt tags');
     query.sort({"createTime": -1});
     query.limit(constants.PER_PAGE_COUNT);
     query.skip((page - 1) * constants.PER_PAGE_COUNT);
@@ -238,7 +238,7 @@ ContentDAO.prototype.findByTag = function (page, tag, currentUser, callback) {
         ]};
     }
     var query = ContentModel.find(term);
-    query.select('name author category createTime modifyTime view status original slug cover excerpt tags');
+    query.select('name author source category createTime modifyTime view status original slug cover excerpt tags');
     query.sort({"createTime": -1});
     query.limit(constants.PER_PAGE_COUNT);
     query.skip((page - 1) * constants.PER_PAGE_COUNT);

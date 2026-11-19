@@ -27,7 +27,8 @@
         <h2><a href="/content/detail?id=<%= doc._id %>"><%= doc.name %></a></h2>
         <% } %>
         <div class="meta">
-            <span><%= doc.realName ? doc.realName : (doc.userName || '佚名') %></span>
+            <% /* API 文章署站点名，手工文章显示作者真名 */ %>
+            <span><%= doc.source === 'api' ? ((typeof session !== 'undefined' && session && session.site && session.site.name) || '链付收银博客') : (doc.realName || doc.userName || '佚名') %></span>
             <span><%= doc.categoryName || '未分类' %></span>
             <time datetime="<%= _date %>"><%= _date %></time>
             <span><%= doc.view %> 次阅读</span>
