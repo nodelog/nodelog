@@ -7,7 +7,8 @@
  *   node scripts/migrate-doc-type.js --backup                    # 导出待回填文档原字段到 JSON
  *   node scripts/migrate-doc-type.js --apply --limit 100         # 先小批试跑（自动先备份）
  *   node scripts/migrate-doc-type.js --apply                     # 全量回填
- *   node scripts/migrate-doc-type.js --verify                    # 核对：docType 缺失数应为 0
+ *   node scripts/migrate-doc-type.js --verify                    # 核对：缺字段数应为 0
+ *   node scripts/migrate-doc-type.js --diagnose                  # 只读：列出 searchBody 为空的文档查明原因
  *   node scripts/migrate-doc-type.js --rollback --file <备份文件> # 仅还原本次回填的字段
  *
  * 设计约束：
@@ -80,10 +81,36 @@ async function main() {
     console.log('总文档：' + total + '；待回填：' + all.length + '；其中缺 docType：' + missingType + '；本次处理：' + batch.length);
 
     if (has('--verify')) {
+        // 区分两类「剩余」：
+        //   A. 字段缺失 = 真没写进去（docType/searchBody 字段不存在）→ 必须修，退出码 1
+        //   B. searchBody 为空串 = 正文去标记后本来就没有可索引文本（纯图片/纯代码块/纯符号），
+        //      这是正常数据，不是回填失败——不能让它常驻「待回填」计数、更不能让退出码变 1。
+        var missingFields = await col.countDocuments({$or: [
+            {docType: {$exists: false}}, {searchBody: {$exists: false}}
+        ]});
         console.log('\n--- 核对结果 ---');
-        console.log('缺 docType：' + missingType + '（应为 0）');
-        console.log('缺/空 searchBody：' + await col.countDocuments({$or: [{searchBody: {$exists: false}}, {searchBody: ''}]}) + '（应为 0）');
+        console.log('缺字段（docType/searchBody 不存在）：' + missingFields + '（应为 0）');
+        console.log('searchBody 为空串（正文无可索引文本，正常）：' + await col.countDocuments({searchBody: ''}));
         console.log('blog：' + await col.countDocuments({docType: 'blog'}) + '；wiki：' + await col.countDocuments({docType: 'wiki'}));
+        if (missingFields > 0) process.exitCode = 1;
+        return;
+    }
+
+    // 只读诊断：列出 searchBody 为空的文档，看正文到底是不是真没有可索引文本。
+    if (has('--diagnose')) {
+        var empties = await col.find({searchBody: ''}, {
+            projection: {name: 1, content: 1, contentType: 1, docType: 1}
+        }).limit(50).toArray();
+        console.log('\n--- searchBody 为空的文档（前 ' + empties.length + ' 篇）---');
+        if (!empties.length) console.log('无');
+        empties.forEach(function (d, i) {
+            var src = String(d.content == null ? '' : d.content).replace(/\s+/g, ' ').slice(0, 160);
+            console.log('\n[' + (i + 1) + '] ' + d.name + ' (' + String(d._id) + ')');
+            console.log('    contentType=' + (d.contentType || '<无>') + '  docType=' + (d.docType || '<无>'));
+            console.log('    content: ' + (src || '<空正文>'));
+            console.log('    重新派生 searchBody: ' + JSON.stringify(markdown.toSearchBody(d.content, d.contentType).slice(0, 120)));
+        });
+        console.log('\n--diagnose 为只读，未改动任何数据。');
         return;
     }
 
@@ -131,7 +158,7 @@ async function main() {
     }
 
     if (!has('--backup') && !has('--apply')) {
-        console.log('未指定动作。可用：--report / --backup / --apply / --verify / --rollback');
+        console.log('未指定动作。可用：--report / --backup / --apply / --verify / --diagnose / --rollback');
         return;
     }
 
@@ -176,9 +203,14 @@ async function main() {
         }
     }
     console.log('\n完成：回填 ' + ok + ' 篇，跳过 ' + skipped + ' 篇，失败 ' + failed + ' 篇');
-    var remain = await col.countDocuments({$or: [{docType: {$exists: false}}, {searchBody: {$exists: false}}, {searchBody: ''}]});
-    console.log('剩余待回填：' + remain + '（应为 0）');
-    if (failed > 0 || remain > 0) process.exitCode = 1;
+    // 退出只按「字段没写进去」判失败；空 searchBody 是正常的无文本正文，不计失败。
+    var missingFields = await col.countDocuments({$or: [
+        {docType: {$exists: false}}, {searchBody: {$exists: false}}
+    ]});
+    var emptyBody = await col.countDocuments({searchBody: ''});
+    console.log('剩余缺字段：' + missingFields + '（应为 0）');
+    console.log('searchBody 为空串：' + emptyBody + '（正文无可索引文本，正常；用 --diagnose 查看）');
+    if (failed > 0 || missingFields > 0) process.exitCode = 1;
 }
 
 main().catch(function (e) {
