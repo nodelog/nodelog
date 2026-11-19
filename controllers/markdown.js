@@ -42,7 +42,8 @@ exports.sanitize = function (src) {
 };
 
 // 纯文本摘要（去掉 Markdown 标记），用于列表/分享卡片
-exports.excerpt = function (src, len) {    var text = String(src || '')
+exports.excerpt = function (src, len) {
+    var text = String(src || '')
         .replace(/```[\s\S]*?```/g, ' ')
         .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
         .replace(/[#>*_`~\[\]()!-]/g, '')
@@ -53,20 +54,28 @@ exports.excerpt = function (src, len) {    var text = String(src || '')
 };
 
 // 全文检索派生纯文本（供 buildFields 与回填脚本共用同一口径，避免两套实现漂移）。
-// 与 excerpt 的区别：不截断、并额外剥离 HTML 标签与常见实体——因为历史正文可能是富文本。
+// 与 excerpt 的区别：不截断、并剥离 HTML 标签与常见实体——因为历史正文可能是富文本。
 // 输出只用于 text 索引算相关度，永不作为正文渲染，故可放心激进去标记。
+//
+// 关键：不能靠 contentType 判定是否剥标签。历史文档（如 2015 年的文章）根本没有
+// contentType 字段，若只在 contentType==='html' 时剥离，会把 <p style=...> 原样写进
+// searchBody，污染索引。改为「先剥代码块，再无条件剥 HTML 标签」：代码块先移除，
+// 避免把代码里的 < > 当标签；正文里出现的标签一律剥掉，与正文格式无关。
 exports.toSearchBody = function (src, contentType) {
     var text = String(src == null ? '' : src);
-    if (contentType === 'html') {
-        text = text.replace(/<script[\s\S]*?<\/script>/gi, ' ')
-            .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-            .replace(/<[^>]+>/g, ' ')
-            .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')
-            .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-            .replace(/&quot;/g, '"').replace(/&#39;/g, "'");
-    } else {
-        text = text.replace(/```[\s\S]*?```/g, ' ');
-    }
-    // 共用 excerpt 的 Markdown 标记剥离 + 空白归一（不传 len 即不截断）
+    // 1) 先移除代码块（含 ``` 围栏），避免代码里的比较符 < > 被误当标签
+    text = text.replace(/```[\s\S]*?```/g, ' ');
+    // 2) HTML 实体先还原为字符：这样 &lt;tag&gt; 会变成 <tag> 并在下一步被当作标签剥掉，
+    //    而不是把尖括号原样带进索引。&amp; 还原出的 & 是普通文本，不影响标签剥离。
+    text = text.replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+        .replace(/&amp;/g, '&'); // &amp; 放最后，避免 &lt; 里的 & 被提前还原干扰
+    // 3) 无条件剥离 HTML 标签：标准标签（可含属性/引号）
+    text = text.replace(/<script[\s\S]*?<\/script>/gi, ' ')
+        .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+        .replace(/<\/?[a-zA-Z][^>]*>/g, ' ');
+    // 4) 畸形/残缺标签（如老编辑器留下的 <u<strike<i<b 而无 >）：剥掉裸的 <tag 与 </tag
+    text = text.replace(/<\/?[a-zA-Z][a-zA-Z0-9]*/g, ' ');
+    // 5) 共用 excerpt 的 Markdown 标记剥离 + 空白归一（不传 len 即不截断）
     return exports.excerpt(text);
 };
