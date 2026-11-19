@@ -13,9 +13,7 @@
 
     <h1 class="article-title"><%= doc.name %></h1>
     <div class="article-meta">
-        <% /* API 文章是官方发布，署站点名；手工文章显示作者真名(无则账号) */ %>
-        <% var authorLabel = doc.source === 'api' ? ((session.site && session.site.name) || '链付收银博客') : (doc.realName || doc.userName || '佚名'); %>
-        <span><%= authorLabel %></span>
+        <span><%= doc.realName || doc.userName || '佚名' %></span>
         <span><%= doc.categoryName || '未分类' %></span>
         <time datetime="<%= format(doc.createTime, "YYYY-MM-DD") %>"><%= format(doc.createTime, "YYYY-MM-DD") %></time>
         <span><%= doc.view %> 次阅读</span>
