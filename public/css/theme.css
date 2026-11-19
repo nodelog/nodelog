@@ -912,6 +912,12 @@ html body .layui-layer-dialog .layui-layer-content { background: var(--surface) 
     .navbar .navbar-collapse.navbar-collapse.in {
         display: flex; flex: 1 1 100%; flex-direction: column; align-items: stretch;
         gap: var(--space-2); padding-top: var(--space-2);
+        /* 展开菜单限高 + 内部滚动：菜单项多时底部可滚到，不会顶出视口
+           （配合下方下拉改 static，账户项也纳入这条滚动轨道） */
+        max-height: calc(100vh - var(--navbar-h));
+        max-height: calc(100dvh - var(--navbar-h));
+        overflow-y: auto; overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
     }
     .navbar .nav-tools, .navbar .nav-account-zone { margin-left: 0; }
     .nav-account-zone { flex-direction: row; align-items: center; flex-wrap: wrap; }
@@ -935,6 +941,16 @@ html body .layui-layer-dialog .layui-layer-content { background: var(--surface) 
         display: flex; width: 100%; justify-content: center; text-align: center;
     }
     .nav-account-zone > li > a.nav-account-toggle { justify-content: flex-start; }
+    /* 移动端下拉改内联展开：absolute 浮层在 sticky 顶栏里会锁在视口外滚不到，
+       改为 static 纳入文档流后，菜单项随页面/菜单内部滚动完整可见 */
+    .navbar .dropdown-menu,
+    .navbar .dropdown-menu--right {
+        position: static; left: auto; right: auto;
+        width: 100%; min-width: 0; max-width: none;
+        margin: var(--space-1) 0 var(--space-2);
+        box-shadow: none; border-radius: var(--radius-sm);
+    }
+    .navbar .nav > li > .dropdown-menu { padding-left: var(--space-4); }
     .navbar .nav-primary > li > a::after { display: none; }
     .post-card--lead .cover { aspect-ratio: 16 / 9; }
     .post-card--grid { padding: 0; }
