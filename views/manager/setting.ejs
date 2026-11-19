@@ -22,6 +22,11 @@
             <input type="text" class="form-control" name="icp" value="<%= session.site.icp %>">
         </div>
         <div class="form-group">
+            <label for="">微信分享封面图 URL</label>
+            <input type="text" class="form-control" name="shareCover" value="<%= session.site.shareCover || '' %>" placeholder="留空则使用站点默认封面（需 http/https 开头的图片地址）">
+            <p class="help-block">建议 480×480 的正方形图片；留空自动使用默认封面。</p>
+        </div>
+        <div class="form-group">
             <label for="">版本</label>
             <input type="text" class="form-control" name="version" value="<%= session.site.version %>">
         </div>

@@ -18,6 +18,9 @@ exports.update = function (req, res) {
     var phone = (req.body.phone || '').trim();
     var address = (req.body.address || '').trim();
     var statistical = req.body.statistical;
+    // 分享封面：只接受 http(s) 且无危险字符的 URL，空则用站点默认
+    var shareCoverRaw = (req.body.shareCover || '').trim();
+    var shareCover = (/^https?:\/\//i.test(shareCoverRaw) && !/['"\\<>\s\u0000-\u001f]/.test(shareCoverRaw)) ? shareCoverRaw : '';
     var msg = "";
     var success = false;
     var flag = false;//是否已发起回调
@@ -36,7 +39,8 @@ exports.update = function (req, res) {
             version: version,
             phone: phone,
             address: address,
-            statistical: statistical
+            statistical: statistical,
+            shareCover: shareCover
         };
         Site.update(obj, function (err) {
             if (!err) {

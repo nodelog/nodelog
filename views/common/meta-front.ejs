@@ -47,7 +47,9 @@
 <% if (locals.ogUrl) { %>
 <meta property="og:url" content="<%= ogUrl %>">
 <% } %>
-<% var shareImg = locals.ogImage || locals.shareCover || ''; %>
+<% /* 封面优先级：文章封面 > 后台配置的站点封面 > 代码默认封面 */ %>
+<% var siteCover = (session.site && session.site.shareCover) ? session.site.shareCover : (locals.shareCover || ''); %>
+<% var shareImg = locals.ogImage || siteCover || ''; %>
 <% if (shareImg) { %>
 <meta property="og:image" content="<%= shareImg %>">
 <meta name="twitter:image" content="<%= shareImg %>">
@@ -57,6 +59,6 @@
 <meta name="twitter:card" content="summary_large_image">
 <script src="/js/jweixin-1.6.0.js" defer></script>
 <script>
-  window.WX_SHARE_CONFIG = { api: '/open/jsConfig', imgUrl: <%- JSON.stringify((locals.ogImage || locals.shareCover || '')).replace(/</g, '\\u003c') %> };
+  window.WX_SHARE_CONFIG = { api: '/open/jsConfig', imgUrl: <%- JSON.stringify(shareImg).replace(/</g, '\\u003c') %> };
 </script>
 <script src="/js/wechat-share.js?v=20261111" defer></script>

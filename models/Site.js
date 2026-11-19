@@ -12,7 +12,8 @@ var SiteSchema = new Schema({
     version: {type: String, required: true},
     phone: { type: String},
     address: {type: String},
-    statistical: {type: String}                 //流量统计代码
+    statistical: {type: String},                //流量统计代码
+    shareCover: {type: String}                  //微信分享封面图 URL（后台可改，留空回退代码默认）
 }, {
     collection: "site" //对应mongodb的集合表
 });
