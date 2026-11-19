@@ -21,6 +21,16 @@ exports.update = function (req, res) {
     // 分享封面：只接受 http(s) 且无危险字符的 URL，空则用站点默认
     var shareCoverRaw = (req.body.shareCover || '').trim();
     var shareCover = (/^https?:\/\//i.test(shareCoverRaw) && !/['"\\<>\s\u0000-\u001f]/.test(shareCoverRaw)) ? shareCoverRaw : '';
+
+    // 风控告警配置（后台可改）。空值不覆盖 settings.js 的默认——由 services/alert.js 的 pick() 处理。
+    var alertCfg = {
+        enabled: req.body.alertEnabled !== undefined ? (req.body.alertEnabled === '1' || req.body.alertEnabled === 'true') : undefined,
+        recipients: String(req.body.alertRecipients || '').trim(),
+        throttleMinutes: (function () { var n = parseInt(req.body.alertThrottle, 10); return isFinite(n) && n >= 0 ? n : undefined; })(),
+        realtime: req.body.alertRealtime !== undefined ? (req.body.alertRealtime === '1' || req.body.alertRealtime === 'true') : undefined,
+        subjectPrefix: String(req.body.alertPrefix || '').trim().slice(0, 80),
+        fromName: String(req.body.alertFromName || '').trim().slice(0, 80)
+    };
     var msg = "";
     var success = false;
     var flag = false;//是否已发起回调
@@ -40,7 +50,8 @@ exports.update = function (req, res) {
             phone: phone,
             address: address,
             statistical: statistical,
-            shareCover: shareCover
+            shareCover: shareCover,
+            alert: alertCfg
         };
         Site.update(obj, function (err) {
             if (!err) {

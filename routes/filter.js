@@ -14,6 +14,13 @@ exports.reloadSiteCache = function () {
     siteCache.expires = 0;
 };
 
+// 同步读取当前站点配置缓存（可能为 null：首次请求尚未加载/无数据库）。
+// 供 services 层（如 alert.js）在无 req 上下文的定时任务里读取后台配置，
+// 不触发数据库查询、不阻塞；缓存 5 分钟且 site.update 时会失效。
+exports.getSiteConfig = function () {
+    return (siteCache.value && siteCache.expires > Date.now()) ? siteCache.value : null;
+};
+
 // 未登录 / 无权限时如何回应：浏览器页面跳转，API/JSON 请求返回 401（不再 302 到首页导致前端拿不到错误）
 function deny(req, res) {
     if (req.method === 'GET') {

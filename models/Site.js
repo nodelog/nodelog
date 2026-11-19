@@ -13,7 +13,16 @@ var SiteSchema = new Schema({
     phone: { type: String},
     address: {type: String},
     statistical: {type: String},                //流量统计代码
-    shareCover: {type: String}                  //微信分享封面图 URL（后台可改，留空回退代码默认）
+    shareCover: {type: String},                 //微信分享封面图 URL（后台可改，留空回退代码默认）
+    // 风控告警通知配置（后台可改；留空/未设则回退 settings.js 或内置默认）
+    alert: {
+        enabled: {type: Boolean},
+        recipients: {type: String},             // 逗号分隔的邮箱
+        throttleMinutes: {type: Number},
+        realtime: {type: Boolean},
+        subjectPrefix: {type: String},
+        fromName: {type: String}
+    }
 }, {
     collection: "site" //对应mongodb的集合表
 });
@@ -67,7 +76,9 @@ SiteDAO.prototype.update = function (obj, callback) {
                 "version": obj.version,
                 "phone": obj.phone,
                 "statistical": obj.statistical,
-                "address": obj.address }
+                "address": obj.address,
+                "shareCover": obj.shareCover || '',
+                "alert": obj.alert || {} }
             },
             function (err) {
                 callback(err);

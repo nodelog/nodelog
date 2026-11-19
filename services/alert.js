@@ -202,9 +202,29 @@ function explainSmtpError(err, smtp) {
     return {kind: 'other', title: 'SMTP 发送失败', steps: ['原始错误：' + msg.slice(0, 300)]};
 }
 
-// 单一配置解析点：环境变量 > settings.alert > 内置默认。
+// 单一配置解析点：环境变量 > 后台站点配置(site.alert) > settings.alert > 内置默认。
+// 后台配置从 filter 的站点缓存同步读取（无 req 的定时任务也能用）；缓存 5 分钟且保存即失效。
 function resolve() {
-    var cfg = settings.alert || {};
+    var fileCfg = settings.alert || {};
+    var siteCfg = {};
+    try {
+        var site = require('./../routes/filter').getSiteConfig();
+        if (site && site.alert) siteCfg = site.alert;
+    } catch (e) { /* 站点缓存未就绪时忽略，回退配置文件 */ }
+    // 逐项合并：后台有值(非空)才覆盖配置文件
+    function pick(key) {
+        var v = siteCfg[key];
+        if (v === undefined || v === null || v === '') return fileCfg[key];
+        return v;
+    }
+    var cfg = {
+        enabled: pick('enabled'),
+        recipients: pick('recipients'),
+        throttleMinutes: pick('throttleMinutes'),
+        realtime: pick('realtime'),
+        subjectPrefix: pick('subjectPrefix'),
+        fromName: pick('fromName')
+    };
     var envRaw = process.env.ALERT_RECIPIENTS;
     var recipients = parseRecipients(
         (envRaw && envRaw.trim()) ? envRaw : cfg.recipients);
