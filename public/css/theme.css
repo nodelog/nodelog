@@ -918,7 +918,10 @@ html body .layui-layer-dialog .layui-layer-content { background: var(--surface) 
            （配合下方下拉改 static，账户项也纳入这条滚动轨道） */
         max-height: calc(100vh - var(--navbar-h));
         max-height: calc(100dvh - var(--navbar-h));
-        overflow-y: auto; overscroll-behavior: contain;
+        /* 必须显式给 overflow-x:hidden：只写 overflow-y:auto 时，按 CSS 规范
+           overflow-x 的 visible 会被计算成 auto，导致菜单底部冒出横向滚动条。
+           菜单只应纵向滚动，横向溢出元素（如按钮发光阴影）不该产生滚动条。 */
+        overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain;
         -webkit-overflow-scrolling: touch;
     }
     .navbar .nav-tools, .navbar .nav-account-zone { margin-left: 0; }
