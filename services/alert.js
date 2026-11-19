@@ -68,9 +68,24 @@ function inferHost(user) {
     return m ? (SMTP_HOST_BY_DOMAIN[m[1]] || '') : '';
 }
 
+// 热加载 settings.js：长驻 web 进程因 require 缓存，改了磁盘上的发件密码后
+// 仍用启动时的旧密码，而 smtp-try 每次新起进程读的是最新值 —— 两边凭据不一致，
+// 后台发送就会报「密码错误」。每次解析发件配置时清掉该模块的 require 缓存再加载，
+// 保证后台发送与诊断命令始终用同一份密码。失败则回退到启动时缓存，不影响主链路。
+function freshSettings() {
+    try {
+        var resolved = require.resolve('../settings');
+        delete require.cache[resolved];
+        return require('../settings');
+    } catch (e) {
+        return settings;
+    }
+}
+
 function resolveSmtp() {
-    var base = settings.email || {};
-    var own = (settings.alert && settings.alert.smtp) || {};
+    var live = freshSettings();
+    var base = live.email || {};
+    var own = (live.alert && live.alert.smtp) || {};
     var env = {
         host: process.env.ALERT_SMTP_HOST, port: process.env.ALERT_SMTP_PORT,
         secure: process.env.ALERT_SMTP_SECURE, user: process.env.ALERT_SMTP_USER,
