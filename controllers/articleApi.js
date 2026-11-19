@@ -262,6 +262,10 @@ exports.publish = function (req, res) {
                 draft: f.draft,
                 contentType: f.contentType,
                 readingTime: f.readingTime,
+                // Blog+Wiki：API 发布的文章固定为 blog；派生检索文本随 buildFields 落库，
+                // 否则 API 文章会缺 searchBody、进不了 Wiki 全文索引。字段不含来源语义，勿改 immutable 项。
+                docType: f.docType,
+                searchBody: f.searchBody,
                 status: status,
                 source: 'api',                     // 来源不可篡改：immutable + 仅此入口写入
                 sourceAppId: req.apiApp._id

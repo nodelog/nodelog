@@ -42,8 +42,7 @@ exports.sanitize = function (src) {
 };
 
 // 纯文本摘要（去掉 Markdown 标记），用于列表/分享卡片
-exports.excerpt = function (src, len) {
-    var text = String(src || '')
+exports.excerpt = function (src, len) {    var text = String(src || '')
         .replace(/```[\s\S]*?```/g, ' ')
         .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
         .replace(/[#>*_`~\[\]()!-]/g, '')
@@ -51,4 +50,23 @@ exports.excerpt = function (src, len) {
         .trim();
     if (len && text.length > len) text = text.slice(0, len) + '…';
     return text;
+};
+
+// 全文检索派生纯文本（供 buildFields 与回填脚本共用同一口径，避免两套实现漂移）。
+// 与 excerpt 的区别：不截断、并额外剥离 HTML 标签与常见实体——因为历史正文可能是富文本。
+// 输出只用于 text 索引算相关度，永不作为正文渲染，故可放心激进去标记。
+exports.toSearchBody = function (src, contentType) {
+    var text = String(src == null ? '' : src);
+    if (contentType === 'html') {
+        text = text.replace(/<script[\s\S]*?<\/script>/gi, ' ')
+            .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+    } else {
+        text = text.replace(/```[\s\S]*?```/g, ' ');
+    }
+    // 共用 excerpt 的 Markdown 标记剥离 + 空白归一（不传 len 即不截断）
+    return exports.excerpt(text);
 };

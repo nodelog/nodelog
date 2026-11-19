@@ -9,6 +9,19 @@ var cmsUtils = require('./cmsUtils.js');
 var Tag = require('./../models/Tag.js');
 var kit = require('./adminKit');
 var guard = require('./moderation/moderationGuard');
+var markdown = require('./markdown.js');
+var constants = require('./../models/constants.js');
+
+// 文档类型归一化：只接受 wiki，其余一律 blog（枚举白名单，非法值不落库）。
+// 与 contentType（正文格式 html/markdown）正交，互不读取。
+function resolveDocType(raw) {
+    return raw === constants.DOC_TYPE_WIKI ? constants.DOC_TYPE_WIKI : constants.DOC_TYPE_BLOG;
+}
+// ObjectId 归一化：合法 ObjectId 字符串原样返回，否则 null（避免脏 id 进库导致 CastError）。
+function resolveObjectId(raw) {
+    if (!raw || typeof raw !== 'string') return null;
+    return kit.isObjectId(raw) ? raw : null;
+}
 
 function buildFields(req) {
     var name = (req.body.name || '').trim();
@@ -33,10 +46,17 @@ function buildFields(req) {
         description: req.body['seo[description]'] || (seoObj.description || '')
     };
     var readingTime = contentType === 'markdown' ? Math.max(1, Math.ceil(content.length / 350)) : 0;
+    // Blog+Wiki：docType 走枚举白名单；spaceId/parent MVP 预留（编辑器尚不传，默认 null）；
+    // searchBody 由正文派生，服务端生成、前端无法覆盖——保证 text 索引内容与正文一致。
+    var docType = resolveDocType(req.body.docType);
+    var spaceId = resolveObjectId(req.body.spaceId);
+    var parent = resolveObjectId(req.body.parent);
+    var searchBody = markdown.toSearchBody(content, contentType);
     return {
         name: name, content: content, category: category, original: original,
         slug: slug, excerpt: excerpt, cover: cover, tags: tags, seo: seo,
-        draft: draft, contentType: contentType, readingTime: readingTime
+        draft: draft, contentType: contentType, readingTime: readingTime,
+        docType: docType, spaceId: spaceId, parent: parent, searchBody: searchBody
     };
 }
 

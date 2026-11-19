@@ -32,7 +32,16 @@ var ContentSchema = new Schema({
     htmlBackup: {type: String},  // 富文本原文备份（首次转 Markdown 时留存，供回滚）
     // ---- 开放接口来源溯源（immutable：创建后不可改，后台编辑无法抹除来源）----
     source: {type: String, enum: ['api', 'manual'], default: 'manual', immutable: true},
-    sourceAppId: {type: ObjectId, default: null, immutable: true, index: true}
+    sourceAppId: {type: ObjectId, default: null, immutable: true, index: true},
+    // ---- Blog + Wiki 一体化（向后兼容：历史文档这些字段缺省，读取用 $ne 判定）----
+    // 文档类型：与 contentType（正文格式）正交。默认 blog，历史文档缺字段按 blog 处理。
+    docType: {type: String, enum: ['blog', 'wiki'], default: constants.DOC_TYPE_BLOG, index: true},
+    // 全文检索派生纯文本：Markdown/富文本去标记后的正文，供 text 索引算相关度。服务端生成，禁前端直写。
+    searchBody: {type: String, default: ''},
+    // 空间与父页面：字段先预留，空间/页面树 UI 增强阶段启用。sparse 避免历史文档占位。
+    spaceId: {type: ObjectId, default: null, sparse: true},
+    parent: {type: ObjectId, default: null, sparse: true},
+    wikiOrder: {type: Number, default: 0}  // 同级排序，增强阶段使用
 }, {
     collection: "content" //对应mongodb的集合表
 });
@@ -43,7 +52,11 @@ ContentSchema.index({ author: 1, status: 1 });     // 我的日志 / 按作者+�
 ContentSchema.index({ category: 1, status: 1 });   // 按分类+状态查询
 ContentSchema.index({ name: 1 });                  // 标题搜索
 ContentSchema.index({ sourceAppId: 1, createTime: -1 }); // 应用来源溯源列表
+ContentSchema.index({ docType: 1, createTime: -1 });     // 按文档类型筛选列表（Blog/Wiki）
+ContentSchema.index({ parent: 1, status: 1 }, { sparse: true }); // 取子页面建树（增强阶段，避免 N+1）
 // P1 全文检索：标题 + 正文 + 标签（注意正文较大，索引会占用空间，按需建立）
+// WP1 保持原字段定义不动：text 索引每集合仅一个，改成 {name,searchBody,tags}
+// 必须在 WP3 由 scripts 先 dropIndex 再 createIndex，否则 Mongoose autoIndex 与线上索引冲突。
 ContentSchema.index({ name: 'text', content: 'text', tags: 'text' });
 
 // 新内容默认发布状态；草稿不进公开列表。
@@ -122,7 +135,7 @@ ContentDAO.prototype.findById = function (id, callback) {
 };
 ContentDAO.prototype.findByPage = function (page, currentUser, callback) {
     var query = ContentModel.find(visibleTerm(currentUser));
-    query.select('name author category createTime modifyTime view status original slug cover excerpt tags');
+    query.select('name author category createTime modifyTime view status original slug cover excerpt tags docType');
     query.sort({"createTime": -1});
     query.limit(constants.PER_PAGE_COUNT);
     query.skip((page - 1) * constants.PER_PAGE_COUNT);
@@ -142,7 +155,7 @@ ContentDAO.prototype.findByCategory = function (page, category, currentUser, cal
         ]};
     }
     var query = ContentModel.find(term);
-    query.select('name author category modifyTime view original slug cover excerpt tags');
+    query.select('name author category modifyTime view original slug cover excerpt tags docType');
     query.sort({"createTime": -1});
     query.limit(constants.PER_PAGE_COUNT);
     query.skip((page - 1) * constants.PER_PAGE_COUNT);
@@ -162,7 +175,7 @@ ContentDAO.prototype.findByWord = function (page, word, currentUser, callback) {
         ]};
     }
     var query = ContentModel.find(term);
-    query.select('name author category modifyTime view original slug cover excerpt tags');
+    query.select('name author category modifyTime view original slug cover excerpt tags docType');
     query.sort({"createTime": -1});
     query.limit(constants.PER_PAGE_COUNT);
     query.skip((page - 1) * constants.PER_PAGE_COUNT);
@@ -183,7 +196,7 @@ ContentDAO.prototype.searchText = function (page, word, currentUser, callback) {
         ]};
     }
     var query = ContentModel.find(term, {score: {$meta: "textScore"}});
-    query.select('name author category modifyTime view original slug cover excerpt tags');
+    query.select('name author category modifyTime view original slug cover excerpt tags docType');
     query.sort({"score": {$meta: "textScore"}});
     query.limit(constants.PER_PAGE_COUNT);
     query.skip((page - 1) * constants.PER_PAGE_COUNT);
@@ -209,7 +222,7 @@ ContentDAO.prototype.findAllByWord = function (word, currentUser, callback) {
 };
 ContentDAO.prototype.findByUser = function (page, author, callback) {
     var query = ContentModel.find({"author": author, "status": {$ne: constants.CONTENT_UNABLE_STATUS}});
-    query.select('name author category createTime modifyTime view status original slug cover excerpt tags');
+    query.select('name author category createTime modifyTime view status original slug cover excerpt tags docType');
     query.sort({"createTime": -1});
     query.limit(constants.PER_PAGE_COUNT);
     query.skip((page - 1) * constants.PER_PAGE_COUNT);
@@ -238,7 +251,7 @@ ContentDAO.prototype.findByTag = function (page, tag, currentUser, callback) {
         ]};
     }
     var query = ContentModel.find(term);
-    query.select('name author category createTime modifyTime view status original slug cover excerpt tags');
+    query.select('name author category createTime modifyTime view status original slug cover excerpt tags docType');
     query.sort({"createTime": -1});
     query.limit(constants.PER_PAGE_COUNT);
     query.skip((page - 1) * constants.PER_PAGE_COUNT);
@@ -416,6 +429,12 @@ ContentDAO.prototype.update = function (obj, currentUser, callback) {
     if (obj.draft !== undefined) set.draft = obj.draft;
     if (obj.readingTime !== undefined) set.readingTime = obj.readingTime;
     if (obj.contentType !== undefined) set.contentType = obj.contentType;
+    // Blog+Wiki：文档类型、派生检索文本、空间与父页面。字段逐个判 undefined，
+    // 历史调用方不传这些字段时保持原样，编辑旧文章不会把缺省值写回去。
+    if (obj.docType !== undefined) set.docType = obj.docType;
+    if (obj.searchBody !== undefined) set.searchBody = obj.searchBody;
+    if (obj.spaceId !== undefined) set.spaceId = obj.spaceId;
+    if (obj.parent !== undefined) set.parent = obj.parent;
     // D6 纵深防御(L3)：仅管理员可改归属；普通用户即便直接调用 DAO 传 author 也静默忽略，
     // 防止将来别的调用方绕过 controller 的 D6 早拒绝。管理员豁免严格 role === 0。
     if (obj.author !== undefined && currentUser && currentUser.role === 0) {
