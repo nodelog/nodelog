@@ -20,7 +20,10 @@
 .setting-tab:hover { color: var(--accent); }
 .setting-tab.is-active { color: var(--accent); font-weight: var(--fw-medium); border-bottom-color: var(--accent); }
 .setting-panel[hidden] { display: none; }
-.setting-actions { display: flex; justify-content: flex-end; gap: var(--space-3); margin-top: var(--space-6); padding-top: var(--space-5); border-top: 1px solid var(--border); }
+/* 告警面板头：描述在左、测试按钮在右，同一行 */
+.alert-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-5); margin-bottom: var(--space-5); }
+.alert-head .help-block { margin: 0; flex: 1 1 auto; }
+.alert-head .btn { flex: 0 0 auto; }
 #alertTestResult.is-ok { color: var(--color-success-ink); }
 #alertTestResult.is-fail { color: var(--color-danger-ink); }
 </style>
@@ -29,8 +32,6 @@
     <li><a href="/manager">后台首页</a></li>
     <li class="active">博客设置</li>
 </ol>
-<h3>博客设置</h3>
-
 <div class="bg-white jumbotron clear-margin">
     <!-- 分组切换：博客设置 / 风控告警，共用同一表单以保留现有保存逻辑 -->
     <div class="setting-tabs" role="tablist" aria-label="设置分组">
@@ -88,8 +89,10 @@
     </div><!-- /panel-basic -->
 
     <div class="setting-panel" id="panel-alert" role="tabpanel" hidden>
-        <h4>风控告警通知</h4>
-        <p class="help-block">配置后，内容风控/系统异常会发邮件通知。留空的项沿用配置文件默认值；环境变量优先级高于此处。</p>
+        <div class="alert-head">
+            <p class="help-block">配置后，内容风控/系统异常会发邮件通知。留空的项沿用配置文件默认值；环境变量优先级高于此处。</p>
+            <button type="button" class="btn btn-default js-alert-test" id="alertTestBtn">发送测试邮件</button>
+        </div>
         <div class="form-group">
             <label for="">启用告警邮件</label>
             <select class="form-control" name="alertEnabled">
@@ -125,15 +128,11 @@
             <input type="text" class="form-control" name="alertFromName" value="<%= (session.site.alert && session.site.alert.fromName) || '' %>" placeholder="如 链付收银博客 风控">
         </div>
         <div class="form-group">
-            <p class="help-block" id="alertTestResult" aria-live="polite">保存后可点右下角「发送测试邮件」验证通道；每分钟内最多 5 次。</p>
+            <p class="help-block" id="alertTestResult" aria-live="polite">每分钟内最多测试 5 次。测试会先保存当前配置，再发一封邮件到收件邮箱。</p>
         </div>
     </div><!-- /panel-alert -->
 
-    <!-- 操作栏：主操作「更新配置」靠右；测试邮件是辅助操作，次要样式靠左 -->
-    <div class="setting-actions">
-        <button type="button" class="btn btn-default js-alert-test" id="alertTestBtn">发送测试邮件</button>
-        <button type="button" class="btn btn-primary js-site-edit-save">更新配置</button>
-    </div>
+    <button type="button" class="btn btn-primary js-site-edit-save">更新配置</button>
     </form>
 </div>
 <script>
