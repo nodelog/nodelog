@@ -40,26 +40,23 @@
 <!-- 开放平台：微信自定义分享 / OG / Twitter 元数据（与后台 meta.ejs 保持一致） -->
 <meta property="og:type" content="website">
 <meta property="og:locale" content="zh_CN">
-<% if (locals.title) { %>
-<meta property="og:title" content="<%= title %> · <%= session.site.name %>">
-<meta property="og:description" content="<%= title %> · <%= session.site.name %>">
-<% } else { %>
-<meta property="og:title" content="<%= session.site.name %>">
-<meta property="og:description" content="<%= session.site.name %>">
-<% } %>
+<% /* 文章页可传 ogTitle/ogDesc/ogImage 覆盖，分享出去就是这篇文章自己的内容；其它页面回退通用值 */ %>
+<meta property="og:title" content="<%= locals.ogTitle ? ogTitle : (locals.title ? title + ' · ' + session.site.name : session.site.name) %>">
+<meta property="og:description" content="<%= locals.ogDesc ? ogDesc : (locals.title ? title + ' · ' + session.site.name : session.site.name) %>">
 <meta property="og:site_name" content="<%= session.site.name %>">
 <% if (locals.ogUrl) { %>
 <meta property="og:url" content="<%= ogUrl %>">
 <% } %>
-<% if (locals.shareCover) { %>
-<meta property="og:image" content="<%= shareCover %>">
-<meta name="twitter:image" content="<%= shareCover %>">
+<% var shareImg = locals.ogImage || locals.shareCover || ''; %>
+<% if (shareImg) { %>
+<meta property="og:image" content="<%= shareImg %>">
+<meta name="twitter:image" content="<%= shareImg %>">
 <% } %>
 <meta property="og:image:width" content="480">
 <meta property="og:image:height" content="480">
 <meta name="twitter:card" content="summary_large_image">
 <script src="/js/jweixin-1.6.0.js" defer></script>
 <script>
-  window.WX_SHARE_CONFIG = { api: '/open/jsConfig', imgUrl: <%- JSON.stringify(locals.shareCover || '').replace(/</g, '\\u003c') %> };
+  window.WX_SHARE_CONFIG = { api: '/open/jsConfig', imgUrl: <%- JSON.stringify((locals.ogImage || locals.shareCover || '')).replace(/</g, '\\u003c') %> };
 </script>
 <script src="/js/wechat-share.js?v=20261111" defer></script>

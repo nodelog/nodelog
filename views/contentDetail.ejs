@@ -17,6 +17,9 @@
         <span><%= doc.categoryName || '未分类' %></span>
         <time datetime="<%= format(doc.createTime, "YYYY-MM-DD") %>"><%= format(doc.createTime, "YYYY-MM-DD") %></time>
         <span><%= doc.view %> 次阅读</span>
+        <button type="button" class="btn btn-sm js-share-btn" aria-label="分享文章" title="分享文章">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.6 6.8-4M8.6 13.4l6.8 4"/></svg>分享
+        </button>
         <% if (session.user != null && session.user._id == doc.author) { %>
         <a href="/content/edit?id=<%= doc._id %>&view=editContent" class="btn btn-primary">编辑</a>
         <button type="button" class="btn js-delete-article" data-id="<%= doc._id %>">删除</button>
@@ -87,6 +90,29 @@
   <button type="button" class="nl-lightbox__close" aria-label="关闭">×</button>
   <img alt="" src=""/>
 </div>
+
+<!-- 分享浮层：微信内走右上角菜单(JS-SDK 已配置)，站外走 微博/QQ/复制链接 -->
+<div class="nl-share" id="nlShare" role="dialog" aria-modal="true" aria-label="分享文章" aria-hidden="true" hidden>
+  <div class="nl-share__panel">
+    <div class="nl-share__head">
+      <h2>分享这篇文章</h2>
+      <button type="button" class="icon-btn nl-share__close" id="nlShareClose" aria-label="关闭分享">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <p class="nl-share__title" id="nlShareTitle"></p>
+    <div class="nl-share__wechat" id="nlShareWechat">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M4 12a8 8 0 0 1 16 0"/><path d="M12 4v4M8 16l4 4 4-4"/></svg>
+      在微信里点右上角「···」转发给好友或朋友圈
+    </div>
+    <div class="nl-share__actions">
+      <a class="btn" id="nlShareWeibo" target="_blank" rel="noopener" href="#">微博</a>
+      <a class="btn" id="nlShareQq" target="_blank" rel="noopener" href="#">QQ</a>
+      <button type="button" class="btn btn-primary" id="nlShareCopy">复制链接</button>
+    </div>
+    <input type="text" class="nl-share__link" id="nlShareLink" readonly aria-label="文章链接"/>
+  </div>
+</div>
 <script>
 (function () {
   var box = document.querySelector('.nl-lightbox');
@@ -107,6 +133,45 @@
   });
   box.addEventListener('click', function (e) { if (e.target === box || e.target.closest('.nl-lightbox__close')) close(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && box.classList.contains('is-open')) close(); });
+})();
+</script>
+
+<script>
+/* 分享浮层：从页面 og meta 读标题/摘要/封面，与微信 JS-SDK 分享内容一致 */
+(function () {
+  var btn = document.querySelector('.js-share-btn');
+  var panel = document.getElementById('nlShare');
+  if (!btn || !panel) return;
+  var titleEl = document.getElementById('nlShareTitle');
+  var linkEl = document.getElementById('nlShareLink');
+  var weibo = document.getElementById('nlShareWeibo');
+  var qq = document.getElementById('nlShareQq');
+  var copyBtn = document.getElementById('nlShareCopy');
+  var closeBtn = document.getElementById('nlShareClose');
+  var inWechat = /MicroMessenger/i.test(navigator.userAgent);
+
+  function meta(p) { var el = document.querySelector('meta[property="' + p + '"]'); return el ? (el.getAttribute('content') || '') : ''; }
+  var url = location.href.split('#')[0];
+  var title = meta('og:title') || document.title || '';
+  var desc = meta('og:description') || '';
+
+  if (titleEl) titleEl.textContent = title;
+  if (linkEl) linkEl.value = url;
+  if (weibo) weibo.href = 'https://service.weibo.com/share/share.php?url=' + encodeURIComponent(url) + '&title=' + encodeURIComponent(title + ' ' + desc);
+  if (qq) qq.href = 'https://connect.qq.com/widget/shareqq/index.html?url=' + encodeURIComponent(url) + '&title=' + encodeURIComponent(title) + '&desc=' + encodeURIComponent(desc);
+  // 微信内隐藏"右上角提示"？不隐藏——微信内 JS-SDK 已配置，提示用户用菜单即可
+  if (copyBtn) copyBtn.addEventListener('click', function () {
+    var done = function () { if (window.NL && NL.toast) NL.toast('链接已复制'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done, function () { linkEl.select(); document.execCommand('copy'); done(); });
+    } else { linkEl.select(); try { document.execCommand('copy'); } catch (e) {} done(); }
+  });
+  function open() { panel.hidden = false; panel.setAttribute('aria-hidden', 'false'); }
+  function close() { panel.hidden = true; panel.setAttribute('aria-hidden', 'true'); }
+  btn.addEventListener('click', open);
+  if (closeBtn) closeBtn.addEventListener('click', close);
+  panel.addEventListener('click', function (e) { if (e.target === panel) close(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !panel.hidden) close(); });
 })();
 </script>
 <%- include('footer') %>

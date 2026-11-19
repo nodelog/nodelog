@@ -484,6 +484,32 @@ body:not(.manager) .page-shell { padding-top: var(--space-8); padding-bottom: va
     max-width: var(--measure-short);
     display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
 }
+/* 分享按钮（文章页标题下） */
+.article-meta .js-share-btn { min-height: 36px; padding: var(--space-1) var(--space-3); }
+.article-meta .js-share-btn svg { flex: 0 0 auto; }
+/* 分享浮层 */
+.nl-share { position: fixed; inset: 0; z-index: var(--z-modal); display: flex; align-items: center; justify-content: center; background: rgba(16,24,40,.5); padding: var(--space-4); }
+.nl-share[hidden] { display: none; }
+.nl-share__panel { width: 100%; max-width: 440px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); padding: var(--space-6); }
+.nl-share__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-4); }
+.nl-share__head h2 { font-size: var(--fs-h3); margin: 0; }
+.nl-share__title { font-size: var(--fs-body-sm); color: var(--muted); margin: 0 0 var(--space-5); line-height: 1.6; }
+.nl-share__wechat {
+    display: flex; align-items: center; gap: var(--space-3);
+    padding: var(--space-3) var(--space-4); margin-bottom: var(--space-5);
+    background: var(--color-success-bg); color: var(--color-success-ink);
+    border-radius: var(--radius); font-size: var(--fs-body-sm); line-height: 1.5;
+}
+.nl-share__wechat svg { flex: 0 0 auto; }
+.nl-share__actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-4); }
+.nl-share__actions .btn { flex: 1 1 auto; }
+.nl-share__link {
+    width: 100%; padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--surface-2); color: var(--muted); font-size: var(--fs-caption);
+    font-family: var(--font-mono);
+}
+
 /* 标签云 / 文章标签：chip 必须可分辨——浅底 + 描边 + 圆角 + 间距（此前无定义导致挤成一团） */
 .tag-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .tag-chips .chip {

@@ -78,7 +78,14 @@ exports.findById = function (req, res) {
         if (view == "contentDetail") {
             Content.addView(doc, function (err) {
                 if (err) console.log("add view failure"); else doc.view = (doc.view + 1);
-                res.render(view, {"doc": doc, "title": doc != null ? doc.name : "文章没有找到"});
+                // 分享卡片：标题/摘要/封面用这篇文章自己的内容，微信 JS-SDK 从 og meta 读取
+                var ogDesc = String(doc.excerpt || '').replace(/<[^>]*>/g, '').trim().slice(0, 120) ||
+                    (String(doc.name || '').slice(0, 60) + ' - ' + (doc.categoryName || '链付收银博客'));
+                var ogImage = (/^https?:\/\//i.test(String(doc.cover || '')) && !/['"\\<>\s]/.test(doc.cover)) ? doc.cover : '';
+                res.render(view, {
+                    "doc": doc, "title": doc != null ? doc.name : "文章没有找到",
+                    "ogTitle": doc.name || '', "ogDesc": ogDesc, "ogImage": ogImage
+                });
             });
         } else {
             res.render(view, {"doc": doc, "title": doc != null ? doc.name : "文章没有找到"});
