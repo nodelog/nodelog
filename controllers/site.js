@@ -84,7 +84,12 @@ exports.testAlert = function (req, res) {
         var failHints = {
             'recipient-not-allowed': '收件人不在白名单，请先在上方配置收件邮箱并保存',
             'transport-error': 'SMTP 连接/认证失败，请检查发件账号与密码',
-            'send-failed': 'SMTP 已连接但投递失败，请查看服务端日志'
+            'send-failed': 'SMTP 已连接但投递失败，请查看服务端日志',
+            // 连续 3 次同样的认证拒绝（常见 526）：服务主动停止枚举，避免账号被锁。
+            // 几乎都是「用了登录密码而非邮箱侧签发的客户端授权码」。
+            'server-side-rejection': '邮件服务器连续拒绝了登录（可能是密码错误或同一 IP 认证过于频繁）。请改用邮箱侧签发的「客户端专用授权码」作为 SMTP 密码；稍后再试，避免账号被临时锁定。',
+            'auth-failed': 'SMTP 认证失败：请确认使用邮箱授权码而非登录密码',
+            'no-working-profile': '没有可用的 SMTP 连接方式，请检查端口(465/587)与加密方式'
         };
         res.json({
             success: !!r.sent, sent: !!r.sent,

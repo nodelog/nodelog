@@ -20,6 +20,7 @@
 .setting-tab:hover { color: var(--accent); }
 .setting-tab.is-active { color: var(--accent); font-weight: var(--fw-medium); border-bottom-color: var(--accent); }
 .setting-panel[hidden] { display: none; }
+.setting-actions { display: flex; justify-content: flex-end; gap: var(--space-3); margin-top: var(--space-6); padding-top: var(--space-5); border-top: 1px solid var(--border); }
 #alertTestResult.is-ok { color: var(--color-success-ink); }
 #alertTestResult.is-fail { color: var(--color-danger-ink); }
 </style>
@@ -124,12 +125,15 @@
             <input type="text" class="form-control" name="alertFromName" value="<%= (session.site.alert && session.site.alert.fromName) || '' %>" placeholder="如 链付收银博客 风控">
         </div>
         <div class="form-group">
-            <button type="button" class="btn btn-primary js-alert-test" id="alertTestBtn">发送测试邮件</button>
-            <p class="help-block" id="alertTestResult" aria-live="polite">会按当前配置真实发送一封测试邮件到收件邮箱；每分钟内最多 5 次。</p>
+            <p class="help-block" id="alertTestResult" aria-live="polite">保存后可点右下角「发送测试邮件」验证通道；每分钟内最多 5 次。</p>
         </div>
     </div><!-- /panel-alert -->
 
-    <button type="button" class="btn btn-default js-site-edit-save">更新配置</button>
+    <!-- 操作栏：主操作「更新配置」靠右；测试邮件是辅助操作，次要样式靠左 -->
+    <div class="setting-actions">
+        <button type="button" class="btn btn-default js-alert-test" id="alertTestBtn">发送测试邮件</button>
+        <button type="button" class="btn btn-primary js-site-edit-save">更新配置</button>
+    </div>
     </form>
 </div>
 <script>
