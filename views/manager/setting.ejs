@@ -10,6 +10,18 @@
 .cover-upload-actions { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); }
 .cover-upload-actions .btn { cursor: pointer; }
 .cover-upload-actions .help-block { margin: 0; color: var(--muted); font-size: var(--fs-small); line-height: 1.6; }
+/* 设置分组 Tab */
+.setting-tabs { display: flex; gap: var(--space-2); margin-bottom: var(--space-6); border-bottom: 1px solid var(--border); }
+.setting-tab {
+    padding: var(--space-3) var(--space-5); border: 0; background: transparent;
+    color: var(--muted); font-size: var(--fs-body); cursor: pointer;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.setting-tab:hover { color: var(--accent); }
+.setting-tab.is-active { color: var(--accent); font-weight: var(--fw-medium); border-bottom-color: var(--accent); }
+.setting-panel[hidden] { display: none; }
+#alertTestResult.is-ok { color: var(--color-success-ink); }
+#alertTestResult.is-fail { color: var(--color-danger-ink); }
 </style>
 
 <ol class="breadcrumb">
@@ -19,7 +31,13 @@
 <h3>博客设置</h3>
 
 <div class="bg-white jumbotron clear-margin">
+    <!-- 分组切换：博客设置 / 风控告警，共用同一表单以保留现有保存逻辑 -->
+    <div class="setting-tabs" role="tablist" aria-label="设置分组">
+        <button type="button" class="setting-tab is-active js-setting-tab" data-panel="basic" role="tab" aria-selected="true">博客设置</button>
+        <button type="button" class="setting-tab js-setting-tab" data-panel="alert" role="tab" aria-selected="false">告警通知</button>
+    </div>
     <form name="siteForm" role="form" action="javascript:;">
+    <div class="setting-panel is-active" id="panel-basic" role="tabpanel">
         <div class="form-group">
             <label for="">博客名称</label>
             <input type="text" class="form-control" name="name" value="<%= session.site.name %>">
@@ -66,8 +84,9 @@
                 <%= session.site.statistical %>
             </textarea>
         </div>
+    </div><!-- /panel-basic -->
 
-        <hr/>
+    <div class="setting-panel" id="panel-alert" role="tabpanel" hidden>
         <h4>风控告警通知</h4>
         <p class="help-block">配置后，内容风控/系统异常会发邮件通知。留空的项沿用配置文件默认值；环境变量优先级高于此处。</p>
         <div class="form-group">
@@ -104,8 +123,13 @@
             <label for="">发件人显示名</label>
             <input type="text" class="form-control" name="alertFromName" value="<%= (session.site.alert && session.site.alert.fromName) || '' %>" placeholder="如 链付收银博客 风控">
         </div>
+        <div class="form-group">
+            <button type="button" class="btn btn-primary js-alert-test" id="alertTestBtn">发送测试邮件</button>
+            <p class="help-block" id="alertTestResult" aria-live="polite">会按当前配置真实发送一封测试邮件到收件邮箱；每分钟内最多 5 次。</p>
+        </div>
+    </div><!-- /panel-alert -->
 
-        <button type="button" class="btn btn-default js-site-edit-save">更新配置</button>
+    <button type="button" class="btn btn-default js-site-edit-save">更新配置</button>
     </form>
 </div>
 <script>
@@ -149,6 +173,50 @@
   if (resetBtn) resetBtn.addEventListener('click', function () {
     urlInput.value = '';
     preview.src = '/images/share-cover.png';
+  });
+
+  /* 分组 Tab 切换 */
+  Array.prototype.forEach.call(document.querySelectorAll('.js-setting-tab'), function (tab) {
+    tab.addEventListener('click', function () {
+      Array.prototype.forEach.call(document.querySelectorAll('.js-setting-tab'), function (t) {
+        var on = t === tab;
+        t.classList.toggle('is-active', on);
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      Array.prototype.forEach.call(document.querySelectorAll('.setting-panel'), function (p) {
+        var on = p.id === 'panel-' + tab.getAttribute('data-panel');
+        p.hidden = !on; p.classList.toggle('is-active', on);
+      });
+    });
+  });
+
+  /* 发送测试邮件：先保存当前配置，再真实发一封，确保测的是刚填的设置 */
+  var testBtn = document.getElementById('alertTestBtn');
+  var testResult = document.getElementById('alertTestResult');
+  if (testBtn && testResult) testBtn.addEventListener('click', function () {
+    var form = document.querySelector('form[name=siteForm]');
+    var body = Array.prototype.map.call(document.querySelectorAll('form[name=siteForm] [name]'), function (el) {
+      return encodeURIComponent(el.name) + '=' + encodeURIComponent(el.value);
+    }).join('&');
+    testBtn.disabled = true;
+    testResult.className = 'help-block';
+    testResult.textContent = '正在保存配置并发送测试邮件…';
+    fetch('/manager/site/update', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body
+    }).then(function (r) { return r.json(); }).then(function (saved) {
+      if (!saved.success) throw new Error(saved.msg || '配置保存失败');
+      return fetch('/manager/alert/test', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: ''
+      });
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      testResult.className = 'help-block ' + (d.sent ? 'is-ok' : 'is-fail');
+      testResult.textContent = d.msg || (d.sent ? '测试邮件已发送' : '发送失败');
+    }).catch(function (e) {
+      testResult.className = 'help-block is-fail';
+      testResult.textContent = '测试失败：' + (e.message || '网络错误，请重试');
+    }).then(function () { testBtn.disabled = false; });
   });
 })();
 </script>

@@ -71,3 +71,26 @@ exports.update = function (req, res) {
         res.json({'success': success, 'msg': msg});
     }
 };
+/* 后台「发送测试邮件」：复用告警服务的 sendTest（收件人白名单由 services/alert 保证，
+   不接收任意 to，避免被当成邮件中继）。管理员鉴权在路由层。 */
+exports.testAlert = function (req, res) {
+    var alertSvc = require('./../services/alert');
+    var started = Date.now();
+    alertSvc.sendTest({}, function (err, r) {
+        if (err) {
+            return res.json({ success: false, sent: false,
+                msg: '发送失败：' + String(err.message || err), elapsedMs: Date.now() - started });
+        }
+        var failHints = {
+            'recipient-not-allowed': '收件人不在白名单，请先在上方配置收件邮箱并保存',
+            'transport-error': 'SMTP 连接/认证失败，请检查发件账号与密码',
+            'send-failed': 'SMTP 已连接但投递失败，请查看服务端日志'
+        };
+        res.json({
+            success: !!r.sent, sent: !!r.sent,
+            msg: r.sent ? '测试邮件已发送，请到配置的收件邮箱查收'
+                        : ('未发送：' + (failHints[r.reason] || r.reason || '配置不完整，请检查收件人与 SMTP 配置')),
+            reason: r.reason || '', profile: r.profile || '', elapsedMs: Date.now() - started
+        });
+    });
+};

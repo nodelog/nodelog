@@ -46,6 +46,10 @@ var route = function (app) {
         res.render('manager/setting', { title: '博客设置', currentMenu: 'setting' });
     });
     app.post('/manager/site/update',  filter.authorize, filter.authorizeAdmin,  site.update);
+    // 告警测试邮件：真发一封，限流防滥用（与 /api/alert/probe 同口径）
+    app.post('/manager/alert/test',
+        rateLimit.limit({max: 5, windowMs: 60 * 1000, key: 'manager-alert-test'}),
+        filter.authorize, filter.authorizeAdmin, site.testAlert);
     app.get('/manager/user', filter.authorize,  user.findByPage);
     app.get('/manager/category', filter.authorize, filter.authorizeAdmin, category.findByPage);
     app.get('/manager/content', filter.authorize, function (req, res) {
