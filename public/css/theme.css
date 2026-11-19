@@ -367,7 +367,9 @@ body:not(.manager) .page-shell { padding-top: var(--space-8); padding-bottom: va
    否则 margin-left:auto 会被 margin:0 简写覆盖，按钮组无法贴右 */
 .navbar .nav-tools { margin-left: auto; gap: var(--space-2); }
 .navbar .nav-tools .js-search-bar { margin-left: 0; }
-.navbar .nav-account-zone { gap: var(--space-2); flex: 0 0 auto; }
+/* 区间距：工具栏(搜索/主题)与账号区(写文章/登录)是两组语义，拉开 24px；
+   flex 下 margin-left:auto 会少吸收等量空间，账号区仍贴右、工具栏左退，视觉分组清晰 */
+.navbar .nav-account-zone { gap: var(--space-2); flex: 0 0 auto; margin-left: var(--space-6); }
 
 /* 写文章：品牌蓝主按钮，全站唯一强调色（原绿色 CTA 废弃） */
 .navbar .nav > li > a.nav-cta {
