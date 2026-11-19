@@ -924,9 +924,9 @@ html body .layui-layer-dialog .layui-layer-content { background: var(--surface) 
            （配合下方下拉改 static，账户项也纳入这条滚动轨道） */
         max-height: calc(100vh - var(--navbar-h));
         max-height: calc(100dvh - var(--navbar-h));
-        /* 必须显式给 overflow-x:hidden：只写 overflow-y:auto 时，按 CSS 规范
-           overflow-x 的 visible 会被计算成 auto，导致菜单底部冒出横向滚动条。
-           菜单只应纵向滚动，横向溢出元素（如按钮发光阴影）不该产生滚动条。 */
+        /* 显式 overflow-x:hidden：只写 overflow-y:auto 时，按 CSS 规范 overflow-x
+           的 visible 会被计算成 auto，任何横向溢出都会冒出横条。真正的溢出源
+           （公告角标 right:-10px）已在下方修掉，这里保留作防御性兜底。 */
         overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain;
         -webkit-overflow-scrolling: touch;
     }
@@ -943,6 +943,10 @@ html body .layui-layer-dialog .layui-layer-content { background: var(--surface) 
         display: flex; width: 100%; justify-content: flex-start; text-align: left;
         padding: var(--space-3) var(--space-2);
     }
+    /* 公告数字角标：桌面端 absolute 贴在链接右侧（.badge-father .badge{right:-10px}），
+       但移动端链接被拉成整行宽，right:-10px 会把"74"甩到屏幕最右缘并溢出 10px，
+       这正是菜单横向滚动条的真凶。移动端改回静态内联，紧跟"公告"文字。 */
+    .navbar .nav .badge-father .badge { position: static; right: auto; top: auto; }
     .nav-tools, .nav-account-zone { align-self: stretch; width: 100%; }
     .nav-tools { flex-direction: row; flex-wrap: wrap; gap: var(--space-2); }
     .nav-tools > li { width: auto; }
