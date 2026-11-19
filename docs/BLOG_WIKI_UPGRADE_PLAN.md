@@ -408,4 +408,6 @@ C. 不破坏回归基线（任一红项阻断发布）
 
 **待执行（需真实 MongoDB）**：`node scripts/migrate-doc-type.js --report` → `--apply` → `--verify` 确认 `docType` 缺失数为 0。本机无 mongod（`ECONNREFUSED 127.0.0.1:27017`），未跑实际回填；该报错是 require 时连接触发的既有行为，非本次改动引入。
 
+**生产 --report 发现并修复（commit `ee48e05`）**：932 篇老文章无 `contentType` 字段，原 `toSearchBody` 仅在 `contentType==='html'` 时剥标签，导致 `<p style=...>`、`<u<strike<i<b` 畸形标签原样写进 `searchBody` 污染索引。已改为无条件剥标签（先移除代码块避免误伤代码里的 `< >`，再剥标准/畸形标签与实体）。用用户 report 的真实样例复测通过——标准 HTML→纯文本、畸形标签→`xx`、实体→干净文本、MD 行内 `a < b` 保留。静态断言仍 32/32。
+
 下一步 WP2：后台"新建文档"入口 + `.md` 导入接口。
