@@ -362,10 +362,12 @@ body:not(.manager) .page-shell { padding-top: var(--space-8); padding-bottom: va
 
 /* ---- 4.1 顶栏三区：内容导航 / 工具栏 / 账号域 ------------------------ */
 .nav-primary { flex: 0 0 auto; }
-/* 工具栏推到右侧，账号域紧随其后，二者与内容导航之间留出明显空白 */
-.nav-tools { margin-left: auto; gap: var(--space-2); }
-.nav-tools .js-search-bar { margin-left: 0; }
-.nav-account-zone { gap: var(--space-2); flex: 0 0 auto; }
+/* 工具栏推到右侧，账号域紧随其后，二者与内容导航之间留出明显空白
+   注意：必须用 .navbar .nav-tools 提高特异性压过上文 .navbar .nav{margin:0}，
+   否则 margin-left:auto 会被 margin:0 简写覆盖，按钮组无法贴右 */
+.navbar .nav-tools { margin-left: auto; gap: var(--space-2); }
+.navbar .nav-tools .js-search-bar { margin-left: 0; }
+.navbar .nav-account-zone { gap: var(--space-2); flex: 0 0 auto; }
 
 /* 写文章：品牌蓝主按钮，全站唯一强调色（原绿色 CTA 废弃） */
 .navbar .nav > li > a.nav-cta {
@@ -911,7 +913,7 @@ html body .layui-layer-dialog .layui-layer-content { background: var(--surface) 
         display: flex; flex: 1 1 100%; flex-direction: column; align-items: stretch;
         gap: var(--space-2); padding-top: var(--space-2);
     }
-    .nav-tools, .nav-account-zone { margin-left: 0; }
+    .navbar .nav-tools, .navbar .nav-account-zone { margin-left: 0; }
     .nav-account-zone { flex-direction: row; align-items: center; flex-wrap: wrap; }
     .navbar .navbar-brand .blog-tag { display: none; }
     /* 手机端面包屑右对齐（按用户要求） */
