@@ -15,10 +15,17 @@ var allowedAttributes = Object.assign({}, sanitizeHtml.defaults.allowedAttribute
     pre: ['class']
 });
 
+// 剥离文末「> 来源：URL」溯源行：旧帮助站将关闭，该链接是死链，
+// 数据层保留溯源信息，仅在渲染时隐藏，避免制造指向旧站的死链。
+function stripSourceLine(src) {
+    return String(src || '').replace(/^\s*>+\s*来源[：:]\s*https?:\/\/[^\s]*\s*$/gim, '');
+}
+exports.stripSourceLine = stripSourceLine;
+
 // 将 Markdown 渲染为安全的 HTML（XSS 已由 sanitize-html 兜底）
 exports.render = function (src) {
     if (!src) return '';
-    var html = md.render(String(src));
+    var html = md.render(stripSourceLine(src));
     return sanitizeHtml(html, {
         allowedTags: allowedTags,
         allowedAttributes: allowedAttributes,
@@ -52,7 +59,7 @@ exports.renderWithToc = function (src) {
         return render ? render(tokens, idx, options, env, self) : self.renderToken(tokens, idx, options);
     };
     try {
-        var html = md.render(String(src));
+        var html = md.render(stripSourceLine(src));
         return {html: sanitizeRender(html), toc: toc};
     } finally {
         // 还原 rule，避免影响其它 render 调用（模块单例）
