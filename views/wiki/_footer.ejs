@@ -9,14 +9,16 @@
 <div id="nl-toast-host" class="toast-host" role="status" aria-live="polite" aria-atomic="true"></div>
 <script src="/js/wiki.js?v=20261120" defer></script>
 <script defer src="/js/ui.js"></script>
-<!-- WP3 命令面板：知识库页默认只搜本库；右下角开关可开启「同时搜博客文章」 -->
+<!-- WP3 命令面板：知识库页默认只搜文档；右下角开关可开启「同时搜博客文章」 -->
 <script>
 window.CMD_SEARCH_CONFIG = {
   homeType: 'wiki',
-  spaceId: <% if (typeof space !== 'undefined' && space && space._id) { %><%= JSON.stringify(String(space._id)) %><% } else { %>''<% } %>,
-  placeholder: '搜索本知识库的文档…'
+  // 用不转义输出 JSON：转义会把双引号变成实体，导致 <script> 里 JS 语法错误，
+  // config 丢失 → 面板回退成博客搜索（曾踩坑）
+  spaceId: <%- (typeof space !== 'undefined' && space && space._id) ? JSON.stringify(String(space._id)) : "''" %>,
+  placeholder: <% if (typeof space !== 'undefined' && space && space._id) { %>'搜索本知识库的文档…'<% } else { %>'搜索全部公开知识库…'<% } %>
 };
 </script>
-<script defer src="/js/cmd-search.js?v=20261121"></script>
+<script defer src="/js/cmd-search.js?v=20261121b"></script>
 </body>
 </html>

@@ -441,3 +441,26 @@ Blog 文章：Content(docType:blog, spaceId:null)  ← 完全独立，走原博�
 **验证**：4 个 homeType×crossMode 分支逻辑断言全过、node --check、EJS 编译 4 页、6 项关键路径断言、静态断言 32/32、真渲染视觉（开关右对齐不挤压）全过。
 
 **注**：前端第一版按用户「直接做完」的历史偏好未做中途确认闸门。
+
+---
+
+## 24. 修复 Wiki 库页搜索变博客（2026-11-21）
+
+**问题**：用户发现 `/wiki/linkonesaas`（库页）按 Ctrl+K 弹出的是博客搜索（placeholder「搜索文章、文档、标签…」、开关「同时搜知识库」），只有 `/wiki/` 首页才是知识库搜索。
+
+**根因（真 bug，非缓存）**：`wiki/_footer.ejs` 里 `spaceId: <%= JSON.stringify(...) %>` 用了转义输出——EJS 把 JSON 的双引号转成 HTML 实体 `&#34;`，在 `<script>` 里 JS 看到 `spaceId: &#34;507f...&#34;` 是**语法错误**，整个 `CMD_SEARCH_CONFIG` 定义失败 → cmd-search.js 读到 undefined → 回退默认 `homeType:'blog'` → 搜博客。首页 spaceId 是空串不经过 JSON.stringify，所以没触发，表现正常。
+
+**修复**：
+- `spaceId` 改用 `<%- %>` 不转义输出（并加注释说明踩坑）。
+- 首页 placeholder 改「搜索全部公开知识库…」，库页保留「搜索本知识库的文档…」，文案与搜索范围一致。
+- cmd-search.js 版本号 `20261121` → `20261121b` 破缓存。
+
+**正确姿势（已验证）**：
+| 页面 | homeType | spaceId | 搜索范围 |
+|---|---|---|---|
+| `/wiki/` 首页 | wiki | 空 | 全部公开知识库 |
+| `/wiki/:spaceSlug` 及子页 | wiki | 该库 id | 本知识库 |
+
+**验证**：EJS 编译 5 页、space/page/list 三种页面真渲染 + VM 执行 config（合法 JS、值正确）、静态断言 32/32 全过。
+
+**教训**：EJS 在 `<script>` 里输出 JSON 必须用 `<%- %>`（不转义）；`<%= %>` 会把引号变实体导致 JS 语法错误、整段配置静默丢失。凡是 `JSON.stringify` 注入脚本都要用不转义输出。
