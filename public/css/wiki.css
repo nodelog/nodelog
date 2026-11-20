@@ -248,11 +248,15 @@ body.wiki-body > #wiki-main { flex: 1; }
 .wiki-doc__tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: var(--space-6); }
 .wiki-tag {
     display: inline-flex; align-items: center; gap: 4px;
-    background: var(--pastel-blue); color: var(--accent-ink);
+    /* 不用 --accent-ink：浅色模式下它是白色，配浅蓝底会看不清；用 --ink 保证默认态可读 */
+    background: var(--pastel-blue); color: var(--ink);
+    border: 1px solid var(--border);
     font-size: 12px; padding: 4px 10px; border-radius: 999px;
     text-decoration: none;
 }
-.wiki-tag--muted { background: var(--surface-2); color: var(--muted); }
+.wiki-tag:hover { color: var(--accent); border-color: var(--accent); }
+.wiki-tag--muted { background: var(--surface-2); color: var(--ink); }
+.wiki-tag--muted:hover { color: var(--accent); border-color: var(--accent); }
 
 /* ---------- 右栏：相关资源 ---------- */
 .wiki-rail {

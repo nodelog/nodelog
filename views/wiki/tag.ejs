@@ -1,0 +1,37 @@
+<%- include('_header') %>
+<div class="wiki-shell">
+  <div class="wiki-grid wiki-static-grid">
+    <div class="wiki-main">
+      <nav class="wiki-crumb" aria-label="面包屑">
+        <a href="/wiki">知识库</a>
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+        <span>标签</span>
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+        <span aria-current="page"><%= tag.name %></span>
+      </nav>
+      <div class="wiki-hero">
+        <div class="wiki-doc__head">
+          <h1 class="wiki-hero__title"># <%= tag.name %></h1>
+        </div>
+        <p class="wiki-hero__desc">共 <%= total %> 篇相关文档</p>
+        <% if (docs && docs.length) { %>
+        <div class="post-list">
+          <% docs.forEach(function (doc) { %>
+            <%- include('../common/postCard', { doc: doc, variant: 'list' }) %>
+          <% }); %>
+        </div>
+        <%- include('../common/pagination', { page: page, totalPage: totalPage, url: (typeof locals.url === 'string' && locals.url) ? locals.url : '/tag/' + encodeURIComponent(tag.name) + '?scope=wiki&' }) %>
+        <% } else { %>
+        <div class="wiki-empty">这个标签下还没有文档。</div>
+        <% } %>
+      </div>
+    </div>
+    <aside class="wiki-rail">
+      <div class="wiki-rail__block">
+        <h3 class="wiki-rail__title">标签</h3>
+        <a class="wiki-tag" href="/wiki" title="返回知识库">返回知识库</a>
+      </div>
+    </aside>
+  </div>
+</div>
+<%- include('_footer') %>

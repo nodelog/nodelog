@@ -40,7 +40,8 @@ exports.findBySlug = function (req, res) {
                 });
                 var ids = Object.keys(wikiSpaceIds);
                 function done() {
-                    res.render('tag', {
+                    // scope=wiki 用知识库风格模板，避免从知识库点标签跳到博客版式
+                    res.render(scope === 'wiki' ? 'wiki/tag' : 'tag', {
                         tag: tag, docs: docs, title: '标签：' + tag.name,
                         page: p, totalPage: totalPage, total: total, isMyContent: false,
                         scope: scope, url: baseUrl

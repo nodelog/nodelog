@@ -95,14 +95,31 @@
       (children[par] = children[par] || []).push(p);
     });
     var activeId = String($('wa-doc-id').value || '');
+    // 计算当前编辑页的祖先 id 集合：渲染后只展开这条链，其余默认折叠
+    var openIds = {};
+
+function buildOpenIds(pid) {
+  var cur = byId[pid], guard = 0;
+  while (cur && cur.parent && byId[String(cur.parent)] && ++guard < 50) {
+    openIds[String(cur.parent)] = true;
+    cur = byId[String(cur.parent)];
+  }
+}
+if (activeId) buildOpenIds(activeId);
     function nodeHtml(p, depth) {
       var kids = children[String(p._id)] || [];
       var isCat = (p.tags || []).indexOf('文档分类') !== -1;
-      var row = '<div class="wa-page-item' + (activeId === String(p._id) ? ' is-active' : '') + (isCat ? ' is-category' : '') + '" data-id="' + esc(p._id) + '" style="padding-left:' + (8 + depth * 14) + 'px">' +
+      var expanded = !!openIds[String(p._id)];
+      var toggle = kids.length
+        ? '<button type="button" class="wa-page-toggle' + (expanded ? ' is-open' : '') + '" data-toggle="' + esc(p._id) + '" aria-label="展开或折叠" aria-expanded="' + (expanded ? 'true' : 'false') + '">' +
+          '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>'
+        : '<span class="wa-page-toggle wa-page-toggle--empty"></span>';
+      var row = '<div class="wa-page-item' + (activeId === String(p._id) ? ' is-active' : '') + (isCat ? ' is-category' : '') + '" data-id="' + esc(p._id) + '" data-parent="' + esc(p.parent || '') + '" style="padding-left:' + (4 + depth * 14) + 'px">' +
+        toggle +
         '<span class="wa-page-item__name">' + esc(p.name) + (kids.length ? ' <span class="wa-page-item__count">' + kids.length + '</span>' : '') + '</span>' +
         '<button type="button" class="wa-page-item__del" data-del="' + esc(p._id) + '" title="删除" aria-label="删除">×</button>' +
         '</div>';
-      var sub = kids.length ? '<ul class="wa-page-children">' + kids.map(function (k) { return nodeHtml(k, depth + 1); }).join('') + '</ul>' : '';
+      var sub = kids.length ? '<ul class="wa-page-children"' + (expanded ? '' : ' hidden') + ' data-children-of="' + esc(p._id) + '">' + kids.map(function (k) { return nodeHtml(k, depth + 1); }).join('') + '</ul>' : '';
       return '<li>' + row + sub + '</li>';
     }
     ul.innerHTML = (children[''] || []).map(function (p) { return nodeHtml(p, 0); }).join('');
@@ -158,6 +175,18 @@
       e.stopPropagation();
       var id = del.getAttribute('data-del');
       confirmAction('确认删除该页面？此操作不可撤销。', function () { doDeleteDoc(id); }, '删除页面');
+      return;
+    }
+    // 折叠按钮：展开/折叠子节点，不触发页面加载
+    var tg = e.target.closest ? e.target.closest('.wa-page-toggle[data-toggle]') : null;
+    if (tg) {
+      e.stopPropagation();
+      var tid = tg.getAttribute('data-toggle');
+      var sub = $('wa-page-list').querySelector('[data-children-of="' + tid + '"]');
+      var willOpen = sub && sub.hidden;
+      if (sub) sub.hidden = !willOpen;
+      tg.classList.toggle('is-open', !!willOpen);
+      tg.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
       return;
     }
     var item = e.target.closest ? e.target.closest('.wa-page-item') : null;

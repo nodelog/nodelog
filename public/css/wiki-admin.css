@@ -42,9 +42,16 @@ body.wiki-admin-body { min-height: 100vh; background: var(--bg); color: var(--in
 .wa-panel { display: none; width: 100%; }
 .wa-panel.is-active { display: block; }
 
-/* 编辑/管理两栏 */
-.wa-grid { display: grid; grid-template-columns: 300px minmax(0, 1fr); min-height: calc(100vh - 110px); }
-.wa-side { border-right: 1px solid var(--border); background: var(--surface-2); padding: 16px; }
+/* 编辑/管理两栏：左右各自独立滚动，不带动整页 */
+.wa-grid {
+    display: grid; grid-template-columns: 300px minmax(0, 1fr);
+    height: calc(100vh - 103px); /* 顶栏 56 + tabs 47 */
+    align-items: stretch;
+}
+.wa-side {
+    border-right: 1px solid var(--border); background: var(--surface-2); padding: 16px;
+    height: 100%; overflow-y: auto; overscroll-behavior: contain;
+}
 .wa-side__head { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; }
 .wa-side__head .wa-select { flex: 1; }
 .wa-side__section-title {
@@ -68,14 +75,27 @@ body.wiki-admin-body { min-height: 100vh; background: var(--bg); color: var(--in
 }
 .wa-page-item:hover .wa-page-item__del { opacity: 1; }
 .wa-page-item__del:hover { color: var(--danger); }
-/* 分类树：分类父页面加粗 + 子层级缩进 */
+/* 分类树：折叠按钮 + 分类父页面加粗 + 子层级缩进 */
 .wa-page-item.is-category { font-weight: 700; color: var(--accent); }
+.wa-page-toggle {
+    flex: 0 0 auto; width: 16px; height: 16px; display: inline-flex;
+    align-items: center; justify-content: center; border: 0; background: transparent;
+    color: var(--muted); cursor: pointer; padding: 0; border-radius: 3px;
+}
+.wa-page-toggle svg { transition: transform .15s ease; }
+.wa-page-toggle.is-open svg { transform: rotate(90deg); }
+.wa-page-toggle:hover { color: var(--accent); background: var(--accent-weak); }
+.wa-page-toggle--empty { cursor: default; }
 .wa-page-item__count { font-size: 11px; font-weight: 500; color: var(--muted); margin-left: 4px; }
 .wa-page-children { list-style: none; margin: 2px 0 4px; padding: 0; }
+.wa-page-children[hidden] { display: none; }
 .wa-empty { padding: 14px; font-size: 13px; color: var(--muted); line-height: 1.7; }
 
 /* 编辑区 */
-.wa-editor { padding: 20px clamp(16px, 2vw, 32px); min-width: 0; }
+.wa-editor {
+    padding: 20px clamp(16px, 2vw, 32px); min-width: 0;
+    height: 100%; overflow-y: auto; overscroll-behavior: contain;
+}
 .wa-editor__fields { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; margin-bottom: 14px; }
 .wa-editor__actions {
     display: flex; align-items: center; gap: 10px; justify-content: flex-end;
@@ -107,14 +127,19 @@ body.wiki-admin-body { min-height: 100vh; background: var(--bg); color: var(--in
 .wa-import input[type=file] { margin-bottom: 12px; font-size: 13px; }
 
 /* 库管理表单 */
-.wa-space-form { max-width: 720px; padding: 24px clamp(16px, 3vw, 40px); }
+.wa-space-form {
+    max-width: 720px; padding: 24px clamp(16px, 3vw, 40px);
+    height: 100%; overflow-y: auto; overscroll-behavior: contain;
+}
 .wa-space-form h2 { font-size: 22px; margin: 0 0 20px; }
 
 /* Vditor 高度 */
 #wa-vditor { min-height: 560px; }
 
 @media (max-width: 900px) {
-    .wa-grid { grid-template-columns: 1fr; }   /* 工作台单栏（此前误写成 .wiki-grid 导致规则失效） */
+    /* 工作台单栏：恢复整页滚动，取消左右独立滚动 */
+    .wa-grid { grid-template-columns: 1fr; height: auto; }
+    .wa-side, .wa-editor, .wa-space-form { height: auto; overflow-y: visible; }
     .wa-side { border-right: 0; border-bottom: 1px solid var(--border); }
     .wa-editor__fields, .wa-import__fields { grid-template-columns: 1fr; }
 }
