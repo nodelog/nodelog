@@ -74,17 +74,21 @@
     });
     btnApply.addEventListener('click', function () {
       if (!window.__refactorPlan) return;
-      if (!confirm('确认执行分类重构？将把 ' + window.__refactorPlan.articleTotal +
-        ' 篇文章改挂到新分类，并软删 ' + window.__refactorPlan.deleteCount + ' 个旧分类（软删可恢复）。')) return;
-      btnApply.disabled = true; status.textContent = '执行中…';
-      postJSON('/manager/category/refactor/apply')
-        .then(function (d) {
-          btnApply.disabled = false; status.textContent = '';
-          if (!d.success) { box.innerHTML = '<div class="alert alert-danger">' + esc(d.msg || '执行失败') + '</div>'; return; }
-          box.innerHTML = '<div class="alert alert-success">重构完成：迁移 ' + d.result.moved +
-            ' 篇，软删 ' + d.result.deleted + ' 个，失败 ' + d.result.failed + ' 个。建议刷新分类管理页核对。</div>';
-        })
-        .catch(function () { btnApply.disabled = false; status.textContent = ''; box.innerHTML = '<div class="alert alert-danger">网络错误</div>'; });
+      var message = '确认执行分类重构？将把 ' + window.__refactorPlan.articleTotal +
+        ' 篇文章改挂到新分类，并软删 ' + window.__refactorPlan.deleteCount + ' 个旧分类（软删可恢复）。';
+      function apply() {
+        btnApply.disabled = true; status.textContent = '执行中…';
+        postJSON('/manager/category/refactor/apply')
+          .then(function (d) {
+            btnApply.disabled = false; status.textContent = '';
+            if (!d.success) { box.innerHTML = '<div class="alert alert-danger">' + esc(d.msg || '执行失败') + '</div>'; return; }
+            box.innerHTML = '<div class="alert alert-success">重构完成：迁移 ' + d.result.moved +
+              ' 篇，软删 ' + d.result.deleted + ' 个，失败 ' + d.result.failed + ' 个。建议刷新分类管理页核对。</div>';
+          })
+          .catch(function () { btnApply.disabled = false; status.textContent = ''; box.innerHTML = '<div class="alert alert-danger">网络错误</div>'; });
+      }
+      if (window.NL && NL.alert) NL.alert(message, {title: '分类重构', confirmText: '确认执行', cancelText: '取消', onConfirm: apply});
+      else if (window.confirm(message)) apply();
     });
   });
 })();

@@ -332,4 +332,19 @@ Blog 文章：Content(docType:blog, spaceId:null)  ← 完全独立，走原博�
 
 **验证**：真机 390px 容器重渲染——工作台变单栏、工具栏横排、无溢出（`gridCols=390px`, `scrollW==clientW`）；前台汉堡按钮三条杠在完整 CSS 链下可见；EJS 编译 6 页 + 版本号渲染验证 + 静态断言 32/32 全过。
 
-**教训（重要）**：① 复制 CSS 到新模块时，媒体查询里的类名也要一并核对——`.wiki-grid`（前台）vs `.wa-grid`（工作台）一字之差让响应式彻底失效；② CSS 用裸链接会被浏览器/ServiceWorker 强缓存，改了样式用户看不到，必须带版本号（站点已有 version 字段可复用）。
+**教训（重要）**：① 复制 CSS 到新模块时，媒体查询里类名也要一并核对；② CSS 用裸链接会被强缓存，必须带版本号（站点已有 version 字段）。
+
+---
+
+## 18. 工作台删除按钮 + 全站弹窗统一（2026-11-20）
+
+| # | 问题 | 根因 / 修复 |
+|---|---|---|
+| 1 | 工作台编辑页右下角「删除」点击没反应 | `#wa-doc-delete` 只有 `style.display` 控制显隐，**从未绑定 click 事件**。补 click → 取当前 `wa-doc-id` → 走公共 `doDeleteDoc(id)`（含确认、请求、本地缓存移除、重载页面） |
+| 2 | 删除弹窗是浏览器原生 confirm，很丑 | 全局排查原生 `confirm()` 共 4 处，全改 `NL.alert`（ui.js 的统一样式弹层）：wiki-admin.js 的页面删除（列表+右下角共用 `confirmAction`）、知识库删除；`manager/categoryRefactor.ejs` 分类重构；`manager/wikiSpace.ejs` 旧兼容页。均带 ui.js 未加载时的 `window.confirm` 降级兜底 |
+
+**公共方法**（wiki-admin.js）：`confirmAction(message, onConfirm, title)` → `NL.alert({confirmText:'删除',cancelText:'取消',onConfirm})`；`doDeleteDoc(id)` 复用删除逻辑。
+
+**验证**：全局 `grep confirm(` 残留 0（仅剩 window.confirm 降级）；node --check、EJS 编译 3 页、静态断言 32/32 全过；统一弹窗真渲染（模态+遮罩+标题+取消/删除按钮）确认。
+
+**现状**：全站确认弹窗统一到 ui.js 的 `NL.alert`；原生 confirm/alert 已从所有业务页面清除。

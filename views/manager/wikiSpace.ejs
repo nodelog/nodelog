@@ -106,11 +106,15 @@
     }
     var del = e.target.closest ? e.target.closest('.js-space-delete') : null;
     if (del) {
-      if (!confirm('确认删除知识库「' + del.dataset.name + '」？该操作为软删。')) return;
-      post('/manager/wiki/space/delete', {id:del.dataset.id}, function (r) {
-        $('space-msg').innerHTML = '<div class="alert ' + (r.success?'alert-success':'alert-danger') + '">' + esc(r.msg) + '</div>';
-        if (r.success) setTimeout(function(){ location.reload(); }, 500);
-      });
+      var doDelete = function () {
+        post('/manager/wiki/space/delete', {id:del.dataset.id}, function (r) {
+          $('space-msg').innerHTML = '<div class="alert ' + (r.success?'alert-success':'alert-danger') + '">' + esc(r.msg) + '</div>';
+          if (r.success) setTimeout(function(){ location.reload(); }, 500);
+        });
+      };
+      var message = '确认删除知识库「' + del.dataset.name + '」？该操作为软删。';
+      if (window.NL && NL.alert) NL.alert(message, {title:'删除知识库', confirmText:'删除', cancelText:'取消', onConfirm:doDelete});
+      else if (window.confirm(message)) doDelete();
     }
   });
 })();

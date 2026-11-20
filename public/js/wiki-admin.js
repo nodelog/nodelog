@@ -106,19 +106,45 @@
     msg('wa-edit-msg', '');
     renderPages();
   }
+  // 统一确认弹窗：全站走 NL.alert（ui.js），不再用浏览器原生 confirm
+  function confirmAction(message, onConfirm, title) {
+    if (window.NL && NL.alert) {
+      NL.alert(message, {
+        title: title || '请确认',
+        confirmText: '删除', cancelText: '取消',
+        onConfirm: onConfirm
+      });
+    } else {
+      // 极端降级：ui.js 未加载时仍保留原生 confirm，功能不丢
+      if (window.confirm(message)) onConfirm();
+    }
+  }
+  // 执行删除页面的公共逻辑（列表小按钮与右下角按钮共用）
+  function doDeleteDoc(id, anchor) {
+    post('/manager/wiki/doc/delete', {id: id}, function (r) {
+      if (!r.success) return msg('wa-edit-msg', r.msg, 'error');
+      msg('wa-edit-msg', r.msg, 'ok');
+      (pagesBySpace[currentSpaceId()] || []).forEach(function (p, i, arr) {
+        if (String(p._id) === id) arr.splice(i, 1);
+      });
+      loadPage(null);
+    });
+  }
   $('wa-space-select').addEventListener('change', function () { loadPage(null); });
   $('wa-new-doc').addEventListener('click', function () { loadPage(null); });
+  // 右下角删除按钮：删除当前编辑的文档（此前未绑定事件，点击无反应）
+  $('wa-doc-delete').addEventListener('click', function () {
+    var id = $('wa-doc-id').value;
+    if (!id) return msg('wa-edit-msg', '请先选择一个页面', 'error');
+    var name = $('wa-doc-name').value || '该页面';
+    confirmAction('确认删除「' + name + '」？此操作不可撤销。', function () { doDeleteDoc(id); }, '删除页面');
+  });
   $('wa-page-list').addEventListener('click', function (e) {
     var del = e.target.closest ? e.target.closest('[data-del]') : null;
     if (del) {
       e.stopPropagation();
-      if (!confirm('确认删除该页面？')) return;
-      post('/manager/wiki/doc/delete', {id: del.getAttribute('data-del')}, function (r) {
-        if (!r.success) return msg('wa-edit-msg', r.msg, 'error');
-        var id = del.getAttribute('data-del');
-        (pagesBySpace[currentSpaceId()] || []).forEach(function (p, i, arr) { if (String(p._id) === id) arr.splice(i, 1); });
-        loadPage(null);
-      });
+      var id = del.getAttribute('data-del');
+      confirmAction('确认删除该页面？此操作不可撤销。', function () { doDeleteDoc(id); }, '删除页面');
       return;
     }
     var item = e.target.closest ? e.target.closest('.wa-page-item') : null;
@@ -227,12 +253,14 @@
   });
   $('wa-space-delete').addEventListener('click', function () {
     var id = $('wa-space-id').value; if (!id) return;
-    if (!confirm('确认删除该知识库？库内有页面时会被拒绝。')) return;
-    post('/manager/wiki/space/delete', {id: id}, function (r) {
-      if (!r.success) return msg('wa-space-msg', r.msg, 'error');
-      msg('wa-space-msg', r.msg, 'ok');
-      setTimeout(function () { location.reload(); }, 500);
-    });
+    var name = $('wa-space-name').value || '该知识库';
+    confirmAction('确认删除知识库「' + name + '」？库内有页面时会被拒绝。', function () {
+      post('/manager/wiki/space/delete', {id: id}, function (r) {
+        if (!r.success) return msg('wa-space-msg', r.msg, 'error');
+        msg('wa-space-msg', r.msg, 'ok');
+        setTimeout(function () { location.reload(); }, 500);
+      });
+    }, '删除知识库');
   });
   renderSpaceList();
 
