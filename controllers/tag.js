@@ -14,6 +14,11 @@ exports.findBySlug = function (req, res) {
     var slug = req.params.slug;
     var page = parseInt(req.query.page, 10) || 1;
     var sessionUser = req.session.user;
+    // wiki 文档页的标签链接带 scope=wiki：标签页同时查 blog+wiki，且文档链接回知识库。
+    // 普通博客标签链接不带 scope，保持原有「只查 blog」行为，避免语义变化。
+    var scope = req.query.scope === 'wiki' ? 'wiki' : '';
+    var docTypes = scope === 'wiki' ? ['blog', 'wiki'] : undefined;
+    var baseUrl = '/tag/' + encodeURIComponent(slug) + (scope ? '?scope=wiki&' : '?');
 
     function renderTag(tag) {
         // 禁止任何层（浏览器/CDN/代理）缓存该动态页面，保证每次都是实时数据
@@ -26,33 +31,60 @@ exports.findBySlug = function (req, res) {
             var perPage = constants.PER_PAGE_COUNT || 10;
             var totalPage = total > 0 ? Math.ceil(total / perPage) : 1;
             var p = Math.min(Math.max(page, 1), totalPage);
-            if (total <= 0) {
-                return res.render('tag', {
-                    tag: tag, docs: [], title: '标签：' + tag.name,
-                    page: 1, totalPage: 1, total: 0, isMyContent: false,
-                    url: '/tag/' + encodeURIComponent(slug) + '?'
+            function render(docs) {
+                docs = docs || [];
+                // scope=wiki 时给 wiki 文档补 spaceSlug，卡片据此生成 /wiki/:slug/:page 链接
+                var wikiSpaceIds = {};
+                docs.forEach(function (d) {
+                    if (d.docType === 'wiki' && d.spaceId) wikiSpaceIds[String(d.spaceId)] = true;
+                });
+                var ids = Object.keys(wikiSpaceIds);
+                function done() {
+                    res.render('tag', {
+                        tag: tag, docs: docs, title: '标签：' + tag.name,
+                        page: p, totalPage: totalPage, total: total, isMyContent: false,
+                        scope: scope, url: baseUrl
+                    });
+                }
+                if (!ids.length) return done();
+                var Space = require('./../models/Space.js');
+                var pending = ids.length, slugMap = {};
+                ids.forEach(function (sid) {
+                    Space.findById(sid, function (e, space) {
+                        if (!e && space) slugMap[sid] = space.slug;
+                        if (--pending === 0) {
+                            docs.forEach(function (d) {
+                                if (slugMap[String(d.spaceId)]) d.spaceSlug = slugMap[String(d.spaceId)];
+                            });
+                            done();
+                        }
+                    });
                 });
             }
+            if (total <= 0) return render([]);
             Content.findByTag(p, tag.name, sessionUser, function (e2, docs) {
-                res.render('tag', {
-                    tag: tag, docs: docs || [], title: '标签：' + tag.name,
-                    page: p, totalPage: totalPage, total: total, isMyContent: false,
-                    url: '/tag/' + encodeURIComponent(slug) + '?'
-                });
-            });
-        });
+                render(docs || []);
+            }, docTypes);
+        }, docTypes);
     }
 
     Tag.findBySlug(slug, function (err, tag) {
-        if (err || !tag) {
-            // 回退：按名称查找（兼容未 slugify 的链接）
-            Tag.findByName(decodeURIComponent(slug), function (e2, byName) {
-                if (e2 || !byName) { res.redirect('/error'); return; }
-                renderTag(byName);
-            });
-            return;
-        }
-        renderTag(tag);
+        if (tag) return renderTag(tag);
+        // 回退1：按名称查找（兼容未 slugify 的链接）
+        Tag.findByName(decodeURIComponent(slug), function (e2, byName) {
+            if (byName) return renderTag(byName);
+            // 回退2：Tag 集合里没有该标签文档，但 Content.tags 上确有此标签时，
+            // 用「虚拟 tag」直接按名称查文章，避免误报「页面不存在」。
+            // 场景：Wiki 导入/API 发布写入的 tags 未经过 Tag.reconcileForContent。
+            var name = decodeURIComponent(slug);
+            if (!name || !name.trim()) { res.redirect('/error'); return; }
+            Content.getCountByTag(name, sessionUser, function (e3, virtualTotal) {
+                if (e3) { res.redirect('/error'); return; }
+                // 该标签下确实有文章才渲染虚拟页；否则仍是无效标签
+                if (!virtualTotal) { res.redirect('/error'); return; }
+                renderTag({ name: name, slug: slug });
+            }, docTypes);
+        });
     });
 };
 // 标签云（JSON，供前端/首页调用）—— 响应 {docs} 结构不变（I-3/I-5）

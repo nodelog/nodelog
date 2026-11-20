@@ -68,6 +68,10 @@ body.wiki-admin-body { min-height: 100vh; background: var(--bg); color: var(--in
 }
 .wa-page-item:hover .wa-page-item__del { opacity: 1; }
 .wa-page-item__del:hover { color: var(--danger); }
+/* 分类树：分类父页面加粗 + 子层级缩进 */
+.wa-page-item.is-category { font-weight: 700; color: var(--accent); }
+.wa-page-item__count { font-size: 11px; font-weight: 500; color: var(--muted); margin-left: 4px; }
+.wa-page-children { list-style: none; margin: 2px 0 4px; padding: 0; }
 .wa-empty { padding: 14px; font-size: 13px; color: var(--muted); line-height: 1.7; }
 
 /* 编辑区 */

@@ -49,7 +49,7 @@
         <% if (doc.tags && doc.tags.length) { %>
           <div class="wiki-doc__tags">
           <% doc.tags.forEach(function (t) { %>
-            <a class="wiki-tag" href="/tag/<%= encodeURIComponent(t) %>">
+            <a class="wiki-tag" href="/tag/<%= encodeURIComponent(t) %>?scope=wiki">
               <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41 13.42 20.6a2 2 0 0 1-2.83 0L2 12V4a2 2 0 0 1 2-2h8l8.59 8.59a2 2 0 0 1 0 2.82Z"/><circle cx="7.5" cy="7.5" r="1"/></svg>
               <%= t %>
             </a>
@@ -60,6 +60,16 @@
     </div>
 
     <aside class="wiki-rail">
+      <% if (toc && toc.length) { %>
+      <div class="wiki-rail__block wiki-toc">
+        <h3 class="wiki-rail__title">本页目录</h3>
+        <ul class="wiki-toc__list">
+        <% toc.forEach(function (h) { %>
+          <li class="wiki-toc__item <%= h.level === 3 ? 'is-sub' : '' %>"><a href="#<%= h.id %>" data-toc-anchor="<%= h.id %>"><%= h.text %></a></li>
+        <% }); %>
+        </ul>
+      </div>
+      <% } %>
       <div class="wiki-rail__block">
         <h3 class="wiki-rail__title">本库信息</h3>
         <div class="wiki-rail__stat"><span>页面数</span><b><%= pageCount %></b></div>
@@ -80,7 +90,7 @@
         <h3 class="wiki-rail__title">标签</h3>
         <div class="wiki-rail__tags">
         <% tags.forEach(function (t) { %>
-          <a class="wiki-tag wiki-tag--muted" href="/tag/<%= encodeURIComponent(t.name) %>" title="<%= t.count %> 篇"><%= t.name %></a>
+          <a class="wiki-tag wiki-tag--muted" href="/tag/<%= encodeURIComponent(t.name) %>?scope=wiki" title="<%= t.count %> 篇"><%= t.name %></a>
         <% }); %>
         </div>
       </div>
@@ -88,5 +98,30 @@
     </aside>
   </div>
 </div>
+<% /* 正文图片双击看原图：纯原生、事件委托，不污染 Markdown */ %>
+<div class="nl-lightbox" role="dialog" aria-modal="true" aria-label="查看原图" aria-hidden="true">
+  <button type="button" class="nl-lightbox__close" aria-label="关闭">×</button>
+  <img alt="" src=""/>
+</div>
+<script>
+(function () {
+  var box = document.querySelector('.nl-lightbox');
+  var boxImg = box && box.querySelector('img');
+  var content = document.querySelector('.wiki-doc__body');
+  if (!box || !boxImg || !content) return;
+  function close() { box.classList.remove('is-open'); box.setAttribute('aria-hidden', 'true'); boxImg.removeAttribute('src'); }
+  content.addEventListener('dblclick', function (e) {
+    var img = e.target && e.target.closest && e.target.closest('img');
+    if (!img || !content.contains(img)) return;
+    var src = img.getAttribute('src');
+    if (!src) return;
+    e.preventDefault();
+    boxImg.src = src; boxImg.alt = img.getAttribute('alt') || '';
+    box.classList.add('is-open'); box.setAttribute('aria-hidden', 'false');
+  });
+  box.addEventListener('click', function (e) { if (e.target === box || e.target.closest('.nl-lightbox__close')) close(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && box.classList.contains('is-open')) close(); });
+})();
+</script>
 <%- include('_share') %>
 <%- include('_footer') %>

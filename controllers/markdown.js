@@ -28,6 +28,50 @@ exports.render = function (src) {
     });
 };
 
+// 渲染并返回目录（TOC）：给 h2/h3 注入稳定 id（sec-N），供 Wiki 右侧「本页目录」锚点跳转。
+// html=false 已禁止原始 HTML 注入，id 由服务端生成，安全；sanitize 白名单放行 heading 的 id。
+exports.renderWithToc = function (src) {
+    if (!src) return {html: '', toc: []};
+    var toc = [], counter = 0;
+    // 用 markdown-it 的 renderer rule 在标题 token 上加 id
+    var render = md.renderer.rules.heading_open;
+    md.renderer.rules.heading_open = function (tokens, idx, options, env, self) {
+        var token = tokens[idx];
+        var level = token.tag; // h1..h6
+        if (level === 'h2' || level === 'h3') {
+            var id = 'sec-' + (++counter);
+            token.attrSet('id', id);
+            // 取该标题的内联文本作为目录文字
+            var text = '';
+            var inline = tokens[idx + 1];
+            if (inline && inline.children) {
+                inline.children.forEach(function (c) { if (c.content) text += c.content; });
+            }
+            toc.push({id: id, level: Number(level.slice(1)), text: String(text).trim().slice(0, 60)});
+        }
+        return render ? render(tokens, idx, options, env, self) : self.renderToken(tokens, idx, options);
+    };
+    try {
+        var html = md.render(String(src));
+        return {html: sanitizeRender(html), toc: toc};
+    } finally {
+        // 还原 rule，避免影响其它 render 调用（模块单例）
+        md.renderer.rules.heading_open = render;
+    }
+};
+
+function sanitizeRender(html) {
+    var attrs = Object.assign({}, allowedAttributes);
+    attrs.h2 = ['id']; attrs.h3 = ['id'];
+    return sanitizeHtml(html, {
+        allowedTags: allowedTags,
+        allowedAttributes: attrs,
+        transformTags: {
+            'a': sanitizeHtml.simpleTransform('a', {rel: 'noopener noreferrer', target: '_blank'})
+        }
+    });
+}
+
 // 仅做 HTML 清洗（不渲染），供开放文章 API 在存储 html 格式正文前兜底 XSS。
 // 与 render 共用同一份白名单，保证「存进去的」和「渲染出来的」安全口径一致。
 exports.sanitize = function (src) {

@@ -329,19 +329,24 @@ function escapeRegex(s) {
 function tagRegex(tag) {
     return {"$regex": "^\\s*" + escapeRegex(tag) + "\\s*$", "$options": "i"};
 }
-ContentDAO.prototype.findByTag = function (page, tag, currentUser, callback) {
-    var tagTerm = tagRegex(tag);
-    var term;
+// docTypes: 可选，要查询的文档类型数组（如 ['blog','wiki']）；缺省 ['blog'] 保持旧调用不变
+function tagTermWithTypes(tag, currentUser, docTypes) {
+    var types = Array.isArray(docTypes) && docTypes.length ? docTypes : [constants.DOC_TYPE_BLOG];
+    var term = {"tags": tagRegex(tag), "docType": {$in: types}};
     if (currentUser == null) {
-        term = {"tags": tagTerm, "docType": constants.DOC_TYPE_BLOG, "status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}};
+        term.status = constants.CONTENT_ENABLE_STATUS;
+        term.draft = {$ne: true};
     } else {
-        term = {"tags": tagTerm, "docType": constants.DOC_TYPE_BLOG, $or: [
-            {"status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}},
+        term.$or = [
+            {"status": constants.CONTENT_ENABLE_STATUS, "draft": {$ne: true}},
             {"author": currentUser._id, "status": {$ne: constants.CONTENT_UNABLE_STATUS}}
-        ]};
+        ];
     }
-    var query = ContentModel.find(term);
-    query.select('name author category createTime modifyTime view status original slug cover excerpt tags docType');
+    return term;
+}
+ContentDAO.prototype.findByTag = function (page, tag, currentUser, callback, docTypes) {
+    var query = ContentModel.find(tagTermWithTypes(tag, currentUser, docTypes));
+    query.select('name author category createTime modifyTime view status original slug cover excerpt tags docType spaceId');
     query.sort({"createTime": -1});
     query.limit(constants.PER_PAGE_COUNT);
     query.skip((page - 1) * constants.PER_PAGE_COUNT);
@@ -350,18 +355,8 @@ ContentDAO.prototype.findByTag = function (page, tag, currentUser, callback) {
         enrichDocs(docs, callback);
     });
 };
-ContentDAO.prototype.getCountByTag = function (tag, currentUser, callback) {
-    var tagTerm = tagRegex(tag);
-    var term;
-    if (currentUser == null) {
-        term = {"tags": tagTerm, "docType": constants.DOC_TYPE_BLOG, "status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}};
-    } else {
-        term = {"tags": tagTerm, "docType": constants.DOC_TYPE_BLOG, $or: [
-            {"status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}},
-            {"author": currentUser._id, "status": {$ne: constants.CONTENT_UNABLE_STATUS}}
-        ]};
-    }
-    ContentModel.count(term, function (err, total) { callback(err, total); });
+ContentDAO.prototype.getCountByTag = function (tag, currentUser, callback, docTypes) {
+    ContentModel.count(tagTermWithTypes(tag, currentUser, docTypes), function (err, total) { callback(err, total); });
 };
 ContentDAO.prototype.getCount = function (currentUser, callback) {
     ContentModel.count(visibleTerm(currentUser), function (err, total) {

@@ -85,6 +85,7 @@
     border-radius: var(--radius-sm); cursor: default; box-shadow: var(--shadow-lg); }
   .nl-lightbox__close { position: absolute; top: 16px; right: 22px; color: var(--brand-primary-ink); font-size: 30px; line-height: 1;
     background: none; border: 0; cursor: pointer; padding: 4px 10px; }
+  .article-content img { cursor: zoom-in; }
 </style>
 <div class="nl-lightbox" role="dialog" aria-modal="true" aria-label="查看原图" aria-hidden="true">
   <button type="button" class="nl-lightbox__close" aria-label="关闭">×</button>
@@ -124,7 +125,7 @@
   var content = document.querySelector('.article-content');
   if (!box || !boxImg || !content) return;
   function close() { box.classList.remove('is-open'); box.setAttribute('aria-hidden', 'true'); boxImg.removeAttribute('src'); }
-  content.addEventListener('click', function (e) {
+  content.addEventListener('dblclick', function (e) {
     var img = e.target && e.target.closest && e.target.closest('img');
     if (!img || !content.contains(img)) return;
     var src = img.getAttribute('src');

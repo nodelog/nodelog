@@ -50,9 +50,13 @@ exports.page = function (req, res) {
             if (err || !doc) { res.redirect('/error'); return; }
             // 正文渲染：Wiki 页面一律 markdown（导入/新建均固定 markdown），html 兜底兼容
             var markdown = require('./markdown.js');
-            var rendered = doc.contentType === 'markdown'
-                ? markdown.render(doc.content)
-                : String(doc.content || '');
+            var rendered, toc = [];
+            if (doc.contentType === 'markdown') {
+                var rr = markdown.renderWithToc(doc.content);
+                rendered = rr.html; toc = rr.toc || [];
+            } else {
+                rendered = String(doc.content || '');
+            }
             var crumbs = wikiTree.breadcrumb(pages, doc._id);
             // 相关资源：同库内共享任一标签的其他页面（最多 8 条），标签为空时退化为最近更新
             var docTags = doc.tags || [];
@@ -82,7 +86,7 @@ exports.page = function (req, res) {
             var ogImage = (/^https?:\/\//i.test(String(doc.cover || '')) && !/['"\\<>\s]/.test(doc.cover)) ? doc.cover : '';
             res.render('wiki/page', {
                 title: doc.name + ' - ' + space.name, currentMenu: 'wiki',
-                space: space, doc: doc, rendered: rendered,
+                space: space, doc: doc, rendered: rendered, toc: toc,
                 tree: tree, breadcrumb: crumbs, currentId: doc._id,
                 related: related, tags: tags, pageCount: pages.length,
                 ogTitle: doc.name + ' - ' + space.name, ogDesc: ogDesc, ogImage: ogImage

@@ -47,8 +47,9 @@
         <!-- 区二：工具栏——搜索（图标）/ 主题，右侧留白隔开 -->
         <ul class="nav navbar-nav nav-tools" aria-label="工具栏">
             <li class="nav-search-toggle">
-                <button type="button" id="nlSearchToggle" class="icon-btn" aria-label="搜索文章" aria-expanded="false" aria-keyshortcuts="Control+K Meta+K" title="搜索文章 (Ctrl+K)">
+                <button type="button" id="nlSearchToggle" class="icon-btn nav-search-trigger" aria-label="搜索文章" aria-expanded="false" aria-keyshortcuts="Control+K Meta+K" title="搜索文章 (Ctrl+K)">
                     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                    <kbd class="nav-kbd" aria-hidden="true">Ctrl K</kbd>
                 </button>
             </li>
             <li>
@@ -89,6 +90,7 @@
         <input type="search" id="nl-site-search" maxlength="50" class="nav-search-input js-search"
                value="<%if(locals.key){%><%=key%><%}%>" placeholder="搜索文章标题、标签或内容…"
                role="searchbox" aria-label="搜索文章" aria-autocomplete="list" aria-controls="nl-search-suggest" autocomplete="off"/>
+        <kbd class="nav-search-kbd" aria-hidden="true">Ctrl K</kbd>
         <button type="button" class="icon-btn nav-search-close" id="nlSearchClose" aria-label="关闭搜索">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
         </button>

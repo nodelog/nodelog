@@ -87,12 +87,25 @@
       ul.innerHTML = '<li class="wa-empty">该库暂无页面，点「新建页面」开始。</li>';
       return;
     }
-    ul.innerHTML = pages.map(function (p) {
-      return '<li><div class="wa-page-item' + (String($('wa-doc-id').value) === String(p._id) ? ' is-active' : '') + '" data-id="' + esc(p._id) + '">' +
-        '<span class="wa-page-item__name">' + esc(p.name) + '</span>' +
+    // 按 parent 建树：孤儿（parent 指向不存在/自身）提升为根，避免丢页面
+    var byId = {}, children = {};
+    pages.forEach(function (p) { byId[String(p._id)] = p; });
+    pages.forEach(function (p) {
+      var par = p.parent && byId[String(p.parent)] && String(p.parent) !== String(p._id) ? String(p.parent) : '';
+      (children[par] = children[par] || []).push(p);
+    });
+    var activeId = String($('wa-doc-id').value || '');
+    function nodeHtml(p, depth) {
+      var kids = children[String(p._id)] || [];
+      var isCat = (p.tags || []).indexOf('文档分类') !== -1;
+      var row = '<div class="wa-page-item' + (activeId === String(p._id) ? ' is-active' : '') + (isCat ? ' is-category' : '') + '" data-id="' + esc(p._id) + '" style="padding-left:' + (8 + depth * 14) + 'px">' +
+        '<span class="wa-page-item__name">' + esc(p.name) + (kids.length ? ' <span class="wa-page-item__count">' + kids.length + '</span>' : '') + '</span>' +
         '<button type="button" class="wa-page-item__del" data-del="' + esc(p._id) + '" title="删除" aria-label="删除">×</button>' +
-        '</div></li>';
-    }).join('');
+        '</div>';
+      var sub = kids.length ? '<ul class="wa-page-children">' + kids.map(function (k) { return nodeHtml(k, depth + 1); }).join('') + '</ul>' : '';
+      return '<li>' + row + sub + '</li>';
+    }
+    ul.innerHTML = (children[''] || []).map(function (p) { return nodeHtml(p, 0); }).join('');
   }
   function loadPage(page) {
     $('wa-doc-id').value = page ? page._id : '';

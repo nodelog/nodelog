@@ -35,6 +35,15 @@ body.wiki-body > #wiki-main { flex: 1; }
     font-size: 14px; color: var(--ink); width: clamp(140px, 20vw, 260px);
 }
 .wiki-search__input::placeholder { color: var(--muted); }
+.wiki-search__kbd {
+    flex: none;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px; color: var(--muted);
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 5px; padding: 3px 6px;
+}
+/* PC 端搜索框常驻，搜索图标按钮多余 → 隐藏；移动端保留（搜索框折叠，靠按钮展开） */
+@media (min-width: 768px) { .wiki-search-toggle { display: none !important; } }
 .wiki-topbar__icon, .wiki-topbar__back {
     display: inline-flex; align-items: center; gap: 6px;
     height: 36px; padding: 0 10px;
@@ -72,18 +81,24 @@ body.wiki-body > #wiki-main { flex: 1; }
     display: grid;
     grid-template-columns: 260px minmax(0, 1fr) 250px;
     gap: 0;
-    /* 不设整屏 min-height：空知识库首页内容少时应自然收高，避免多余滚动条 */
     border-top: 1px solid var(--border);
     width: 100%;
+    /* 三栏独立滚动：整屏高度减去 56px 顶栏；左/右/中各管自己的滚动条 */
+    height: calc(100vh - 56px);
+    align-items: start;
 }
 
 /* ---------- 左栏：目录树 ---------- */
-/* 左栏：增加内边距，文字不贴边 */
+/* 左栏：增加内边距，文字不贴边；自身滚动，不与中栏联动 */
 .wiki-aside {
     border-right: 1px solid var(--border);
     background: var(--surface-2);
     padding: var(--space-6) var(--space-4);
     overflow-x: hidden;
+    position: sticky; top: 0;
+    height: calc(100vh - 56px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
 }
 .wiki-aside__head {
     display: flex;
@@ -166,6 +181,10 @@ body.wiki-body > #wiki-main { flex: 1; }
     background: var(--surface);
     padding: var(--space-8) clamp(var(--space-6), 5vw, var(--space-12));
     min-width: 0;
+    height: calc(100vh - 56px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-behavior: smooth;
 }
 .wiki-crumb {
     display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
@@ -241,6 +260,10 @@ body.wiki-body > #wiki-main { flex: 1; }
     background: var(--surface-2);
     padding: var(--space-8) var(--space-6);
     font-size: 13px;
+    position: sticky; top: 0;
+    height: calc(100vh - 56px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
 }
 .wiki-rail__block { margin-bottom: var(--space-8); }
 .wiki-rail__title {
@@ -260,6 +283,41 @@ body.wiki-body > #wiki-main { flex: 1; }
 /* 值紧贴标签、整行左对齐，不用 space-between 撑到容器右缘（窄栏里数字会贴边） */
 .wiki-rail__stat { display: flex; align-items: baseline; gap: var(--space-2); padding: 5px 0; color: var(--muted); }
 .wiki-rail__stat b { color: var(--ink); font-weight: 650; }
+
+/* ---------- 返回顶部 ---------- */
+.wiki-backtop {
+    position: fixed; right: 24px; bottom: 28px; z-index: 30;
+    width: 42px; height: 42px; display: none; align-items: center; justify-content: center;
+    border: 1px solid var(--border); border-radius: 10px;
+    background: var(--surface); color: var(--ink);
+    box-shadow: var(--shadow, 0 4px 14px rgba(0,0,0,.12)); cursor: pointer;
+}
+.wiki-backtop.is-visible { display: inline-flex; }
+.wiki-backtop:hover { color: var(--accent); border-color: var(--accent); }
+
+/* ---------- 正文图片双击看大图 ---------- */
+.nl-lightbox { position: fixed; inset: 0; z-index: 2147483000; display: none; align-items: center; justify-content: center;
+    background: rgba(0,0,0,.88); padding: 24px; cursor: zoom-out; }
+.nl-lightbox.is-open { display: flex; }
+.nl-lightbox img { max-width: 96vw; max-height: 92vh; width: auto; height: auto; object-fit: contain;
+    border-radius: 8px; cursor: default; }
+.nl-lightbox__close { position: absolute; top: 16px; right: 22px; color: #fff; font-size: 30px; line-height: 1;
+    background: none; border: 0; cursor: pointer; padding: 4px 10px; }
+.wiki-doc__body img { cursor: zoom-in; }
+
+/* ---------- 本页目录（TOC） ---------- */
+.wiki-toc__list { list-style: none; margin: 0; padding: 0; border-left: 2px solid var(--border); }
+.wiki-toc__item { margin: 0; }
+.wiki-toc__item a {
+    display: block; padding: 5px 10px; line-height: 1.5;
+    color: var(--muted); text-decoration: none; font-size: 13px;
+    border-left: 2px solid transparent; margin-left: -2px;
+}
+.wiki-toc__item a:hover { color: var(--accent); border-left-color: var(--accent); background: var(--accent-weak); }
+.wiki-toc__item.is-sub a { padding-left: 22px; font-size: 12.5px; }
+.wiki-toc__item a.is-active { color: var(--accent); border-left-color: var(--accent); font-weight: 650; }
+/* 锚点目标：抵消 sticky 顶栏，且给标题留呼吸 */
+.wiki-doc__body h2[id], .wiki-doc__body h3[id] { scroll-margin-top: 18px; }
 
 /* ---------- 知识库列表 / 库首页（中栏专用）---------- */
 .wiki-hero { max-width: 1080px; }
@@ -291,7 +349,9 @@ body.wiki-body > #wiki-main { flex: 1; }
 
 /* ---------- 响应式 ---------- */
 @media (max-width: 1023px) {
-    .wiki-grid { grid-template-columns: 220px minmax(0, 1fr); }
+    /* 平板/移动端：恢复整页滚动，取消三栏独立滚动 */
+    .wiki-grid { grid-template-columns: 220px minmax(0, 1fr); height: auto; }
+    .wiki-aside, .wiki-main, .wiki-rail { position: static; height: auto; overflow-y: visible; }
     .wiki-rail { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--border); display: flex; gap: var(--space-8); }
     .wiki-rail__block { flex: 1; }
 }
