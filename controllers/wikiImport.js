@@ -3,6 +3,7 @@
 // 故意不改 CSV import/export 的 columns——那条路是严格表头匹配，加列会让旧 CSV 全失效。
 var Content = require('./../models/Content.js');
 var Tag = require('./../models/Tag.js');
+var Space = require('./../models/Space.js');
 var content = require('./content.js');       // buildFields（唯一字段归一化入口）
 var guard = require('./moderation/moderationGuard');
 var kit = require('./adminKit');
@@ -53,49 +54,70 @@ exports.import = function (req, res) {
     var text = got.text;
     var name = resolveName(req.body.name, text);
     if (!name) return res.status(400).json({success: false, msg: '无法确定文档标题，请传入 name'});
+    var spaceSlug = String(req.body.spaceSlug || '').trim();
 
-    // 构造伪 req 复用 buildFields，保证与编辑器/API 同源归一化（docType 固定 wiki、格式 markdown）。
-    var fakeReq = {body: {
-        name: name, content: text, contentType: 'markdown', docType: 'wiki',
-        category: req.body.category, tags: req.body.tags || ''
-    }};
-    var f = content.buildFields(fakeReq);
+    function saveWithSpace(spaceId) {
+        // 构造伪 req 复用 buildFields，保证与编辑器/API 同源归一化（docType 固定 wiki、格式 markdown）。
+        var body = {
+            name: name, content: text, contentType: 'markdown', docType: 'wiki',
+            category: req.body.category, tags: req.body.tags || ''
+        };
+        if (spaceId) { body.spaceId = String(spaceId); body.slug = Space.slugify(name); }
+        var f = content.buildFields({body: body});
 
-    var modFields = {
-        name: f.name, content: f.content, excerpt: f.excerpt, tags: f.tags,
-        seoTitle: f.seo.title, seoKeywords: f.seo.keywords, seoDescription: f.seo.description
-    };
-    guard.enforce(req, modFields, 'content', function (gErr, verdict) {
-        if (gErr) {
-            var n = kit.normalizeDaoError(gErr, 'wikiImport.guard');
-            return res.status(n.status).json({success: false, msg: n.msg});
-        }
-        if (!verdict.allowed) return res.status(403).json({success: false, msg: verdict.msg});
-
-        // 幂等：同名文档已存在则不重复导入（与现有文章判重口径一致）
-        Content.findByName(f.name, function (findErr, exists) {
-            if (findErr) {
-                var ne = kit.normalizeDaoError(findErr, 'wikiImport.find');
-                return res.status(ne.status).json({success: false, msg: ne.msg});
+        var modFields = {
+            name: f.name, content: f.content, excerpt: f.excerpt, tags: f.tags,
+            seoTitle: f.seo.title, seoKeywords: f.seo.keywords, seoDescription: f.seo.description
+        };
+        guard.enforce(req, modFields, 'content', function (gErr, verdict) {
+            if (gErr) {
+                var n = kit.normalizeDaoError(gErr, 'wikiImport.guard');
+                return res.status(n.status).json({success: false, msg: n.msg});
             }
-            if (exists) {
-                return res.status(409).json({success: false, msg: '同名文档已存在', id: exists._id});
-            }
-            f.author = req.session.user._id;
-            Content.save(f, function (saveErr, saved) {
-                if (saveErr || !saved) {
-                    console.error('[wikiImport] save failed: ' + (saveErr && saveErr.message));
-                    auditImport(req, null, f.name, false);
-                    return res.status(500).json({success: false, msg: '导入失败'});
+            if (!verdict.allowed) return res.status(403).json({success: false, msg: verdict.msg});
+
+            // 幂等：指定知识库时按「库内 slug」判重，否则沿用全站同名判重。
+            function afterDuplicateCheck(exists) {
+                if (exists) {
+                    return res.status(409).json({success: false, msg: '该知识库中同名文档已存在', id: exists._id});
                 }
-                Tag.reconcileForContent([], f.tags, 'wiki-import', function () {
-                    auditImport(req, saved._id, f.name, true);
-                    return res.status(201).json({
-                        success: true, msg: '导入成功', id: saved._id,
-                        name: f.name, docType: f.docType, tags: f.tags
+                f.author = req.session.user._id;
+                Content.save(f, function (saveErr, saved) {
+                    if (saveErr || !saved) {
+                        console.error('[wikiImport] save failed: ' + (saveErr && saveErr.message));
+                        auditImport(req, null, f.name, false);
+                        return res.status(500).json({success: false, msg: '导入失败'});
+                    }
+                    Tag.reconcileForContent([], f.tags, 'wiki-import', function () {
+                        auditImport(req, saved._id, f.name, true);
+                        return res.status(201).json({
+                            success: true, msg: '导入成功', id: saved._id,
+                            name: f.name, docType: f.docType, tags: f.tags,
+                            spaceSlug: spaceSlug || null, slug: f.slug || null
+                        });
                     });
                 });
-            });
+            }
+            if (spaceId) {
+                Content.findPageBySlug(spaceId, f.slug, req.session.user, function (e, dup) {
+                    if (e) { var ne = kit.normalizeDaoError(e, 'wikiImport.dup'); return res.status(ne.status).json({success: false, msg: ne.msg}); }
+                    afterDuplicateCheck(dup);
+                });
+            } else {
+                Content.findByName(f.name, function (findErr, exists) {
+                    if (findErr) { var ne2 = kit.normalizeDaoError(findErr, 'wikiImport.find'); return res.status(ne2.status).json({success: false, msg: ne2.msg}); }
+                    afterDuplicateCheck(exists);
+                });
+            }
         });
-    });
+    }
+
+    if (spaceSlug) {
+        Space.findBySlug(spaceSlug, function (sErr, space) {
+            if (sErr || !space) return res.status(404).json({success: false, msg: '知识库不存在：' + spaceSlug});
+            saveWithSpace(space._id);
+        });
+    } else {
+        saveWithSpace(null);
+    }
 };

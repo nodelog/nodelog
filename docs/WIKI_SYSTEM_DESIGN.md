@@ -187,3 +187,25 @@ Blog 文章：Content(docType:blog, spaceId:null)  ← 完全独立，走原博�
 - **WP2 补丁**：`.md` 导入接口加 `spaceId` 参数，导入到指定知识库。
 
 > 说明：用户本次把「知识库体系」从原方案的增强阶段提升为核心诉求，故 WP4 从「页面树 UI」升级为「完整 Space 体系」。WP1 预留字段无需返工，这是当时的设计余量发挥作用。
+
+---
+
+## 9. WP4 实施状态（2026-11-20，前端第一版待确认）
+
+**已落地**（代码在仓库，未上线）：
+- `models/Space.js`：Space 模型与 DAO（findBySlug/findVisible/findByOwner/isVisible 等），slug 唯一。
+- `models/Content.js`：补 `findBySpace`/`findPageBySlug`/`countBySpace` 三个 Wiki 查询方法（WP1 索引的配套）。
+- `services/wikiTree.js`：一次查询建树、面包屑、防环、摊平，纯函数。
+- `controllers/wiki.js`：知识库列表 / 库首页 / 文档详情 / 树 JSON 四个接口，可见性走数据层。
+- `views/wiki/{list,space,page,_tree}.ejs` + `public/css/wiki.css` + `public/js/wiki.js`：三栏文档中心，内联 SVG 图标（无 emoji/无紫粉渐变），响应式。
+- 路由 `/wiki`、`/wiki/:spaceSlug`、`/wiki/:spaceSlug/:pageSlug`、`/wiki/:spaceSlug/tree.json`；前台导航加「知识库」入口。
+- `controllers/wikiImport.js` 补 `spaceSlug` 参数，导入可归入指定知识库、库内幂等判重。
+- 后台建库能力：`controllers/spaceAdmin.js` + `views/manager/wikiSpace.ejs` + 4 条 `/manager/wiki/space/*` 路由（列表页/增/改/软删；软删前有页面则拒绝，防孤儿）。后台导航加「知识库」「导入文档」。至此体系可从后台完整落地，无需直接操作 DB。
+
+**自检结论**：node --check 8 文件全过；EJS 编译 5 页全过；静态断言 32/32；树服务单测 9/9（建树/孤儿提升/面包屑/防环/摊平）。
+
+**真渲染验证**：无头浏览器截图 `.design/wiki-shots/{desktop,mobile}.png`。桌面三栏清晰、无横向溢出、层级分明。移动端用 DOM 探针验证：`match767=true`、目录树 `display:none`（折叠生效）、`scrollW==clientW`（无横向溢出）——此前截图里的"裁切"是 headless 窗口实际视口 488px 而截图裁剪到 390px 的工具假象，非真实 bug。**像素级排版待在服务器真实页面（含 header/完整 CSS）确认**。
+
+**待确认后继续**：① 前端方向确认（三栏/配色/文案）；② WP3 检索底座（text 索引重建 + 组合过滤）。
+
+> 后台 Space CRUD 已在同批次补齐（原列为待办，因「不补就无法从界面建库」而提前完成）。

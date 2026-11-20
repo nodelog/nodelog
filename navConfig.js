@@ -44,6 +44,10 @@ var frontGroups = [
                 href: '/tags/all', className: 'js-tags-menu'   // /tags 是 JSON API，页面走 /tags/all
             },
             {
+                key: 'wiki', label: '知识库', title: 'Wiki 知识库',
+                href: '/wiki', className: 'js-wiki-menu'
+            },
+            {
                 key: 'log', label: '公告', title: '系统公告',
                 href: '/log?view=log&page=1',
                 className: 'js-log badge-father', badge: true
@@ -115,6 +119,7 @@ var adminGroups = [
             { key: 'category', label: '分类', href: '/manager/category/admin?page=1', roles: 'admin' },
             { key: 'categoryRefactor', label: '分类重构', href: '/manager/category/refactor', roles: 'admin' },
             { key: 'tag', label: '标签', href: '/manager/tag?page=1', roles: 'admin' },
+            { key: 'wikiSpace', label: '知识库', href: '/manager/wiki/space', roles: 'admin' },
             { key: 'wikiImport', label: '导入文档', href: '/manager/wiki/import', roles: 'admin' },
             { key: 'log', label: '公告', href: '/manager/log/admin?page=1', roles: 'admin' },
             { key: 'link', label: '链接', href: '/manager/link', roles: 'admin' }

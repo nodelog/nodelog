@@ -1,0 +1,117 @@
+<%- include('header') %>
+<ol class="breadcrumb">
+    <li><a href="/manager">后台首页</a></li>
+    <li class="active">知识库管理</li>
+</ol>
+<h3>知识库管理
+    <a class="btn btn-default btn-sm pull-right" href="/wiki" target="_blank">查看前台</a>
+</h3>
+<p class="text-muted">每个知识库是一棵独立页面树，可创建任意多个。删除前需先清空该库下的页面。</p>
+
+<div class="row">
+  <div class="col-md-5">
+    <div class="panel panel-default">
+      <div class="panel-heading"><h4 id="form-title">新建知识库</h4></div>
+      <div class="panel-body">
+        <form id="space-form">
+          <input type="hidden" id="space-id"/>
+          <div class="form-group">
+            <label for="space-name">名称</label>
+            <input type="text" id="space-name" class="form-control" placeholder="如：链付收银SAAS" required/>
+          </div>
+          <div class="form-group">
+            <label for="space-slug">Slug（留空自动生成）</label>
+            <input type="text" id="space-slug" class="form-control" placeholder="linkon-saas"/>
+          </div>
+          <div class="form-group">
+            <label for="space-desc">简介</label>
+            <textarea id="space-desc" class="form-control" rows="3"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="space-visibility">可见性</label>
+            <select id="space-visibility" class="form-control">
+              <option value="public">公开（游客可读）</option>
+              <option value="private">私有（仅创建者/管理员）</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="space-order">排序（越小越靠前）</label>
+            <input type="number" id="space-order" class="form-control" value="0"/>
+          </div>
+          <button type="submit" class="btn btn-primary" id="space-submit">创建</button>
+          <button type="button" class="btn btn-default" id="space-reset" style="display:none">取消编辑</button>
+        </form>
+        <div id="space-msg"></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-7">
+    <table class="table table-hover">
+      <thead><tr><th>名称</th><th>Slug</th><th>可见性</th><th>操作</th></tr></thead>
+      <tbody id="space-list">
+      <% (spaces || []).forEach(function (s) { %>
+        <tr>
+          <td><%= s.name %></td>
+          <td><code>/wiki/<%= s.slug %></code></td>
+          <td><%= s.visibility === 'private' ? '私有' : '公开' %></td>
+          <td>
+            <button type="button" class="btn btn-xs btn-default js-space-edit"
+              data-id="<%= s._id %>" data-name="<%= s.name %>" data-slug="<%= s.slug %>"
+              data-desc="<%= s.description || '' %>" data-visibility="<%= s.visibility %>" data-order="<%= s.order || 0 %>">编辑</button>
+            <button type="button" class="btn btn-xs btn-danger js-space-delete" data-id="<%= s._id %>" data-name="<%= s.name %>">删除</button>
+          </td>
+        </tr>
+      <% }); %>
+      <% if (!(spaces || []).length) { %><tr><td colspan="4" class="text-muted">暂无知识库，用左侧表单新建。</td></tr><% } %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<%- include('footer') %>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>\"]/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function post(url, data, cb) {
+    fetch(url, {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)})
+      .then(function (r) { return r.json(); }).then(cb).catch(function (e) { cb({success:false, msg:e.message}); });
+  }
+  function resetForm() {
+    $('space-id').value=''; $('space-name').value=''; $('space-slug').value=''; $('space-desc').value='';
+    $('space-visibility').value='public'; $('space-order').value='0';
+    $('form-title').textContent='新建知识库'; $('space-submit').textContent='创建'; $('space-reset').style.display='none';
+  }
+  function payload() {
+    return {id:$('space-id').value, name:$('space-name').value.trim(), slug:$('space-slug').value.trim(),
+      description:$('space-desc').value.trim(), visibility:$('space-visibility').value, order:$('space-order').value};
+  }
+  $('space-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var id = $('space-id').value;
+    var url = id ? '/manager/wiki/space/update' : '/manager/wiki/space/add';
+    post(url, payload(), function (r) {
+      $('space-msg').innerHTML = '<div class="alert ' + (r.success?'alert-success':'alert-danger') + '">' + esc(r.msg) + '</div>';
+      if (r.success) setTimeout(function(){ location.reload(); }, 500);
+    });
+  });
+  $('space-reset').addEventListener('click', resetForm);
+  document.addEventListener('click', function (e) {
+    var edit = e.target.closest ? e.target.closest('.js-space-edit') : null;
+    if (edit) {
+      $('space-id').value=edit.dataset.id; $('space-name').value=edit.dataset.name; $('space-slug').value=edit.dataset.slug;
+      $('space-desc').value=edit.dataset.desc; $('space-visibility').value=edit.dataset.visibility; $('space-order').value=edit.dataset.order;
+      $('form-title').textContent='编辑知识库'; $('space-submit').textContent='保存'; $('space-reset').style.display='inline-block';
+      window.scrollTo(0, 0); return;
+    }
+    var del = e.target.closest ? e.target.closest('.js-space-delete') : null;
+    if (del) {
+      if (!confirm('确认删除知识库「' + del.dataset.name + '」？该操作为软删。')) return;
+      post('/manager/wiki/space/delete', {id:del.dataset.id}, function (r) {
+        $('space-msg').innerHTML = '<div class="alert ' + (r.success?'alert-success':'alert-danger') + '">' + esc(r.msg) + '</div>';
+        if (r.success) setTimeout(function(){ location.reload(); }, 500);
+      });
+    }
+  });
+})();
+</script>

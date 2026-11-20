@@ -1,0 +1,46 @@
+<%- include('../header') %>
+<div class="wiki-shell">
+  <div class="wiki-grid wiki-static-grid">
+    <aside class="wiki-aside">
+      <div class="wiki-aside__head">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
+        <h2 class="wiki-aside__title">知识库</h2>
+      </div>
+      <p class="wiki-aside__empty">选择一个知识库，浏览它的文档目录。</p>
+    </aside>
+    <div class="wiki-main">
+      <div class="wiki-hero">
+        <h1 class="wiki-hero__title">知识库</h1>
+        <p class="wiki-hero__desc">按主题组织的文档集合。每个知识库有独立的目录树与链接，支持全文检索与标签浏览。</p>
+        <% if (!spaces || !spaces.length) { %>
+          <div class="wiki-empty">暂无知识库。管理员可在后台创建知识库，或用「导入文档」把 Markdown 文档建库。</div>
+        <% } else { %>
+          <div class="wiki-cards">
+          <% spaces.forEach(function (s) { %>
+            <a class="wiki-card" href="/wiki/<%= encodeURIComponent(s.slug) %>">
+              <div class="wiki-card__head">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
+                <h2 class="wiki-card__name"><%= s.name %></h2>
+              </div>
+              <p class="wiki-card__desc"><%= s.description || '暂无简介' %></p>
+              <div class="wiki-card__foot">/wiki/<%= s.slug %> · <%= s.visibility === 'private' ? '私有' : '公开' %></div>
+            </a>
+          <% }); %>
+          </div>
+        <% } %>
+      </div>
+    </div>
+    <aside class="wiki-rail">
+      <div class="wiki-rail__block">
+        <h3 class="wiki-rail__title">说明</h3>
+        <ul class="wiki-rail__list">
+          <li><span class="wiki-meta">知识库按主题独立组织，每个库有自己的目录树。</span></li>
+          <li><span class="wiki-meta">页面有独立语义链接，可直接分享。</span></li>
+        </ul>
+      </div>
+    </aside>
+  </div>
+</div>
+<%- include('../footer') %>
+<link rel="stylesheet" href="/css/wiki.css"/>
+<script src="/js/wiki.js" defer></script>

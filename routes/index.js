@@ -32,12 +32,17 @@ var route = function (app) {
     app.get('/about', function (req, res) {
         res.render('about', { title: '关于我们'});
     });
+    // ===== Wiki 知识库（前台公开；可见性在数据层过滤，路由不加鉴权）=====
+    var wiki = require('./../controllers/wiki');
+    app.get('/wiki', wiki.list);
+    app.get('/wiki/:spaceSlug', wiki.space);
+    app.get('/wiki/:spaceSlug/tree.json', wiki.treeJson);
+    app.get('/wiki/:spaceSlug/:pageSlug', wiki.page);
     // 开放平台：前台公开的开放 API v3 文档页（无需登录；开放接口面向外部系统/AI 工具/CI）
     app.get('/open-platform', function (req, res) {
         res.render('openPlatform', { title: '开放平台', currentMenu: 'openPlatform' });
     });
-    app.post('/user/login', rateLimit.limit({max: 10, windowMs: 5 * 60 * 1000}), user.login);
-    app.post('/user/reg', user.addUser);
+    app.post('/user/login', rateLimit.limit({max: 10, windowMs: 5 * 60 * 1000}), user.login);    app.post('/user/reg', user.addUser);
     app.get('/user/logout', user.logout);
 
     app.get('/manager', filter.authorize, dashboard.overview);
@@ -251,8 +256,17 @@ var route = function (app) {
 
     // ---- Wiki 文档导入（A，仅管理员；复用 buildFields/风控/标签重算；不改 CSV columns）----
     var wikiImport = require('./../controllers/wikiImport');
+    var spaceAdmin = require('./../controllers/spaceAdmin');
+    app.get('/manager/wiki/space', A, spaceAdmin.page);
+    app.post('/manager/wiki/space/add', A, spaceAdmin.add);
+    app.post('/manager/wiki/space/update', A, spaceAdmin.update);
+    app.post('/manager/wiki/space/delete', A, spaceAdmin.delete);
     app.get('/manager/wiki/import', A, function (req, res) {
-        res.render('manager/wikiImport', {title: '导入 Wiki 文档', currentMenu: 'wikiImport'});
+        require('./../models/Space').findByOwner(req.session.user._id, function (err, spaces) {
+            res.render('manager/wikiImport', {
+                title: '导入 Wiki 文档', currentMenu: 'wikiImport', spaces: err ? [] : (spaces || [])
+            });
+        });
     });
     app.post('/manager/wiki/import', A, wikiImport.import);
 

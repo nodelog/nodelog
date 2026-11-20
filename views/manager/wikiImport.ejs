@@ -19,6 +19,16 @@
     <p class="help-block">选中文件后会自动读入下方文本框，仍可编辑。</p>
 </div>
 <div class="form-group">
+    <label for="wikiSpace">目标知识库（可选）</label>
+    <select id="wikiSpace" class="form-control">
+        <option value="">— 不指定（导入为独立 Wiki 文档）—</option>
+        <% (spaces || []).forEach(function (s) { %>
+        <option value="<%= s.slug %>"><%= s.name %>（/<%= s.slug %>）</option>
+        <% }); %>
+    </select>
+    <p class="help-block">选定后文档会归入该知识库，可用语义链接访问；同名文档在同一知识库内不可重复导入。</p>
+</div>
+<div class="form-group">
     <label for="wikiName">文档标题（留空则取正文一级标题）</label>
     <input type="text" id="wikiName" class="form-control" placeholder="如：Node.js 部署手册"/>
 </div>
@@ -74,7 +84,7 @@
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ markdown: text, name: name, tags: tags })
+      body: JSON.stringify({ markdown: text, name: name, tags: tags, spaceSlug: $('wikiSpace').value })
     }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
       .then(function (r) {
         var j = r.j || {};

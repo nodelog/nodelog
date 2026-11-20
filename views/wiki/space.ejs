@@ -1,0 +1,64 @@
+<%- include('../header') %>
+<div class="wiki-shell">
+  <div class="wiki-grid">
+    <aside class="wiki-aside">
+      <div class="wiki-aside__head">
+        <a class="wiki-aside__back" href="/wiki" title="返回知识库列表">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>全部知识库
+        </a>
+      </div>
+      <div class="wiki-aside__head">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
+        <h2 class="wiki-aside__title" title="<%= space.name %>"><%= space.name %></h2>
+      </div>
+      <div class="wiki-aside__body">
+        <% if (tree && tree.length) { %>
+          <%- include('_tree', {nodes: tree, currentId: null, spaceSlug: space.slug}) %>
+        <% } else { %>
+          <p class="wiki-aside__empty">该知识库还没有页面。</p>
+        <% } %>
+      </div>
+      <button type="button" class="wiki-aside__toggle-mobile" aria-expanded="false">目录</button>
+    </aside>
+
+    <div class="wiki-main">
+      <div class="wiki-crumb">
+        <a href="/wiki">知识库</a>
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+        <span><%= space.name %></span>
+      </div>
+      <div class="wiki-hero">
+        <h1 class="wiki-hero__title"><%= space.name %></h1>
+        <p class="wiki-hero__desc"><%= space.description || '这个知识库还没有简介。' %></p>
+        <% if (!rootPages || !rootPages.length) { %>
+          <div class="wiki-empty">还没有页面。管理员可通过「导入文档」选择此知识库导入 Markdown，或在后台新建页面。</div>
+        <% } else { %>
+          <div class="wiki-cards">
+          <% rootPages.forEach(function (p) { %>
+            <a class="wiki-card" href="/wiki/<%= encodeURIComponent(space.slug) %>/<%= encodeURIComponent(p.slug || p._id) %>">
+              <div class="wiki-card__head">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>
+                <h2 class="wiki-card__name"><%= p.name %></h2>
+              </div>
+              <% if (p.excerpt) { %><p class="wiki-card__desc"><%= p.excerpt %></p><% } %>
+              <div class="wiki-card__foot"><%= (p.children && p.children.length) ? (p.children.length + ' 个子页面') : '单页' %></div>
+            </a>
+          <% }); %>
+          </div>
+        <% } %>
+      </div>
+    </div>
+
+    <aside class="wiki-rail">
+      <div class="wiki-rail__block">
+        <h3 class="wiki-rail__title">本库信息</h3>
+        <div class="wiki-rail__stat"><span>页面数</span><b><%= pageCount %></b></div>
+        <div class="wiki-rail__stat"><span>可见性</span><b><%= space.visibility === 'private' ? '私有' : '公开' %></b></div>
+        <div class="wiki-rail__stat"><span>更新于</span><b><%= space.modifyTime ? new Date(space.modifyTime).toLocaleDateString('zh-CN') : '—' %></b></div>
+      </div>
+    </aside>
+  </div>
+</div>
+<%- include('../footer') %>
+<link rel="stylesheet" href="/css/wiki.css"/>
+<script src="/js/wiki.js" defer></script>

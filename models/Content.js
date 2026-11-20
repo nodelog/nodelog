@@ -462,6 +462,53 @@ ContentDAO.prototype.addView = function (obj, callback) {
     });
 };
 
+// ---- Wiki：按知识库查询页面（WP1 索引 {docType,spaceId,status,createTime} 的配套方法）----
+// 一次取回该库全部可见 wiki 页面，供 services/wikiTree 在内存建树，避免逐层 N+1。
+// 只取建树/列表所需字段，正文 content 由 findPageBySlug 单独取。
+ContentDAO.prototype.findBySpace = function (spaceId, currentUser, callback) {
+    var term = {
+        docType: constants.DOC_TYPE_WIKI,
+        spaceId: spaceId,
+        status: constants.CONTENT_ENABLE_STATUS,
+        draft: {$ne: true}
+    };
+    // 私有库里的页面可见性由 Space 层控制；这里只保证不返回禁用/草稿。
+    var query = ContentModel.find(term);
+    query.select('name slug parent wikiOrder createTime modifyTime tags excerpt');
+    query.sort({wikiOrder: 1, createTime: 1});
+    query.exec(callback);
+};
+// 按「知识库 + 页面 slug」取单篇（URL 用两段语义链接，slug 在库内唯一即可）
+ContentDAO.prototype.findPageBySlug = function (spaceId, slug, currentUser, callback) {
+    var term = {
+        docType: constants.DOC_TYPE_WIKI,
+        spaceId: spaceId,
+        slug: slug,
+        status: constants.CONTENT_ENABLE_STATUS,
+        draft: {$ne: true}
+    };
+    // 可见性：公开内容，或登录用户自己的草稿/私有不受此处限制（Wiki MVP 先只公开）
+    if (currentUser != null) {
+        term = {$and: [
+            {docType: constants.DOC_TYPE_WIKI, spaceId: spaceId, slug: slug},
+            {$or: [
+                {status: constants.CONTENT_ENABLE_STATUS, draft: {$ne: true}},
+                {author: currentUser._id, status: {$ne: constants.CONTENT_UNABLE_STATUS}}
+            ]}
+        ]};
+    }
+    ContentModel.findOne(term, callback);
+};
+// 统计某库的页面数（右栏「本库信息」用）
+ContentDAO.prototype.countBySpace = function (spaceId, callback) {
+    ContentModel.count({
+        docType: constants.DOC_TYPE_WIKI,
+        spaceId: spaceId,
+        status: constants.CONTENT_ENABLE_STATUS,
+        draft: {$ne: true}
+    }, callback);
+};
+
 // 转义正则特殊字符，防止把搜索关键词当作正则（正则注入 / ReDoS）
 function escapeRegExp(s) {
     return String(s == null ? '' : s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
