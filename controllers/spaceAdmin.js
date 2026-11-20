@@ -28,14 +28,10 @@ exports.workspace = function (req, res) {
                 spaces: [], pagesBySpace: {}, initialSpace: null
             });
         }
-        // 一次查出所有库的页面（含正文），按 spaceId 分组注入，前端切换零往返
+        // 一次查出所有库的页面（含正文），按 spaceId 分组注入，前端切换零往返。
+        // 必须走 DAO 方法：Content 是 DAO 实例，没有 Model.find，直接调会抛 TypeError → 进程崩溃 → 502。
         var ids = list.map(function (s) { return s._id; });
-        Content.find({
-            docType: constants.DOC_TYPE_WIKI,
-            spaceId: {$in: ids},
-            status: {$ne: constants.CONTENT_UNABLE_STATUS}
-        }).select('name slug content contentType tags excerpt parent wikiOrder spaceId')
-          .sort({wikiOrder: 1, createTime: 1}).exec(function (e2, pages) {
+        Content.findPagesBySpaces(ids, function (e2, pages) {
             if (e2) console.error('[spaceAdmin.workspace pages] ' + e2.message);
             var grouped = {};
             (pages || []).forEach(function (p) {

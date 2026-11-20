@@ -230,3 +230,17 @@ Blog 文章：Content(docType:blog, spaceId:null)  ← 完全独立，走原博�
 **真渲染验证**：1600px 截图 `.design/wiki-shots/independent.png` 确认独立顶栏 + 全宽三栏 + 无溢出。
 
 **边界**：`views/manager/wikiSpace.ejs`、`views/manager/wikiImport.ejs` 保留为兼容页面（直接访问 URL 仍可用），但主入口已统一到工作台。
+
+---
+
+## 11. 第三轮修正（2026-11-20，用户 5 点反馈）
+
+| # | 用户反馈 | 处理 |
+|---|---|---|
+| 1 | 写文章就是博客的，不用选文档类型 | 删除 addContent/editContent 的 docType 下拉；common.js 提交固定 `docType:'blog'`。Wiki 录入只在后台工作台 |
+| 2 | 后台知识库链接 502 | **真 bug**：`spaceAdmin.workspace` 直接调 `Content.find()`，但 Content 是 DAO 实例无 find 方法 → TypeError 崩溃 → 502。新增 `ContentDAO.findPagesBySpaces()` 封装 Model.find，控制器改调它；全局排查无其它同类调用 |
+| 3 | 前台知识库要能连后台 | 独立顶栏加「管理」按钮（仅 role===0 管理员可见）→ `/manager/wiki` |
+| 4 | 排版缺留白、文字贴边框 | 左栏 padding 加大、中栏 `space-8 + clamp(6,4vw,10)`、右栏 `space-8/6`、块间距 `space-8`、目录行距与面包屑间距加大。1600px 真渲染确认透气无溢出 |
+| 5 | Wiki 要能分享 + 二维码 | 新增 `views/wiki/_share.ejs` 分享弹层（微博/QQ/复制 + **二维码**）；新增 `qrcode@1.5.4` 依赖（Node≥10.13，兼容生产16）；新增 `GET /api/qrcode?text=` 后端生成 PNG data URL（限流30/min，只接受本站 http(s) URL 防滥用）；Wiki page 传 ogTitle/ogDesc/ogImage，复用微信 JS-SDK 分享 |
+
+**502 根因教训（重要）**：`module.exports = new ContentDAO()` 导出的是 DAO 实例，不是 Mongoose Model——任何 `Content.find()/Content.count()/Content.findOne()` 直接调用都会抛 TypeError 让进程崩溃。必须用 DAO 上已定义的 `findByXxx/countByXxx` 方法，或先在 DAO 上封装。排查命令：`grep -rn "Content\.find(" controllers/ services/ routes/`。

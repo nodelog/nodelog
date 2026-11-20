@@ -6,13 +6,6 @@
     <form role="form" action="javascript:;">
         <input type="hidden" class="js-content-type" value="markdown"/>
         <div class="form-group">
-            <label for="contentDocType">文档类型</label>
-            <select id="contentDocType" class="form-control js-doc-type">
-                <option value="blog" <%= (typeof docType === 'undefined' || docType !== 'wiki') ? 'selected' : '' %>>博客文章（默认）</option>
-                <option value="wiki" <%= (typeof docType !== 'undefined' && docType === 'wiki') ? 'selected' : '' %>>Wiki 文档</option>
-            </select>
-        </div>
-        <div class="form-group">
             <label for="contentTitle">标题 <span class="text-muted">（还可输入 <span class="js-content-name-chars">100</span> 字）</span></label>
             <input type="text" id="contentTitle" class="form-control js-add-content-name" placeholder="文章标题" autofocus maxlength="100"/>
         </div>

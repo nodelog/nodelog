@@ -73,11 +73,16 @@ exports.page = function (req, res) {
             var tags = Object.keys(tagCount).map(function (t) { return {name: t, count: tagCount[t]}; })
                 .sort(function (a, b) { return b.count - a.count; }).slice(0, 20);
 
+            // 摘要与封面：取正文派生摘要，封面走标准 http(s) URL 校验（与博客文章页一致）
+            var ogDesc = String(doc.excerpt || '').replace(/<[^>]*>/g, '').trim().slice(0, 120) ||
+                (String(doc.name || '').slice(0, 60) + ' - ' + space.name);
+            var ogImage = (/^https?:\/\//i.test(String(doc.cover || '')) && !/['"\\<>\s]/.test(doc.cover)) ? doc.cover : '';
             res.render('wiki/page', {
                 title: doc.name + ' - ' + space.name, currentMenu: 'wiki',
                 space: space, doc: doc, rendered: rendered,
                 tree: tree, breadcrumb: crumbs, currentId: doc._id,
-                related: related, tags: tags, pageCount: pages.length
+                related: related, tags: tags, pageCount: pages.length,
+                ogTitle: doc.name + ' - ' + space.name, ogDesc: ogDesc, ogImage: ogImage
             });
         });
     });

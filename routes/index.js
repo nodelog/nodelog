@@ -125,6 +125,11 @@ var route = function (app) {
     app.post('/content/delete', filter.authorize, content.delete);
     app.get('/content/search',contentQuery.searchFull);
     app.post('/content/search',contentQuery.findByWordJson);
+    // 二维码生成（公开只读，限流；供分享弹层扫码访问）
+    var qrcode = require('./../controllers/qrcode');
+    app.get('/api/qrcode',
+        rateLimit.limit({max: 30, windowMs: 60 * 1000, key: 'api-qrcode'}),
+        qrcode.generate);
     // P0 图床上传（base64 -> public/uploads）
     app.post('/api/upload', filter.authorize, upload.upload);
     // P0 编辑器实时预览（服务端 markdown 渲染，与展示一致）

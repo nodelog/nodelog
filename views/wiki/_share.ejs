@@ -1,0 +1,75 @@
+<% /* Wiki 文档分享弹层 + 二维码（复用博客 nl-share 结构，增加二维码）。
+       依赖：og meta 由 _header 继承 meta-front 提供；二维码走 /api/qrcode。 */ %>
+<div class="nl-share wiki-share" id="wikiShare" role="dialog" aria-modal="true" aria-label="分享文档" aria-hidden="true" hidden>
+  <div class="nl-share__panel">
+    <div class="nl-share__head">
+      <h2>分享这篇文档</h2>
+      <button type="button" class="icon-btn nl-share__close" id="wikiShareClose" aria-label="关闭分享">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <p class="nl-share__title" id="wikiShareTitle"></p>
+    <div class="wiki-share__qr" id="wikiShareQr">
+      <div class="wiki-share__qr-box"><img id="wikiShareQrImg" alt="扫码访问本文档"/></div>
+      <p>扫码在手机上打开</p>
+    </div>
+    <div class="nl-share__wechat" id="wikiShareWechat">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M4 12a8 8 0 0 1 16 0"/><path d="M12 4v4M8 16l4 4 4-4"/></svg>
+      在微信里点右上角「···」转发给好友或朋友圈
+    </div>
+    <div class="nl-share__actions">
+      <a class="btn" id="wikiShareWeibo" target="_blank" rel="noopener" href="#">微博</a>
+      <a class="btn" id="wikiShareQq" target="_blank" rel="noopener" href="#">QQ</a>
+      <button type="button" class="btn btn-primary" id="wikiShareCopy">复制链接</button>
+    </div>
+    <input type="text" class="nl-share__link" id="wikiShareLink" readonly aria-label="文档链接"/>
+  </div>
+</div>
+<script>
+/* Wiki 分享：og meta 读标题/摘要；二维码走 /api/qrcode（后端校验本站点 URL）*/
+(function () {
+  var btn = document.getElementById('wikiShareBtn');
+  var panel = document.getElementById('wikiShare');
+  if (!btn || !panel) return;
+  var linkEl = document.getElementById('wikiShareLink');
+  var qrImg = document.getElementById('wikiShareQrImg');
+  var qrBox = document.getElementById('wikiShareQr');
+  function meta(p) { var el = document.querySelector('meta[property="' + p + '"]'); return el ? (el.getAttribute('content') || '') : ''; }
+  var url = location.href.split('#')[0];
+  var title = meta('og:title') || document.title || '';
+  var desc = meta('og:description') || '';
+  var titleEl = document.getElementById('wikiShareTitle');
+  if (titleEl) titleEl.textContent = title;
+  if (linkEl) linkEl.value = url;
+  var weibo = document.getElementById('wikiShareWeibo');
+  var qq = document.getElementById('wikiShareQq');
+  if (weibo) weibo.href = 'https://service.weibo.com/share/share.php?url=' + encodeURIComponent(url) + '&title=' + encodeURIComponent(title + ' ' + desc);
+  if (qq) qq.href = 'https://connect.qq.com/widget/shareqq/index.html?url=' + encodeURIComponent(url) + '&title=' + encodeURIComponent(title) + '&desc=' + encodeURIComponent(desc);
+
+  var qrLoaded = false;
+  function loadQr() {
+    if (qrLoaded) return;
+    fetch('/api/qrcode?text=' + encodeURIComponent(url), {credentials: 'same-origin'})
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (j.success && j.url && qrImg) { qrImg.src = j.url; qrLoaded = true; }
+        else if (qrBox) qrBox.style.display = 'none';
+      })
+      .catch(function () { if (qrBox) qrBox.style.display = 'none'; });
+  }
+  var copyBtn = document.getElementById('wikiShareCopy');
+  if (copyBtn) copyBtn.addEventListener('click', function () {
+    var done = function () { if (window.NL && NL.toast) NL.toast('链接已复制'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done, function () { linkEl.select(); document.execCommand('copy'); done(); });
+    } else { linkEl.select(); try { document.execCommand('copy'); } catch (e) {} done(); }
+  });
+  function open() { panel.hidden = false; panel.setAttribute('aria-hidden', 'false'); loadQr(); }
+  function close() { panel.hidden = true; panel.setAttribute('aria-hidden', 'true'); }
+  btn.addEventListener('click', open);
+  var closeBtn = document.getElementById('wikiShareClose');
+  if (closeBtn) closeBtn.addEventListener('click', close);
+  panel.addEventListener('click', function (e) { if (e.target === panel) close(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !panel.hidden) close(); });
+})();
+</script>
