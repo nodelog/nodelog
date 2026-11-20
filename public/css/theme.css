@@ -330,6 +330,13 @@ body:not(.manager) .page-shell { padding-top: var(--space-8); padding-bottom: va
 /* 写文章页加载的 font-awesome 有 li [class^="icon-"]{width:1.25em;display:inline-block}，
    会把 class="icon-btn" 的顶栏按钮从 40px 压成 ~17px；这里提高特异性压回去，
    保证搜索/主题按钮在所有页面尺寸一致 */
+/* 同理：font-awesome 的 [class^="icon-"]{width:auto;height:auto} 会命中汉堡按钮的
+   <span class="icon-bar">，空 span 高度变 0 → 编辑页顶栏出现"空白方框"。
+   用高特异性把三条杠尺寸压回（属性选择器 (0,1,0) < 本规则 (0,3,0)，后加载的 font-awesome 也盖不过）。 */
+.navbar .navbar-toggle .icon-bar {
+    display: block; width: 22px; height: 2px;
+    background-color: var(--ink); border-radius: 2px;
+}
 .navbar .nav > li > .icon-btn {
     padding: 0; width: 40px; height: 40px; min-height: 40px;
     display: inline-flex; align-items: center; justify-content: center;

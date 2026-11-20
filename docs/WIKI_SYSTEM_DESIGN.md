@@ -328,7 +328,7 @@ Blog 文章：Content(docType:blog, spaceId:null)  ← 完全独立，走原博�
 | 截图 | 现象 | 根因 / 修复 |
 |---|---|---|
 | 图1/图2 工作台 | 手机上仍左右两栏，Vditor 工具栏/表单被挤成竖排 | `wiki-admin.css` 的 `@media(max-width:900px)` 里误写成 `.wiki-grid`（前台类名），应为 `.wa-grid`——复制 CSS 时类名没改全，单栏规则从未生效。改为 `.wa-grid` 后真机探针 `gridCols=390px`/`editorW=390` 单栏确认 |
-| 图3 写文章页 | 右上角汉堡按钮空白方框，三条杠不显示 | 前台 CSS（meta-front）是**无版本号裸链接**，客户端缓存了旧版样式。给 tokens/theme/app.css 加 `?v=站点版本` 破缓存；wiki 前台/后台 CSS 同样加版本号。另：后台老 `style.css` 曾硬编码 `.icon-bar{background:#fff}` 在浅色顶栏变白杠白底，一并改 `currentColor` 自适应（虽前台不加载该 CSS，属健壮性兜底） |
+| 图3 写文章页 | 右上角汉堡按钮空白方框，三条杠不显示 | **真根因（用户 DevTools 定位）**：编辑页按需加载 `font-awesome.css`，其 `[class^="icon-"]{width:auto;height:auto}` 命中汉堡的 `<span class="icon-bar">`，空 span 高度变 0 → 三条杠消失。其他页不加载该 CSS 故正常。在 theme.css 加高特异性 `.navbar .navbar-toggle .icon-bar{display:block;width:22px;height:2px;background:var(--ink)}` 压回（属性选择器 0,1,0 < 本规则 0,3,0，后加载的 font-awesome 也盖不过）。此前猜测的"缓存/style.css 白色"均非根因——style.css 前台根本不加载 |
 
 **验证**：真机 390px 容器重渲染——工作台变单栏、工具栏横排、无溢出（`gridCols=390px`, `scrollW==clientW`）；前台汉堡按钮三条杠在完整 CSS 链下可见；EJS 编译 6 页 + 版本号渲染验证 + 静态断言 32/32 全过。
 
