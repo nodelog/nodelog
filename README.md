@@ -1,7 +1,10 @@
 # NODELOG
 
 > 一个基于 Node.js + MongoDB 的内容站源码：博客 + 独立知识库（Wiki）一体化。
-> 本站 [链付收银博客](https://blog.jiangzi.xin) 即基于本源码搭建；NODELOG 是开源源码项目名，不是站点名。
+> 本站 [链付收银博客](https://blog.jiangzi.xin) 即基于本源码搭建；NODELOG 是源码项目名，不是站点名。
+>
+> **授权**：自 2026-11-21 起本软件为商业授权软件，商用部署需取得授权，详见 [`LICENSE`](LICENSE)。
+> 此前版本仍按 Apache 2.0 授权（见 [`LICENSE-APACHE-2.0`](LICENSE-APACHE-2.0)）。个人学习/本地试用不受限制。
 
 ## 特性
 
@@ -194,7 +197,11 @@ node scripts/verify-open-platform.js             # 开放平台自检
 4. 静态资源路径在 Nginx 中正确指向 `public/`（否则 JS/CSS 404）。
 5. pm2 集群启动后用 `pm2 logs` 观察无异常。
 
-## 开源仓库
+## 源码仓库与授权
 
 - Gitee：<https://gitee.com/nodelog/nodelog>
 - GitHub：<https://github.com/nodelog/nodelog>
+
+仓库用于源码展示与个人学习。**商用部署（含企业/客户站点、二次分发）需取得商业授权**，
+授权范围、价格与支持方式见 [`LICENSE`](LICENSE) 或通过项目站点「关于」页联系。
+历史版本（2026-11-21 前）仍以 Apache 2.0 授权，见 [`LICENSE-APACHE-2.0`](LICENSE-APACHE-2.0)。

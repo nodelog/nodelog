@@ -2,6 +2,7 @@
   "name": "ctit",
   "version": "0.0.1",
   "private": true,
+  "license": "SEE LICENSE IN LICENSE",
   "scripts": {
     "start": "node ./bin/www",
     "announce:backfill": "node scripts/announce-release.js --backfill",
