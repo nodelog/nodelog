@@ -32,6 +32,10 @@ var route = function (app) {
     app.get('/about', function (req, res) {
         res.render('about', { title: '关于我们'});
     });
+    // 源码商业授权说明（公开；咨询方式取自站点配置）
+    app.get('/license', function (req, res) {
+        res.render('license', { title: '源码授权'});
+    });
     // ===== Wiki 知识库（前台公开；可见性在数据层过滤，路由不加鉴权）=====
     var wiki = require('./../controllers/wiki');
     app.get('/wiki', wiki.list);

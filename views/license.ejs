@@ -1,0 +1,55 @@
+<%- include('header') %>
+<div class="layout">
+    <div class="layout-main">
+        <ol class="breadcrumb" aria-label="面包屑">
+            <li><a href="/">首页</a></li>
+            <li><a href="/about">关于本站</a></li>
+            <li class="active" aria-current="page">源码授权</li>
+        </ol>
+        <div class="page-head">
+            <h1>源码授权</h1>
+            <p class="kicker">NODELOG · 博客 + 知识库一体化源码</p>
+        </div>
+
+        <div class="card article-content">
+            <p>NODELOG 是本博客所基于的源码项目，包含博客前台、知识库体系、全文搜索与后台管理。
+               自 2026-11-21 起，本软件为<strong>商业授权软件</strong>；个人学习与本地试用不受限制，商用部署需取得授权。</p>
+            <p>如需获取授权、报价或技术支持，请通过下方联系方式咨询。</p>
+
+            <h2 id="types">授权类型</h2>
+            <ul>
+                <li><strong>单站授权</strong> — 授权在一个域名（或一个主站点）下部署运行。</li>
+                <li><strong>多站 / 私有化授权</strong> — 授权在多个域名或客户内网环境部署，按站点数或项目约定。</li>
+                <li><strong>技术支持与定制开发</strong> — 另行约定，不包含在源码授权范围内。</li>
+            </ul>
+            <p>授权范围包括：在约定站点部署运行、为自身业务修改定制、基于本软件构建自有商业系统。
+               未经书面许可，不得转售、再分发源码，或把单站授权用于多个独立域名。</p>
+
+            <h2 id="history">关于历史版本</h2>
+            <p>2026-11-21 之前发布的版本仍以 <strong>Apache License 2.0</strong> 授权，
+               该许可永久有效、不可撤销；新的商业授权协议不追溯历史版本。
+               历史协议全文见源码仓库中的 <code>LICENSE-APACHE-2.0</code>，最新协议见 <code>LICENSE</code>。</p>
+
+            <h2 id="contact">联系咨询</h2>
+            <% if (session.site && (session.site.phone || session.site.email || session.site.address)) { %>
+            <ul class="contact-list">
+                <% if (session.site.phone) { %><li>电话：<%= session.site.phone %></li><% } %>
+                <% if (session.site.email) { %><li>邮箱：<%= session.site.email %></li><% } %>
+                <% if (session.site.address) { %><li>所在城市：<%= session.site.address %></li><% } %>
+            </ul>
+            <% } else { %>
+            <p>请通过本站「<a href="/about">关于本站</a>」页提供的联系方式咨询，或在站点页脚找到联系入口。</p>
+            <% } %>
+
+            <h2 id="faq">常见问题</h2>
+            <h3>个人学习、本地搭建需要授权吗？</h3>
+            <p>不需要。个人学习、研究或本地试用可自由使用。</p>
+            <h3>我已有一个旧版本站点，需要补授权吗？</h3>
+            <p>历史版本仍按 Apache 2.0 授权，可继续使用；升级到新版本则需按新协议取得授权。</p>
+            <h3>授权包含部署和运维服务吗？</h3>
+            <p>源码授权不含部署与运维服务，如有需要可在咨询时一并提出，按项目另行约定。</p>
+        </div>
+    </div>
+    <%- include('common/sidebar') %>
+</div>
+<%- include('footer') %>
