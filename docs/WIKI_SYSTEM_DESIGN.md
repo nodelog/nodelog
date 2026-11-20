@@ -367,4 +367,6 @@ Blog 文章：Content(docType:blog, spaceId:null)  ← 完全独立，走原博�
 
 **部署必做**：改了索引定义，生产须先跑 `node scripts/rebuild-search-index.js --report` 看旧索引，再 `--apply` 重建（或在后台调 `/manager/index/rebuild`）。不重建则 $text 仍走旧 `{name,content,tags}`，新字段 searchBody 不生效。
 
+**热修（6b15b15）**：用户实跑 `--report` 暴露——MongoDB 的 text 索引实际 key 是 `{_fts:'text',_ftsx:1}`，字段集合在 `weights` 里（旧 `{content,name,tags}` / 新 `{name,tags,searchBody}`）。原 `isTarget()` 拿 key 比对字段会导致 `--apply` 后仍报"校验失败"、幂等失效。已改为比对 weights 字段集合，script 与 admin 端点同步修复，用用户贴的真实旧索引数据验证通过。
+
 **WP1～WP4 + WP3 全部完成**。
