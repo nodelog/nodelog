@@ -248,9 +248,9 @@ exports.suggestJson = function (req, res) {
     var Space = require('./../models/Space.js');
 
     function run(type, cb) {
-        // 命令面板无分页：一次取 30 条（每类），不再受搜索结果页的 9 条分页限制
+        // 命令面板无服务端分页：每类取 60 条（面板内按每页 8 条本地分页）
         Content.searchHybrid(1, word, sessionUser, {
-            docType: type, spaceId: (type === 'wiki' ? spaceId : ''), limit: 30
+            docType: type, spaceId: (type === 'wiki' ? spaceId : ''), limit: 60
         }, function (err, result) {
             if (err) return cb(err, []);
             cb(null, (result && result.docs) || []);

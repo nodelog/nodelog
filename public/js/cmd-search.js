@@ -14,8 +14,10 @@
     open: false, items: [], active: -1, timer: null, ctl: null,
     homeType: 'blog',   // 当前页面归属：blog / wiki（默认只搜自己）
     crossMode: false,   // 是否开启「同时搜索对方」
-    spaceId: '', seq: 0
+    spaceId: '', seq: 0,
+    page: 0, pageCount: 1   // 面板内分页（从 0 开始）
   };
+  var PAGE_SIZE = 8;  // 每页条数：一屏看得完，不滚动也能选
   var isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
   var KEY_HINT = isMac ? '⌘K' : 'Ctrl K';
 
@@ -71,6 +73,12 @@
         '</div>' +
         '<div class="cmdp-list" role="listbox" aria-label="搜索结果"></div>' +
         '<div class="cmdp-foot">' +
+          '<span class="cmdp-page" id="cmdpPage" hidden>' +
+            '<button type="button" class="cmdp-page-btn" data-page="-1" aria-label="上一页">‹</button>' +
+            '<b id="cmdpPageNum">1 / 1</b>' +
+            '<button type="button" class="cmdp-page-btn" data-page="1" aria-label="下一页">›</button>' +
+          '</span>' +
+          '<span><kbd>←</kbd><kbd>→</kbd> 翻页</span>' +
           '<span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>' +
           '<span><kbd>Enter</kbd> 打开</span>' +
           '<span><kbd>Esc</kbd> 关闭</span>' +
@@ -83,6 +91,15 @@
     state.list = overlay.querySelector('.cmdp-list');
     state.footer = overlay.querySelector('.cmdp-foot');
     state.scopeBtn = overlay.querySelector('.cmdp-scope');
+    state.pageEl = overlay.querySelector('.cmdp-page');
+    state.pageNumEl = overlay.querySelector('#cmdpPageNum');
+    // 鼠标翻页按钮（键盘 ←→ 之外）
+    Array.prototype.forEach.call(overlay.querySelectorAll('.cmdp-page-btn'), function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault(); e.stopPropagation();
+        flipPage(parseInt(btn.getAttribute('data-page'), 10));
+      });
+    });
     var clear = overlay.querySelector('.cmdp-clear');
 
     // 右下角范围开关：默认只搜自己，点开叠加对方
@@ -140,21 +157,33 @@
     }, 200);
   }
 
+  // 收到全部结果：存全量、算页数、回到第一页
   function render(docs) {
     state.items = docs || [];
-    state.active = state.items.length ? 0 : -1;
+    state.pageCount = Math.max(1, Math.ceil(state.items.length / PAGE_SIZE));
+    state.page = 0;
     if (!state.items.length) {
-      var w = state.input.value.trim();
-      state.list.innerHTML = '<div class="cmdp-empty">' + (w ? '没有找到与「' + esc(w) + '」相关的内容' : '输入关键词开始搜索') + '</div>';
+      state.active = -1;
+      var w0 = state.input.value.trim();
+      state.list.innerHTML = '<div class="cmdp-empty">' + (w0 ? '没有找到与「' + esc(w0) + '」相关的内容' : '输入关键词开始搜索') + '</div>';
+      updatePageEl();
       return;
     }
+    state.active = 0;
+    renderPage();
+  }
+
+  // 只渲染当前页切片；data-i 用全局索引，保证 setActive/go 仍按全量定位
+  function renderPage() {
+    var start = state.page * PAGE_SIZE;
+    var pageItems = state.items.slice(start, start + PAGE_SIZE);
     var groups = [
       {type: 'blog', label: '博客文章', icon: 'blog'},
       {type: 'wiki', label: '知识库文档', icon: 'wiki'}
     ];
-    var html = '', idx = 0;
+    var html = '';
     groups.forEach(function (g) {
-      var list = state.items.filter(function (d) { return d.docType === g.type; });
+      var list = pageItems.filter(function (d) { return d.docType === g.type; });
       if (!list.length) return;
       html += '<div class="cmdp-group"><div class="cmdp-group-title">' + g.label + ' <span>' + list.length + '</span></div>';
       list.forEach(function (d) {
@@ -168,8 +197,7 @@
       });
       html += '</div>';
     });
-    // 面板最多显示若干条；给「查看完整结果」出口，口径与面板默认范围一致。
-    // 注：完整搜索页暂只支持单一 docType，跨库模式下此链接指向博客全量搜索（Wiki 结果已在面板内可点开）。
+    // 查看完整结果出口（口径与面板默认范围一致）
     var word = state.input.value.trim();
     var full = '/content/search?word=' + encodeURIComponent(word);
     if (state.homeType === 'wiki') {
@@ -178,6 +206,31 @@
     }
     html += '<a class="cmdp-more" href="' + esc(full) + '">查看完整搜索结果 →</a>';
     state.list.innerHTML = html;
+    updatePageEl();
+    state.list.scrollTop = 0;
+  }
+
+  function updatePageEl() {
+    if (!state.pageEl) return;
+    if (state.pageCount <= 1 || !state.items.length) {
+      state.pageEl.hidden = true;
+      return;
+    }
+    state.pageEl.hidden = false;
+    state.pageNumEl.textContent = (state.page + 1) + ' / ' + state.pageCount;
+    var pBtns = state.pageEl.querySelectorAll('.cmdp-page-btn');
+    pBtns[0].disabled = state.page <= 0;
+    pBtns[1].disabled = state.page >= state.pageCount - 1;
+  }
+
+  // 翻页：把选中项移到目标页第一条
+  function flipPage(delta) {
+    var target = state.page + delta;
+    if (target < 0 || target >= state.pageCount) return;
+    state.page = target;
+    state.active = state.page * PAGE_SIZE;
+    renderPage();
+    if (state.input) state.input.focus();
   }
 
   function setActive(i) {
@@ -198,8 +251,27 @@
     location.href = hrefFor(d);
   }
   function onKey(e) {
-    if (e.key === 'ArrowDown') { e.preventDefault(); setActive(Math.min(state.active + 1, state.items.length - 1)); }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(Math.max(state.active - 1, 0)); }
+    // ← → 翻页：仅多页时拦截（单页保留输入框正常光标移动，否则打错字改不了）
+    if (e.key === 'ArrowLeft' && state.pageCount > 1) { e.preventDefault(); flipPage(-1); }
+    else if (e.key === 'ArrowRight' && state.pageCount > 1) { e.preventDefault(); flipPage(1); }
+    else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      var next = state.active + 1;
+      if (next >= state.items.length) next = 0;              // 末条回到第一条
+      if (Math.floor(next / PAGE_SIZE) !== state.page) {      // 跨页则翻过去
+        state.page = Math.floor(next / PAGE_SIZE); renderPage();
+      }
+      setActive(next);
+    }
+    else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      var prev = state.active - 1;
+      if (prev < 0) prev = state.items.length - 1;            // 第一条回到末条
+      if (Math.floor(prev / PAGE_SIZE) !== state.page) {
+        state.page = Math.floor(prev / PAGE_SIZE); renderPage();
+      }
+      setActive(prev);
+    }
     else if (e.key === 'Enter') { e.preventDefault(); go(state.active); }
     else if (e.key === 'Escape') { e.preventDefault(); close(); }
   }
