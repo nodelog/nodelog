@@ -13,7 +13,7 @@
       </div>
       <div class="wiki-aside__body">
         <% if (tree && tree.length) { %>
-          <%- include('_tree', {nodes: tree, currentId: currentId, spaceSlug: space.slug, openIds: openIds}) %>
+          <%- include('_tree', {nodes: tree, currentId: currentId, spaceSlug: space.slug, openIds: (typeof openIds !== 'undefined' ? openIds : {})}) %>
         <% } else { %>
           <p class="wiki-aside__empty">暂无目录。</p>
         <% } %>

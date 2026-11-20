@@ -13,7 +13,7 @@
       </div>
       <div class="wiki-aside__body">
         <% if (tree && tree.length) { %>
-          <%- include('_tree', {nodes: tree, currentId: null, spaceSlug: space.slug}) %>
+          <%- include('_tree', {nodes: tree, currentId: null, spaceSlug: space.slug, openIds: {}}) %>
         <% } else { %>
           <p class="wiki-aside__empty">该知识库还没有页面。</p>
         <% } %>
