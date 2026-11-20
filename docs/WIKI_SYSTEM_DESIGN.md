@@ -370,3 +370,20 @@ Blog 文章：Content(docType:blog, spaceId:null)  ← 完全独立，走原博�
 **热修（6b15b15）**：用户实跑 `--report` 暴露——MongoDB 的 text 索引实际 key 是 `{_fts:'text',_ftsx:1}`，字段集合在 `weights` 里（旧 `{content,name,tags}` / 新 `{name,tags,searchBody}`）。原 `isTarget()` 拿 key 比对字段会导致 `--apply` 后仍报"校验失败"、幂等失效。已改为比对 weights 字段集合，script 与 admin 端点同步修复，用用户贴的真实旧索引数据验证通过。
 
 **WP1～WP4 + WP3 全部完成**。
+
+---
+
+## 20. WP3-F 全局命令面板（2026-11-20）
+
+用户要求：点搜索框/按钮或快捷键都弹 ThinkWiki 式模态面板、边输入边搜、搜索框标 Ctrl K、博客与知识库统一。
+
+| 项 | 实现 |
+|---|---|
+| 组件 | 新增 `public/js/cmd-search.js`（零依赖原生）+ theme.css 的 `.cmdp-*` 样式。DOM 由 JS 动态创建，博客/知识库共用一套 |
+| 触发 | 点 `#nlSearchToggle`（博客）/`#wikiSearchToggle`/`.wiki-search__input`，或 Ctrl+K/⌘K，都弹同一面板；面板内输入框不重复触发 |
+| 交互 | 输入防抖 200ms + AbortController 中断旧请求 → POST `/api/search/suggest` 边输入边出结果；↑↓ 导航、Enter 打开、Esc/点遮罩关闭 |
+| 展示 | 搜索框内 `Ctrl K`/`⌘K` 徽标 + 清空按钮；结果按「博客文章/知识库文档」分组，当前项高亮，Wiki 项带标签；底部键位提示 |
+| 后端 | 新增 `POST /api/search/suggest`（公开+限流120/min）→ `contentQuery.suggestJson` 复用 `searchHybrid` 两路召回，参数 docType(all\|blog\|wiki)/spaceId；补 spaceSlug 供正确跳转；searchHybrid select 补 spaceId 字段 |
+| 接入 | 博客 footer 引入 cmd-search.js（config 默认 all 全站搜）；wiki/_footer.ejs 引入并注入 `CMD_SEARCH_CONFIG={docType:'wiki',spaceId}`；wiki.js 删去旧的搜索折叠逻辑，统一交命令面板 |
+
+**验证**：node --check 5 文件、EJS 编译 6 页、wiki config 渲染、静态断言 32/32、命令面板 8 项关键路径断言、真渲染视觉（模态+徽标+分组+高亮+键位提示）全过。

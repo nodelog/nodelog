@@ -236,3 +236,56 @@ exports.findByWordJson = function (req, res) {
         res.json({docs: docs});
     });
 };
+
+// WP3 命令面板建议接口：边输入边搜，复用 searchHybrid 两路召回。
+// 参数 word / docType(all|blog|wiki) / spaceId；返回精简字段 + spaceSlug 供正确跳转与分组。
+exports.suggestJson = function (req, res) {
+    var word = String(req.body.word || '').trim();
+    if (!word) return res.json({docs: [], total: 0});
+    var docType = req.body.docType || 'all';
+    var spaceId = req.body.spaceId || '';
+    var sessionUser = req.session.user;
+    var Space = require('./../models/Space.js');
+
+    function run(type, cb) {
+        Content.searchHybrid(1, word, sessionUser, {
+            docType: type, spaceId: (type === 'wiki' ? spaceId : '')
+        }, function (err, result) {
+            if (err) return cb(err, []);
+            cb(null, (result && result.docs) || []);
+        });
+    }
+    var types = (docType === 'all') ? ['blog', 'wiki'] : [docType === 'wiki' ? 'wiki' : 'blog'];
+    async.map(types, run, function (err, groups) {
+        if (err) return res.json({docs: [], total: 0});
+        var docs = [];
+        groups.forEach(function (g) { docs = docs.concat(g); });
+        // 补 spaceSlug（Wiki 文档跳转用）
+        var ids = {}, need = [];
+        docs.forEach(function (d) {
+            if (d.docType === 'wiki' && d.spaceId && !ids[String(d.spaceId)]) {
+                ids[String(d.spaceId)] = true; need.push(String(d.spaceId));
+            }
+        });
+        function finish(slugMap) {
+            var out = docs.map(function (d) {
+                return {
+                    id: String(d._id), name: d.name, docType: d.docType || 'blog',
+                    slug: d.slug || '', spaceId: d.spaceId ? String(d.spaceId) : '',
+                    spaceSlug: slugMap[String(d.spaceId)] || '',
+                    categoryName: d.categoryName || '',
+                    excerpt: String(d.excerpt || '').slice(0, 60)
+                };
+            });
+            res.json({docs: out, total: out.length});
+        }
+        if (!need.length) return finish({});
+        var pending = need.length, slugMap = {};
+        need.forEach(function (sid) {
+            Space.findById(sid, function (e, space) {
+                if (!e && space) slugMap[sid] = space.slug;
+                if (--pending === 0) finish(slugMap);
+            });
+        });
+    });
+};

@@ -4,37 +4,17 @@
 <!-- Toast 宿主必须是 body 直属节点，不能放进会被 layer 移走/卸载的 .hide 弹层容器 -->
 <div id="nl-toast-host" class="toast-host" role="status" aria-live="polite" aria-atomic="true"></div>
 
-<!-- 顶栏搜索浮层开关：点击放大镜展开 / 点 X 或 Esc 收起 -->
+<!-- WP3 搜索统一由 cmd-search.js 命令面板接管（点图标 / Ctrl+K 都弹面板）。
+     这里仅保留 #nl-site-search hash 兼容：错误页「去搜索」跳回首页后自动弹出命令面板。 -->
 <script>
 (function () {
-  var toggle = document.getElementById('nlSearchToggle');
-  var panel = document.getElementById('nlSearchPanel');
-  var input = document.getElementById('nl-site-search');
-  var close = document.getElementById('nlSearchClose');
-  function open() {
-    if (!panel) return;
-    panel.hidden = false;
-    if (toggle) toggle.setAttribute('aria-expanded', 'true');
-    if (input) { input.focus(); input.select(); }
-  }
-  function shut() {
-    if (!panel) return;
-    panel.hidden = true;
-    if (toggle) toggle.setAttribute('aria-expanded', 'false');
-  }
-  if (toggle) toggle.addEventListener('click', function () { panel.hidden ? open() : shut(); });
-  if (close) close.addEventListener('click', shut);
-  // 键盘监听始终绑定（不能因某页面缺元素就整体跳过——否则 Ctrl+K 被浏览器地址栏截走）
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && panel && !panel.hidden) { shut(); if (toggle) toggle.focus(); return; }
-    // WP3：Ctrl+K / ⌘K 唤起搜索（阻止浏览器默认的地址栏聚焦）
-    if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
-      e.preventDefault();
-      if (panel && !panel.hidden) shut(); else open();
-    }
+  if (location.hash !== '#nl-site-search') return;
+  window.addEventListener('load', function () {
+    if (window.CMDSearch) window.CMDSearch.open();
   });
 })();
 </script>
+<script defer src="/js/cmd-search.js?v=20261120"></script>
 
 <!-- 返回顶部：全局悬浮按钮，滚动超过一屏出现，纯原生无依赖 -->
 <button type="button" id="nlBackToTop" class="back-to-top" aria-label="返回顶部" title="返回顶部">

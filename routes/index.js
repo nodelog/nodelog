@@ -125,6 +125,10 @@ var route = function (app) {
     app.post('/content/delete', filter.authorize, content.delete);
     app.get('/content/search',contentQuery.searchFull);
     app.post('/content/search',contentQuery.findByWordJson);
+    // WP3 命令面板建议端点：公开只读、限流，复用两路召回
+    app.post('/api/search/suggest',
+        rateLimit.limit({max: 120, windowMs: 60 * 1000, key: 'api-search-suggest'}),
+        contentQuery.suggestJson);
     // 二维码生成（公开只读，限流；供分享弹层扫码访问）
     var qrcode = require('./../controllers/qrcode');
     app.get('/api/qrcode',

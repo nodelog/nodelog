@@ -4,7 +4,16 @@
   <a href="/">返回博客首页</a>
 </footer>
 <div id="nl-toast-host" class="toast-host" role="status" aria-live="polite" aria-atomic="true"></div>
-<script src="/js/wiki.js" defer></script>
+<script src="/js/wiki.js?v=20261120" defer></script>
 <script defer src="/js/ui.js"></script>
+<!-- WP3 全局命令面板：知识库页限定 docType=wiki，当前库再按 spaceId 收窄 -->
+<script>
+window.CMD_SEARCH_CONFIG = {
+  docType: 'wiki',
+  spaceId: <% if (typeof space !== 'undefined' && space && space._id) { %><%= JSON.stringify(String(space._id)) %><% } else { %>''<% } %>,
+  placeholder: '搜索本知识库的文档…'
+};
+</script>
+<script defer src="/js/cmd-search.js?v=20261120"></script>
 </body>
 </html>

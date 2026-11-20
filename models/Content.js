@@ -241,14 +241,14 @@ ContentDAO.prototype.searchHybrid = function (page, word, currentUser, opts, cal
         // 路A：$text 主召回（标题权重高，按 textScore 排序）
         text: function (cb) {
             ContentModel.find(mergeTerm({$text: {$search: word}}), {score: {$meta: "textScore"}})
-                .select('name author category modifyTime view original slug cover excerpt tags docType searchBody')
+                .select('name author category modifyTime view original slug cover excerpt tags docType searchBody spaceId')
                 .sort({score: {$meta: "textScore"}}).limit(LIMIT)
                 .exec(function (err, docs) { cb(err, docs || []); });
         },
         // 路B：中文子串兜底（标题 / 正文纯文本）
         regex: function (cb) {
             ContentModel.find(mergeTerm({$or: [{name: regex}, {searchBody: regex}]}))
-                .select('name author category modifyTime view original slug cover excerpt tags docType searchBody')
+                .select('name author category modifyTime view original slug cover excerpt tags docType searchBody spaceId')
                 .sort({createTime: -1}).limit(LIMIT)
                 .exec(function (err, docs) { cb(err, docs || []); });
         }

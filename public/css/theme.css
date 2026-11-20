@@ -1010,3 +1010,36 @@ html body .layui-layer-dialog .layui-layer-content { background: var(--surface) 
 .vditor-reset code { background: var(--surface-2) !important; }
 
 .category-picker__item.is-active { background: var(--surface-2, #f2f4f7); }
+
+/* ---- WP3 全局命令面板（ThinkWiki 式 ⌘K 搜索）---- */
+.cmdp-overlay { position: fixed; inset: 0; z-index: var(--z-modal); display: flex; align-items: flex-start; justify-content: center; padding: 12vh var(--space-4) var(--space-4); background: rgba(16,24,40,.55); backdrop-filter: blur(2px); }
+.cmdp-overlay[hidden] { display: none; }
+.cmdp-panel { width: 100%; max-width: 620px; max-height: 76vh; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); overflow: hidden; }
+.cmdp-head { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border); }
+.cmdp-icon { color: var(--muted); flex: none; }
+.cmdp-input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font-size: 16px; font-family: inherit; }
+.cmdp-input::placeholder { color: var(--muted); }
+.cmdp-input::-webkit-search-cancel-button { display: none; }
+.cmdp-kbd, .cmdp-foot kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; border: 1px solid var(--border-strong); border-radius: 5px; background: var(--surface-2); color: var(--muted); font-size: 11px; font-family: var(--font-mono, inherit); white-space: nowrap; }
+.cmdp-clear { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; flex: none; }
+.cmdp-clear:hover { background: var(--surface-2); color: var(--ink); }
+.cmdp-clear[hidden] { display: none; }
+.cmdp-list { flex: 1; overflow-y: auto; padding: var(--space-2) 0; min-height: 80px; }
+.cmdp-group-title { display: flex; align-items: center; gap: 6px; padding: var(--space-2) var(--space-4); font-size: 11px; font-weight: 700; letter-spacing: .04em; color: var(--muted); text-transform: uppercase; }
+.cmdp-group-title span { font-weight: 500; opacity: .7; }
+.cmdp-item { display: flex; align-items: center; gap: var(--space-3); padding: 10px var(--space-4); color: var(--ink); text-decoration: none; cursor: pointer; border-left: 3px solid transparent; }
+.cmdp-item:hover, .cmdp-item.is-active { background: var(--accent-weak); border-left-color: var(--accent); }
+.cmdp-item-icon { display: inline-flex; color: var(--muted); flex: none; }
+.cmdp-item.is-active .cmdp-item-icon { color: var(--accent); }
+.cmdp-item-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.cmdp-item-name { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cmdp-item-desc { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cmdp-item-tag { flex: none; font-size: 11px; color: var(--accent); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 2px 8px; }
+.cmdp-hint, .cmdp-empty { padding: var(--space-6) var(--space-4); text-align: center; color: var(--muted); font-size: 13px; }
+.cmdp-foot { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-2) var(--space-4); border-top: 1px solid var(--border); background: var(--surface-2); font-size: 11px; color: var(--muted); }
+.cmdp-foot span { display: inline-flex; align-items: center; gap: 4px; }
+@media (max-width: 767px) {
+  .cmdp-overlay { padding: 8vh 8px 8px; }
+  .cmdp-panel { max-height: 84vh; }
+  .cmdp-foot span:nth-child(2) { display: none; }
+}
