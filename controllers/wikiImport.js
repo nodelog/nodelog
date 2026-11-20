@@ -1,3 +1,10 @@
+// 归属判定：管理员可导入任意库；普通用户只能导入到自己创建的知识库。
+function canImportTo(req, space) {
+    if (!space || !req.session.user) return false;
+    if (req.session.user.role === 0) return true;
+    return String(space.owner) === String(req.session.user._id);
+}
+
 // Wiki 文档导入：接收 Markdown 文本（或 data URL base64），落成 docType:'wiki' 的文档。
 // 复用现有 buildFields / 风控守卫 / 标签重算 / 审计口径，不新造第二套逻辑。
 // 故意不改 CSV import/export 的 columns——那条路是严格表头匹配，加列会让旧 CSV 全失效。
@@ -116,11 +123,13 @@ exports.import = function (req, res) {
     if (spaceSlug) {
         Space.findBySlug(spaceSlug, function (sErr, space) {
             if (sErr || !space) return res.status(404).json({success: false, msg: '知识库不存在：' + spaceSlug});
+            if (!canImportTo(req, space)) return res.status(403).json({success: false, msg: '只能导入到自己创建的知识库'});
             saveWithSpace(space._id);
         });
     } else if (spaceId) {
         Space.findById(spaceId, function (sErr, space) {
             if (sErr || !space) return res.status(404).json({success: false, msg: '知识库不存在'});
+            if (!canImportTo(req, space)) return res.status(403).json({success: false, msg: '只能导入到自己创建的知识库'});
             saveWithSpace(space._id);
         });
     } else {

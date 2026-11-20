@@ -1,8 +1,19 @@
-// 后台知识库管理：列表 / 新增 / 编辑 / 软删。全部 A（管理员）。
+// 用户知识库工作台：登录用户可管理自己的知识库/文档；管理员可管理全部。
+// 归属口径沿用博客文章：Space.owner / Content.author 为归属人，管理员(role===0)豁免。
 // 复用 Space DAO 与 kit 工具，不做第二套校验口径。
 var Space = require('./../models/Space.js');
 var kit = require('./adminKit');
 var constants = require('./../models/constants.js');
+
+// 归属判定：知识库 owner 本人或管理员
+function canManageSpace(req, space) {
+    if (!space || !req.session.user) return false;
+    if (req.session.user.role === 0) return true;
+    return String(space.owner) === String(req.session.user._id);
+}
+function rejectOwner(res) {
+    return res.status(403).json({success: false, msg: '只能管理自己创建的知识库'});
+}
 
 function audit(req, action, id, name, result) {
     kit.audit(req, {
@@ -90,6 +101,7 @@ exports.update = function (req, res) {
     if (!name) return res.status(400).json({success: false, msg: '名称不能为空'});
     Space.findById(chk.id, function (err, space) {
         if (err || !space) return res.status(404).json({success: false, msg: '知识库不存在'});
+        if (!canManageSpace(req, space)) return rejectOwner(res);
         var slug = normalizeSlug(req.body.slug, name);
         Space.findBySlugExclude(slug, chk.id, function (e2, dup) {
             if (e2) { var n2 = kit.normalizeDaoError(e2, 'space.update'); return res.status(n2.status).json({success: false, msg: n2.msg}); }
@@ -116,6 +128,16 @@ exports.saveDoc = function (req, res) {
     if (id === 'null' || id === 'undefined') id = '';
     var spaceId = String(req.body.spaceId || '').trim();
     if (!kit.isObjectId(spaceId)) return res.status(400).json({success: false, msg: '知识库参数错误'});
+    // 归属/可见性校验：普通用户只能往公开库或自己创建的库写文档（管理员豁免）
+    Space.findById(spaceId, function (eSpace, space) {
+      if (eSpace || !space) return res.status(404).json({success: false, msg: '知识库不存在'});
+      if (!Space.isVisible(space, req.session.user)) {
+        return res.status(403).json({success: false, msg: '无权在该知识库创建文档'});
+      }
+      saveDocInternal();
+    });
+
+    function saveDocInternal() {
     var name = String(req.body.name || '').trim();
     var body = String(req.body.content || '').trim();
     if (!name) return res.status(400).json({success: false, msg: '标题不能为空'});
@@ -143,6 +165,7 @@ exports.saveDoc = function (req, res) {
     } else {
         Content.save(f, function (e, saved) { done(e, saved && String(saved._id)); });
     }
+    } // end saveDocInternal
 };
 
 // POST /manager/wiki/doc/delete —— 软删 Wiki 页面
@@ -162,13 +185,17 @@ exports.delete = function (req, res) {
     var chk = kit.requireId(req.body.id);
     if (!chk.ok) return res.status(400).json({success: false, msg: '参数错误'});
     var Content = require('./../models/Content.js');
-    Content.countBySpace(chk.id, function (e, n) {
-        if (e) { var ne = kit.normalizeDaoError(e, 'space.delete'); return res.status(ne.status).json({success: false, msg: ne.msg}); }
-        if (n > 0) return res.status(409).json({success: false, msg: '该知识库下还有 ' + n + ' 篇页面，请先移走或删除'});
-        Space.delete(chk.id, function (err) {
-            if (err) { var n2 = kit.normalizeDaoError(err, 'space.delete'); return res.status(n2.status).json({success: false, msg: n2.msg}); }
-            audit(req, 'space-delete', chk.id, '', true);
-            return res.json({success: true, msg: '删除成功'});
+    Space.findById(chk.id, function (e0, space) {
+        if (e0 || !space) return res.status(404).json({success: false, msg: '知识库不存在'});
+        if (!canManageSpace(req, space)) return rejectOwner(res);
+        Content.countBySpace(chk.id, function (e, n) {
+            if (e) { var ne = kit.normalizeDaoError(e, 'space.delete'); return res.status(ne.status).json({success: false, msg: ne.msg}); }
+            if (n > 0) return res.status(409).json({success: false, msg: '该知识库下还有 ' + n + ' 篇页面，请先移走或删除'});
+            Space.delete(chk.id, function (err) {
+                if (err) { var n2 = kit.normalizeDaoError(err, 'space.delete'); return res.status(n2.status).json({success: false, msg: n2.msg}); }
+                audit(req, 'space-delete', chk.id, '', true);
+                return res.json({success: true, msg: '删除成功'});
+            });
         });
     });
 };

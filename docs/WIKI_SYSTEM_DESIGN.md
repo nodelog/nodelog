@@ -387,3 +387,23 @@ Blog 文章：Content(docType:blog, spaceId:null)  ← 完全独立，走原博�
 | 接入 | 博客 footer 引入 cmd-search.js（config 默认 all 全站搜）；wiki/_footer.ejs 引入并注入 `CMD_SEARCH_CONFIG={docType:'wiki',spaceId}`；wiki.js 删去旧的搜索折叠逻辑，统一交命令面板 |
 
 **验证**：node --check 5 文件、EJS 编译 6 页、wiki config 渲染、静态断言 32/32、命令面板 8 项关键路径断言、真渲染视觉（模态+徽标+分组+高亮+键位提示）全过。
+
+---
+
+## 21. 知识库所有权模型对齐博客（2026-11-20）
+
+**问题**：用户指出"知识库和博客同级，用户都该能发布自己的，所有权归用户"——最初设计如此（Space.owner 注释"用户可建任意多个"、§95"归属判定 owner 或管理员"），但我 WP4 实施时把 `/manager/wiki/*` 全套了管理员鉴权 `A`，偏离设计。
+
+**对齐改动**（按博客 `/content/add` 的成熟模式）：
+| 位置 | 改动 |
+|---|---|
+| 路由 | `/manager/wiki/*` 全部 `A`（登录+管理员）→ `L`（仅登录），与博客写作同级 |
+| 归属校验 | 新增 `spaceAdmin.canManageSpace`（owner 或 role===0），`space/update`、`space/delete` 补 403 |
+| 文档写入 | `saveDoc` 补 `Space.isVisible` 校验：普通用户只能往公开库或自己创建的库写文档 |
+| 导入 | `wikiImport.canImportTo`：普通用户只能导入到自己 owner 的库 |
+| 文档改/删 | 无需改——`Content.update/delete` 早已把 `author=session._id` 写进 Mongo 查询条件（管理员按 id 豁免），Wiki 文档直接复用博客的归属防御 |
+| 入口 | navConfig 后台菜单 `wikiSpace` 去 `roles:'admin'` 改「我的知识库」；前台知识库顶栏「工作台」按钮条件从 `role===0` 改为登录即可 |
+
+**权限矩阵**：登录用户=建自己的库、在公开/自己的库建文档、改删自己的文档、导入到自己的库；管理员=以上全部 + 改删任意库/文档。游客只读公开内容。
+
+**验证**：node --check 4 文件、EJS 编译 3 页、路由鉴权核对（全 L）、静态断言 32/32 全过。

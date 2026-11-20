@@ -268,24 +268,26 @@ var route = function (app) {
     app.get('/manager/audit', A, audit.list);
     app.get('/manager/audit/page', A, audit.auditPage);
 
-    // ---- Wiki 文档导入（A，仅管理员；复用 buildFields/风控/标签重算；不改 CSV columns）----
+    // ---- Wiki 文档/知识库（L=仅登录）：与博客文章同级，内容归作者所有 ----
+    // 设计定案：Space.owner / Content.author 为归属人；管理员可豁免（见各 controller 的 owner 比对）。
+    // 路由只挡匿名用户；归属校验在 controller/DAO 层做，避免把「自己的文档」误当管理后台功能。
     var wikiImport = require('./../controllers/wikiImport');
     var spaceAdmin = require('./../controllers/spaceAdmin');
-    app.get('/manager/wiki', A, spaceAdmin.workspace);
-    app.post('/manager/wiki/doc/save', A, spaceAdmin.saveDoc);
-    app.post('/manager/wiki/doc/delete', A, spaceAdmin.deleteDoc);
-    app.get('/manager/wiki/space', A, spaceAdmin.page);
-    app.post('/manager/wiki/space/add', A, spaceAdmin.add);
-    app.post('/manager/wiki/space/update', A, spaceAdmin.update);
-    app.post('/manager/wiki/space/delete', A, spaceAdmin.delete);
-    app.get('/manager/wiki/import', A, function (req, res) {
+    app.get('/manager/wiki', L, spaceAdmin.workspace);
+    app.post('/manager/wiki/doc/save', L, spaceAdmin.saveDoc);
+    app.post('/manager/wiki/doc/delete', L, spaceAdmin.deleteDoc);
+    app.get('/manager/wiki/space', L, spaceAdmin.page);
+    app.post('/manager/wiki/space/add', L, spaceAdmin.add);
+    app.post('/manager/wiki/space/update', L, spaceAdmin.update);
+    app.post('/manager/wiki/space/delete', L, spaceAdmin.delete);
+    app.get('/manager/wiki/import', L, function (req, res) {
         require('./../models/Space').findByOwner(req.session.user._id, function (err, spaces) {
             res.render('manager/wikiImport', {
                 title: '导入 Wiki 文档', currentMenu: 'wikiImport', spaces: err ? [] : (spaces || [])
             });
         });
     });
-    app.post('/manager/wiki/import', A, wikiImport.import);
+    app.post('/manager/wiki/import', L, wikiImport.import);
 
     // ---- 方案D：4 条纯增量后台 JSON 列表端点（只读、A）----
     // 与下方 4 个 SSR 页 /manager/{content,category,user,log} 并存、不混：那 4 页继续承担 E01 分页兼容，
