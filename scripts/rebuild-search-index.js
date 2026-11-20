@@ -40,9 +40,10 @@ var NEW_OPTIONS = {
 };
 
 function findTextIndex(indexes) {
-    // text 索引的特征：key 里至少一个字段值为 'text'
-    return indexes.find(function (idx) {
-        return Object.keys(idx.key || {}).some(function (k) { return idx.key[k] === 'text'; });
+    // MongoDB text 索引的实际 key 是 {_fts:'text',_ftsx:1}，字段信息在 weights 里。
+    return (indexes || []).find(function (idx) {
+        var k = idx.key || {};
+        return k._fts === 'text' || Object.keys(k).some(function (f) { return k[f] === 'text'; });
     });
 }
 function describe(idx) {
@@ -50,11 +51,11 @@ function describe(idx) {
 }
 function isTarget(idx) {
     if (!idx) return false;
-    var k = idx.key || {};
-    // 比对字段集合是否精确为 name/searchBody/tags（顺序无关）
-    var keys = Object.keys(k).sort().join(',');
-    return keys === 'name,searchBody,tags' &&
-        k.name === 'text' && k.searchBody === 'text' && k.tags === 'text';
+    // 关键：不能拿 key 比对字段！MongoDB 把 text 索引存成 {_fts:'text',_ftsx:1}，
+    // 字段集合在 weights 里（新 {name,tags,searchBody} / 旧 {content,name,tags}）。
+    var w = idx.weights || {};
+    var fields = Object.keys(w).sort().join(',');
+    return fields === 'name,searchBody,tags';
 }
 
 async function main() {

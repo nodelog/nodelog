@@ -8,14 +8,15 @@ var NEW_OPTIONS = {weights: {name: 10, tags: 5, searchBody: 1}, default_language
 
 function textIndex(indexes) {
     return (indexes || []).find(function (idx) {
-        return Object.keys(idx.key || {}).some(function (k) { return idx.key[k] === 'text'; });
+        var k = idx.key || {};
+        return k._fts === 'text' || Object.keys(k).some(function (f) { return k[f] === 'text'; });
     });
 }
 function isTarget(idx) {
     if (!idx) return false;
-    var k = idx.key || {};
-    return Object.keys(k).sort().join(',') === TARGET_KEYS &&
-        k.name === 'text' && k.searchBody === 'text' && k.tags === 'text';
+    // MongoDB text 索引 key 是 {_fts:'text',_ftsx:1}，字段集合要看 weights（不是 key）
+    var w = idx.weights || {};
+    return Object.keys(w).sort().join(',') === TARGET_KEYS;
 }
 function brief(idx) {
     return idx ? {name: idx.name, key: idx.key, weights: idx.weights, default_language: idx.default_language} : null;
