@@ -10,12 +10,22 @@
 (function () {
   'use strict';
   var state = {
-    panel: null, input: null, list: null, footer: null,
+    panel: null, input: null, list: null, footer: null, scopeBtn: null,
     open: false, items: [], active: -1, timer: null, ctl: null,
-    docType: 'all', spaceId: '', seq: 0
+    homeType: 'blog',   // 当前页面归属：blog / wiki（默认只搜自己）
+    crossMode: false,   // 是否开启「同时搜索对方」
+    spaceId: '', seq: 0
   };
   var isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
   var KEY_HINT = isMac ? '⌘K' : 'Ctrl K';
+
+  // 实际请求的 docType：默认只搜自己；开启跨库后搜两者
+  function effectiveDocType() { return state.crossMode ? 'all' : state.homeType; }
+  // 开关文案：告诉用户「点一下会发生什么」
+  function scopeLabel() {
+    if (state.homeType === 'wiki') return state.crossMode ? '仅搜知识库' : '同时搜博客文章';
+    return state.crossMode ? '仅搜博客文章' : '同时搜知识库';
+  }
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -40,8 +50,11 @@
   function build() {
     if (state.panel) return;
     var cfg = window.CMD_SEARCH_CONFIG || {};
-    state.docType = cfg.docType || 'all';
+    // home 由页面声明：知识库页配 wiki，博客页不配即默认 blog。
+    // 兼容旧配置 docType（若显式给了 wiki 也认作 wiki）。
+    state.homeType = (cfg.homeType === 'wiki' || cfg.docType === 'wiki') ? 'wiki' : 'blog';
     state.spaceId = cfg.spaceId || '';
+    state.crossMode = false;
 
     var overlay = document.createElement('div');
     overlay.className = 'cmdp-overlay';
@@ -61,6 +74,7 @@
           '<span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>' +
           '<span><kbd>Enter</kbd> 打开</span>' +
           '<span><kbd>Esc</kbd> 关闭</span>' +
+          '<button type="button" class="cmdp-scope" id="cmdpScope" aria-pressed="false" title="切换搜索范围">' + scopeLabel() + '</button>' +
         '</div>' +
       '</div>';
     document.body.appendChild(overlay);
@@ -68,7 +82,19 @@
     state.input = overlay.querySelector('.cmdp-input');
     state.list = overlay.querySelector('.cmdp-list');
     state.footer = overlay.querySelector('.cmdp-foot');
+    state.scopeBtn = overlay.querySelector('.cmdp-scope');
     var clear = overlay.querySelector('.cmdp-clear');
+
+    // 右下角范围开关：默认只搜自己，点开叠加对方
+    state.scopeBtn.addEventListener('click', function () {
+      state.crossMode = !state.crossMode;
+      state.scopeBtn.textContent = scopeLabel();
+      state.scopeBtn.setAttribute('aria-pressed', state.crossMode ? 'true' : 'false');
+      state.scopeBtn.classList.toggle('is-on', state.crossMode);
+      if (state.input.value.trim()) onInput();   // 有词则按新范围重搜
+      else render([]);
+      state.input.focus();
+    });
 
     overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
     state.input.addEventListener('input', function () {
@@ -101,7 +127,7 @@
       fetch('/api/search/suggest', {
         method: 'POST', credentials: 'same-origin',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: new URLSearchParams({word: word, docType: state.docType, spaceId: state.spaceId}).toString(),
+        body: new URLSearchParams({word: word, docType: effectiveDocType(), spaceId: state.spaceId}).toString(),
         signal: ctrl ? ctrl.signal : null
       }).then(function (r) { return r.json(); }).then(function (d) {
         if (seq !== state.seq) return; // 旧响应丢弃

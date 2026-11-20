@@ -1038,8 +1038,15 @@ html body .layui-layer-dialog .layui-layer-content { background: var(--surface) 
 .cmdp-hint, .cmdp-empty { padding: var(--space-6) var(--space-4); text-align: center; color: var(--muted); font-size: 13px; }
 .cmdp-foot { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-2) var(--space-4); border-top: 1px solid var(--border); background: var(--surface-2); font-size: 11px; color: var(--muted); }
 .cmdp-foot span { display: inline-flex; align-items: center; gap: 4px; }
+/* 右下角范围开关：默认只搜自己，点开叠加对方 */
+.cmdp-scope { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px; border: 1px solid var(--border-strong); border-radius: 999px; background: var(--surface); color: var(--muted); font-size: 11px; font-family: inherit; cursor: pointer; white-space: nowrap; }
+.cmdp-scope::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--muted); flex: none; }
+.cmdp-scope:hover { border-color: var(--accent); color: var(--accent); }
+.cmdp-scope.is-on { border-color: var(--accent); background: var(--accent-weak); color: var(--accent); }
+.cmdp-scope.is-on::before { background: var(--accent); }
 @media (max-width: 767px) {
   .cmdp-overlay { padding: 8vh 8px 8px; }
   .cmdp-panel { max-height: 84vh; }
-  .cmdp-foot span:nth-child(2) { display: none; }
+  .cmdp-foot { justify-content: flex-end; }
+  .cmdp-foot span { display: none; }   /* 手机无实体键盘，隐藏键位提示，保留右下角范围开关 */
 }

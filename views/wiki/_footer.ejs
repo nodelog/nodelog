@@ -6,14 +6,14 @@
 <div id="nl-toast-host" class="toast-host" role="status" aria-live="polite" aria-atomic="true"></div>
 <script src="/js/wiki.js?v=20261120" defer></script>
 <script defer src="/js/ui.js"></script>
-<!-- WP3 全局命令面板：知识库页限定 docType=wiki，当前库再按 spaceId 收窄 -->
+<!-- WP3 命令面板：知识库页默认只搜本库；右下角开关可开启「同时搜博客文章」 -->
 <script>
 window.CMD_SEARCH_CONFIG = {
-  docType: 'wiki',
+  homeType: 'wiki',
   spaceId: <% if (typeof space !== 'undefined' && space && space._id) { %><%= JSON.stringify(String(space._id)) %><% } else { %>''<% } %>,
   placeholder: '搜索本知识库的文档…'
 };
 </script>
-<script defer src="/js/cmd-search.js?v=20261120"></script>
+<script defer src="/js/cmd-search.js?v=20261121"></script>
 </body>
 </html>

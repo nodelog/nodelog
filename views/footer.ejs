@@ -5,8 +5,9 @@
 <div id="nl-toast-host" class="toast-host" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <!-- WP3 搜索统一由 cmd-search.js 命令面板接管（点图标 / Ctrl+K 都弹面板）。
-     这里仅保留 #nl-site-search hash 兼容：错误页「去搜索」跳回首页后自动弹出命令面板。 -->
+     博客页默认只搜博客文章；面板右下角开关可开启「同时搜知识库」。 -->
 <script>
+window.CMD_SEARCH_CONFIG = { homeType: 'blog', placeholder: '搜索博客文章、标签或内容…' };
 (function () {
   if (location.hash !== '#nl-site-search') return;
   window.addEventListener('load', function () {
@@ -14,7 +15,7 @@
   });
 })();
 </script>
-<script defer src="/js/cmd-search.js?v=20261120"></script>
+<script defer src="/js/cmd-search.js?v=20261121"></script>
 
 <!-- 返回顶部：全局悬浮按钮，滚动超过一屏出现，纯原生无依赖 -->
 <button type="button" id="nlBackToTop" class="back-to-top" aria-label="返回顶部" title="返回顶部">
