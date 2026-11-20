@@ -40,12 +40,22 @@
     }
   });
   document.addEventListener('keydown', function (e) {
-    if (e.key !== 'Escape') return;
     var form = document.querySelector('.wiki-search');
-    if (form && form.classList.contains('is-open')) {
+    var btn = document.getElementById('wikiSearchToggle');
+    if (!form || !btn) return;
+    // WP3：Ctrl+K / ⌘K 唤起知识库搜索（桌面端展开搜索框并聚焦；移动端展开折叠条）
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+      e.preventDefault();
+      form.classList.add('is-open');
+      btn.setAttribute('aria-expanded', 'true');
+      var input = form.querySelector('input');
+      if (input) input.focus();
+      return;
+    }
+    if (e.key !== 'Escape') return;
+    if (form.classList.contains('is-open')) {
       form.classList.remove('is-open');
-      var btn = document.getElementById('wikiSearchToggle');
-      if (btn) btn.setAttribute('aria-expanded', 'false');
+      btn.setAttribute('aria-expanded', 'false');
     }
   });
 })();

@@ -11,26 +11,26 @@
   var panel = document.getElementById('nlSearchPanel');
   var input = document.getElementById('nl-site-search');
   var close = document.getElementById('nlSearchClose');
-  if (!toggle || !panel) return;
   function open() {
+    if (!panel) return;
     panel.hidden = false;
-    toggle.setAttribute('aria-expanded', 'true');
+    if (toggle) toggle.setAttribute('aria-expanded', 'true');
     if (input) { input.focus(); input.select(); }
   }
   function shut() {
+    if (!panel) return;
     panel.hidden = true;
-    toggle.setAttribute('aria-expanded', 'false');
+    if (toggle) toggle.setAttribute('aria-expanded', 'false');
   }
-  toggle.addEventListener('click', function () { panel.hidden ? open() : shut(); });
+  if (toggle) toggle.addEventListener('click', function () { panel.hidden ? open() : shut(); });
   if (close) close.addEventListener('click', shut);
+  // 键盘监听始终绑定（不能因某页面缺元素就整体跳过——否则 Ctrl+K 被浏览器地址栏截走）
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && !panel.hidden) { shut(); toggle.focus(); return; }
-    // WP3：Ctrl+K / ⌘K 唤起搜索（焦点不在输入控件时才拦截，避免打断正常打字）
-    var mod = e.ctrlKey || e.metaKey;
-    if (mod && (e.key === 'k' || e.key === 'K')) {
+    if (e.key === 'Escape' && panel && !panel.hidden) { shut(); if (toggle) toggle.focus(); return; }
+    // WP3：Ctrl+K / ⌘K 唤起搜索（阻止浏览器默认的地址栏聚焦）
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
       e.preventDefault();
-      panel.hidden ? open() : shut();
-      return;
+      if (panel && !panel.hidden) shut(); else open();
     }
   });
 })();
