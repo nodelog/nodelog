@@ -100,7 +100,8 @@
 <link rel="stylesheet" href="/css/vditor-fix.css"/>
 <script src="/vendor/vditor/dist/index.min.js"></script>
 <script>
-// 后端注入的初始数据（JSON.stringify 的 </script> 需转义，防止提前闭合脚本）
+// 后端注入初始数据。注意：注释与字符串里都不得出现完整的结束标签字面量，
+// 否则 HTML 解析器会提前截断本脚本 —— 数据注入失效、后续文本泄漏到页面底部。
 window.__WIKI_ADMIN__ = {
   spaces: <%- JSON.stringify(spaces || []).replace(/<\/script/gi, '<\\/script') %>,
   pagesBySpace: <%- JSON.stringify(pagesBySpace || {}).replace(/<\/script/gi, '<\\/script') %>,

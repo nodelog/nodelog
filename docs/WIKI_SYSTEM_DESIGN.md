@@ -244,3 +244,18 @@ Blog 文章：Content(docType:blog, spaceId:null)  ← 完全独立，走原博�
 | 5 | Wiki 要能分享 + 二维码 | 新增 `views/wiki/_share.ejs` 分享弹层（微博/QQ/复制 + **二维码**）；新增 `qrcode@1.5.4` 依赖（Node≥10.13，兼容生产16）；新增 `GET /api/qrcode?text=` 后端生成 PNG data URL（限流30/min，只接受本站 http(s) URL 防滥用）；Wiki page 传 ogTitle/ogDesc/ogImage，复用微信 JS-SDK 分享 |
 
 **502 根因教训（重要）**：`module.exports = new ContentDAO()` 导出的是 DAO 实例，不是 Mongoose Model——任何 `Content.find()/Content.count()/Content.findOne()` 直接调用都会抛 TypeError 让进程崩溃。必须用 DAO 上已定义的 `findByXxx/countByXxx` 方法，或先在 DAO 上封装。排查命令：`grep -rn "Content\.find(" controllers/ services/ routes/`。
+
+---
+
+## 12. 第四轮修正（2026-11-20，用户 6 点反馈）
+
+| # | 反馈 | 根因 / 处理 |
+|---|---|---|
+| 1 | 「管理」改「工作台」；hover 文字消失 | 文案改为「工作台」，文字用 span 包裹并显式设 `--accent-ink`；hover 改用 `filter:brightness` 不强改文字色，`white-space:nowrap` 防压缩 |
+| 2 | 工作台找不到已建知识库 | **与 #3 同源**：注入脚本的注释里写了字面量 `</script>`，浏览器提前截断脚本 → `window.__WIKI_ADMIN__` 未执行 → 下拉数据空。改注释措辞后恢复 |
+| 3 | 工作台底部泄漏「需转移，防止提前闭合脚本」文字 | 同上，那段注释被当成 HTML 文本显示。已消除裸闭合标签。EJS 渲染验证：`initialSpace` 赋值在首个 `</script>` 之前完整、无泄漏 |
+| 4 | 中栏内容贴边框 | **根因：CSS 用了不存在的令牌** `--space-5/7/9/10/11`（项目只有 1/2/3/4/6/8/12/18），导致 padding 声明整条失效。全量替换为有效令牌，中栏 padding 实测 48px 生效 |
+| 5 | 空首页滚动条能拉很高 | `.wiki-grid` 的 `min-height:calc(100vh-112px)` + 三栏 inherit 撑高页面。去掉强制高度改自然高度。探针实测 `scrollH==clientH`，无多余滚动 |
+| 6 | 知识库首页看不到分享按钮 | 之前只有文档详情页有。给 `space.ejs` 加分享按钮 + `include _share`（shareLabel 可配），控制器传 ogTitle/ogDesc/ogImage；分享出去显示知识库名与简介 |
+
+**CSS 令牌教训（重要）**：项目可用间距令牌只有 `--space-1/2/3/4/6/8/12/18`。用不存在的令牌（如 `--space-5`）会导致整条 CSS 声明静默失效——表现为"样式没生效/贴边"。排查：`grep -o -- "--space-[0-9]*" 文件 | sort -u` 对照 theme.css 定义。

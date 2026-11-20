@@ -3,7 +3,7 @@
 <div class="nl-share wiki-share" id="wikiShare" role="dialog" aria-modal="true" aria-label="分享文档" aria-hidden="true" hidden>
   <div class="nl-share__panel">
     <div class="nl-share__head">
-      <h2>分享这篇文档</h2>
+      <h2>分享<%= typeof shareLabel !== 'undefined' ? shareLabel : '这篇文档' %></h2>
       <button type="button" class="icon-btn nl-share__close" id="wikiShareClose" aria-label="关闭分享">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
       </button>

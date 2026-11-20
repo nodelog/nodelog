@@ -35,7 +35,10 @@ exports.space = function (req, res) {
     loadSpaceWithTree(req, res, function (space, pages, tree) {
         res.render('wiki/space', {
             title: space.name, currentMenu: 'wiki',
-            space: space, tree: tree, rootPages: tree, pageCount: pages.length
+            space: space, tree: tree, rootPages: tree, pageCount: pages.length,
+            ogTitle: space.name + ' - 知识库',
+            ogDesc: String(space.description || '').trim().slice(0, 120) || (space.name + ' 的知识库文档'),
+            ogImage: (/^https?:\/\//i.test(String(space.cover || '')) && !/['"\\<>\s]/.test(space.cover)) ? space.cover : ''
         });
     });
 };
