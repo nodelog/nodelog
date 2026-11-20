@@ -72,9 +72,15 @@
 | 是否落地生产 | **授权落地改生产文件**（用户确认）；参考站 jiangzi.xin / saas.jiangzi.xin 经实抓分析判定**不参考**（两套体系不统一、品类不匹配、手法触发 P0）——但 saas 的「蓝绿双色 / 圆润 / 柔光 / 留白」调性被抽取为 Cloudletter 母本 |
 
 ## 5. 下一步
-1. **当前（2026-11-18）**：新增前台公开「开发平台」入口 + 独立开放 API v3 文档页 `/dev`（小组档，前端成员产出 `views/openPlatform.ejs`，主理人集成 `navConfig.js` / `routes/index.js`）；博客版文档保留。完成后需部署生产并 Chrome 复验桌面/移动。
+1. **当前（2026-11-21）**：Blog+Wiki 一体化 WP1~WP4 + WP3 检索底座 + 多轮体验修复**已全部完成并推送**（最新 commit a682508）。等待用户在生产 `git pull && pm2 restart` 后验收；若 WP3 索引未重建需先跑 `node scripts/rebuild-search-index.js --report/--apply`。
 2. 用户本地 `node ./bin/www`（需 MongoDB）起服，Chrome 复验首页/列表/文章三页明暗 × 桌面/移动，重点看蓝绿双色、featured/grid 卡片、720 阅读栏、评论卡、深色 navy 调性是否对齐呈现页 `design-language/cloudletter-preview.html`。
 3. 后台 `views/manager/**` 仍走 `style.css`/`docs.min.css`，本次只动了前台 `theme.css` 令牌——后台渐变依赖 `--accent-2` 已从青绿改为绿 `#10B981`，需顺手在后台起服时扫一眼导航/按钮配色。
+
+## 5b. 2026-11-20~21 Blog+Wiki 一体化收尾（本轮新增）
+- WP1 内容模型(docType/searchBody/spaceId) → WP2 md导入 → WP4 Space体系+三栏前台 → WP3 检索底座(index重建/组合过滤/中文两路召回/命令面板) 全部落地。
+- 多轮体验修复：提示体系统一 NL.toast、编辑器桌面sv/移动ir、移动端顶栏适配、文档不混入博客、font-awesome图标通配冲突、工作台删除按钮+确认弹窗、知识库所有权对齐博客(普通用户可发自己的)、工作台只列自己的库。
+- 搜索命令面板(cmd-search.js)：默认各搜各的(homeType blog/wiki)，右下角开关开启跨库；Ctrl+K 唤起、边输入边搜、键盘导航。
+- 详见 `docs/WIKI_SYSTEM_DESIGN.md` §13~§23。待用户生产验收。
 
 ## 6. 边界与约束（实读事实，勿重复排查）
 - 工作区 `master` 已有他人未提交改动；Phase 3 曾约束「只在 `design-language/` 新建文件」，Phase 4（用户授权「开始落地」）**已解除该约束**，正式改 `public/css/theme.css` 与 `views/**/*.ejs`。
