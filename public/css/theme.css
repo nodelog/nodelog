@@ -482,6 +482,8 @@ body:not(.manager) .page-shell { padding-top: var(--space-8); padding-bottom: va
 
 /* 文章卡：默认无内边距（封面齐边），内容由 .post-body 提供内边距 */
 .post-card.card { padding: 0; overflow: hidden; }
+/* WP3 搜索关键词高亮：浅色底 + 主色字，不刺眼 */
+mark.kw { background: var(--accent-weak); color: var(--accent); padding: 0 2px; border-radius: 3px; font-weight: 600; }
 .post-card .post-body { padding: var(--space-6); }
 .post-card .post-cover { display: block; }
 .post-card .cover {

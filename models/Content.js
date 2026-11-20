@@ -54,10 +54,14 @@ ContentSchema.index({ name: 1 });                  // 标题搜索
 ContentSchema.index({ sourceAppId: 1, createTime: -1 }); // 应用来源溯源列表
 ContentSchema.index({ docType: 1, createTime: -1 });     // 按文档类型筛选列表（Blog/Wiki）
 ContentSchema.index({ parent: 1, status: 1 }, { sparse: true }); // 取子页面建树（增强阶段，避免 N+1）
-// P1 全文检索：标题 + 正文 + 标签（注意正文较大，索引会占用空间，按需建立）
-// WP1 保持原字段定义不动：text 索引每集合仅一个，改成 {name,searchBody,tags}
-// 必须在 WP3 由 scripts 先 dropIndex 再 createIndex，否则 Mongoose autoIndex 与线上索引冲突。
-ContentSchema.index({ name: 'text', content: 'text', tags: 'text' });
+// WP3 全文检索索引：{name, searchBody, tags} + 权重。
+// - 每集合仅一个 text 索引；searchBody 是去标记后的正文纯文本（服务端生成），比直接索引 content(Markdown/HTML) 更干净。
+// - default_language:'none' 关闭英文词干化，避免干扰中文；中文召回由应用层「两路召回」补足（见 searchText）。
+// - 线上若仍是旧 {name,content,tags} 索引，须先跑 scripts/rebuild-search-index.js（drop 旧 + create 新），否则 autoIndex 不覆盖。
+ContentSchema.index(
+    { name: 'text', searchBody: 'text', tags: 'text' },
+    { weights: { name: 10, tags: 5, searchBody: 1 }, default_language: 'none', name: 'content_text' }
+);
 
 // 新内容默认发布状态；草稿不进公开列表。
 // 注意：draft 是 P0 新增字段，历史文档没有该字段。MongoDB 中 {draft:false} 不会匹配「字段不存在」的文档，
@@ -191,7 +195,86 @@ ContentDAO.prototype.findByWord = function (page, word, currentUser, callback) {
         enrichDocs(docs, callback);
     });
 };
-// P1 全文检索（基于 MongoDB $text 索引）
+// WP3 检索底座：混合召回（$text 主召回 + 中文子串 $regex 兜底）+ 组合过滤 + 分页。
+// opts: {docType, spaceId, tag, category}；docType 缺省 blog（文档不混入博客搜索）。
+// 中文没有空格分词，$text(default_language:none) 对「链付收银」这类连写召回差，
+// 故并行跑一路 searchBody/name 的子串正则兜底，合并去重、$text 命中优先。
+ContentDAO.prototype.searchHybrid = function (page, word, currentUser, opts, callback) {
+    if (typeof opts === 'function') { callback = opts; opts = {}; }
+    opts = opts || {};
+    page = Math.max(1, parseInt(page, 10) || 1);
+    var docType = opts.docType || constants.DOC_TYPE_BLOG;
+    var regex = new RegExp(escapeRegExp(word), 'i');
+    var LIMIT = 200; // 两路各取上限，本地 932 篇足够；避免无界查询
+
+    // 可见性基准（复用逻辑但与 visibleTerm 分开，因为要叠加组合过滤）
+    function baseTerm() {
+        var t = {docType: docType};
+        if (docType === constants.DOC_TYPE_WIKI && opts.spaceId) {
+            t.spaceId = opts.spaceId; // ObjectId 由调用方校验，避免非法值
+        }
+        if (opts.category) t.category = opts.category;
+        if (opts.tag) t.tags = tagRegex(opts.tag);
+        if (currentUser == null) {
+            t.status = constants.CONTENT_ENABLE_STATUS;
+            t.draft = {$ne: true};
+        } else {
+            t.$or = [
+                {status: constants.CONTENT_ENABLE_STATUS, draft: {$ne: true}},
+                {author: currentUser._id, status: {$ne: constants.CONTENT_UNABLE_STATUS}}
+            ];
+        }
+        return t;
+    }
+    // objectId 合法性：spaceId 非法时直接返回空，避免 cast 异常打断搜索
+    if (opts.spaceId && !mongodb.mongoose.Types.ObjectId.isValid(String(opts.spaceId))) {
+        return callback(null, {docs: [], total: 0});
+    }
+
+    function mergeTerm(extra) {
+        var t = baseTerm();
+        Object.keys(extra).forEach(function (k) { t[k] = extra[k]; });
+        return t;
+    }
+
+    async.parallel({
+        // 路A：$text 主召回（标题权重高，按 textScore 排序）
+        text: function (cb) {
+            ContentModel.find(mergeTerm({$text: {$search: word}}), {score: {$meta: "textScore"}})
+                .select('name author category modifyTime view original slug cover excerpt tags docType searchBody')
+                .sort({score: {$meta: "textScore"}}).limit(LIMIT)
+                .exec(function (err, docs) { cb(err, docs || []); });
+        },
+        // 路B：中文子串兜底（标题 / 正文纯文本）
+        regex: function (cb) {
+            ContentModel.find(mergeTerm({$or: [{name: regex}, {searchBody: regex}]}))
+                .select('name author category modifyTime view original slug cover excerpt tags docType searchBody')
+                .sort({createTime: -1}).limit(LIMIT)
+                .exec(function (err, docs) { cb(err, docs || []); });
+        }
+    }, function (err, results) {
+        if (err) return callback(err, {docs: [], total: 0});
+        // 合并去重：路A 优先（相关度序），路B 仅补未命中者
+        var seen = {}, merged = [];
+        (results.text || []).forEach(function (d) {
+            var k = String(d._id);
+            if (!seen[k]) { seen[k] = true; merged.push(d); }
+        });
+        (results.regex || []).forEach(function (d) {
+            var k = String(d._id);
+            if (!seen[k]) { seen[k] = true; merged.push(d); }
+        });
+        var total = merged.length;
+        var start = (page - 1) * constants.PER_PAGE_COUNT;
+        var slice = merged.slice(start, start + constants.PER_PAGE_COUNT);
+        enrichDocs(slice, function (e2, docs) {
+            if (e2) return callback(e2, {docs: [], total: total});
+            callback(null, {docs: docs, total: total});
+        });
+    });
+};
+
+// P1 全文检索（基于 MongoDB $text 索引）——保留给旧调用；新代码走 searchHybrid
 ContentDAO.prototype.searchText = function (page, word, currentUser, callback) {
     var term = {"$text": {$search: word}};
     if (currentUser == null) {

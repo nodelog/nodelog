@@ -348,3 +348,23 @@ Blog 文章：Content(docType:blog, spaceId:null)  ← 完全独立，走原博�
 **验证**：全局 `grep confirm(` 残留 0（仅剩 window.confirm 降级）；node --check、EJS 编译 3 页、静态断言 32/32 全过；统一弹窗真渲染（模态+遮罩+标题+取消/删除按钮）确认。
 
 **现状**：全站确认弹窗统一到 ui.js 的 `NL.alert`；原生 confirm/alert 已从所有业务页面清除。
+
+---
+
+## 19. WP3 检索底座（2026-11-20，全部完成）
+
+勘察发现文档里说"WP3 已支持"的过滤其实全没实现，实际剩余 5 项全部落地：
+
+| 项 | 实现 |
+|---|---|
+| A 索引重建 | `Content.js` text 索引从 `{name,content,tags}` 改为 `{name,searchBody,tags}` + `weights{name:10,tags:5,searchBody:1}` + `default_language:'none'`（关英文词干化）+ 命名 `content_text`。新增 `scripts/rebuild-search-index.js`（`--report`/`--apply`，幂等）。新增管理员端点 `GET /manager/index/status`、`POST /manager/index/rebuild`（`controllers/searchIndexAdmin.js`） |
+| B 组合过滤 | 新增 `ContentDAO.searchHybrid(page,word,user,opts,cb)`，opts 支持 `docType/spaceId/tag/category`（docType 默认 blog，Wiki 不混入博客搜索）；`contentQuery.searchFull` 解析 `docType/scope/spaceId/category/tag` 透传；Wiki 顶栏搜索 form 带 `docType=wiki`+当前 spaceId |
+| C 中文两路召回 | searchHybrid 并行跑两路：① `$text` 主召回（按 textScore 排序，各取≤200）② 中文子串 `$regex`（name/searchBody，解决中文无空格连写召回差）；按 `_id` 合并去重、路A优先、应用层分页。`spaceId` 非法直接回空防 cast 异常 |
+| D 快捷键+高亮 | `footer.ejs` 加 Ctrl+K/⌘K 唤起搜索浮层（按钮加 `aria-keyshortcuts`+title）；`postCard.ejs` 的标题/摘要按 `key` 高亮 `<mark class="kw">`，先转义文本再插 mark 防 XSS；`contentPanel.ejs` include 时透传 key；theme.css 加 `.kw` 样式（浅蓝底主色字） |
+| E 衔接 | `postCard.ejs` 按 `docType` 生成链接：Wiki 走 `/wiki/:spaceSlug/:slug`（controller 批量查 Space 补 spaceSlug），博客维持 `/content/detail?id=` |
+
+**验证**：node --check 5 文件、EJS 编译 6 页、静态断言 32/32 全过；真渲染测试：高亮 mark 生效、Wiki/博客链接分流正确、XSS 文本+关键词均安全转义、两路合并去重分页算法正确（a,b,c,d,e 去重/第2页分片）、索引定义三处一致（schema/script/endpoint）。
+
+**部署必做**：改了索引定义，生产须先跑 `node scripts/rebuild-search-index.js --report` 看旧索引，再 `--apply` 重建（或在后台调 `/manager/index/rebuild`）。不重建则 $text 仍走旧 `{name,content,tags}`，新字段 searchBody 不生效。
+
+**WP1～WP4 + WP3 全部完成**。

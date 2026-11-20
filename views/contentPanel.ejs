@@ -8,7 +8,7 @@
 <% if (typeof docs !== 'undefined' && docs && docs.length) { %>
 <div class="post-grid">
     <% docs.forEach(function(doc, i){ %>
-        <%- include('common/postCard', { doc: doc, variant: 'grid', index: i + 1, isMyContent: (typeof isMyContent !== 'undefined' && isMyContent) }) %>
+        <%- include('common/postCard', { doc: doc, variant: 'grid', index: i + 1, key: _kw, isMyContent: (typeof isMyContent !== 'undefined' && isMyContent) }) %>
     <% }); %>
 </div>
 <%- include('common/pagination', { page: page, totalPage: totalPage, url: _pageUrl }) %>

@@ -24,7 +24,14 @@
   toggle.addEventListener('click', function () { panel.hidden ? open() : shut(); });
   if (close) close.addEventListener('click', shut);
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && !panel.hidden) { shut(); toggle.focus(); }
+    if (e.key === 'Escape' && !panel.hidden) { shut(); toggle.focus(); return; }
+    // WP3：Ctrl+K / ⌘K 唤起搜索（焦点不在输入控件时才拦截，避免打断正常打字）
+    var mod = e.ctrlKey || e.metaKey;
+    if (mod && (e.key === 'k' || e.key === 'K')) {
+      e.preventDefault();
+      panel.hidden ? open() : shut();
+      return;
+    }
   });
 })();
 </script>

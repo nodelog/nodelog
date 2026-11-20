@@ -187,6 +187,11 @@ var route = function (app) {
     function A(req, res, next) { return filter.authorize(req, res, function () { return filter.authorizeAdmin(req, res, next); }); }
     var L = filter.authorize;
 
+    // ---- WP3 检索索引管理（仅管理员）：查看 text 索引状态 / 重建（危险操作，POST）----
+    var searchIndexAdmin = require('./../controllers/searchIndexAdmin');
+    app.get('/manager/index/status', A, searchIndexAdmin.status);
+    app.post('/manager/index/rebuild', A, searchIndexAdmin.rebuild);
+
     // ---- ApiApp 开放接口应用管理（全部 A，仅管理员）----
     app.get('/manager/api-app', filter.authorize, filter.authorizeAdmin, function (req, res) {
         // 不再注入全量用户：绑定用户改为弹窗内输入即搜（/manager/api-app/user-search），

@@ -185,27 +185,48 @@ exports.searchFull = function (req, res) {
     var page = parseInt(req.query.page, 10) || 1;
     var sessionUser = req.session.user;
     if (!word) { res.redirect('/'); return; }
-    async.auto({
-        totalCount: function (cb) {
-            Content.getCountByText(word, sessionUser, function (err, total) { cb(null, total || 0); });
-        },
-        pageDocs: ["totalCount", function (cb, results) {
-            var total = results.totalCount;
-            var pageObj = cmsUtils.page(page, total);
-            if (pageObj.totalPage > 0) {
-                Content.searchText(pageObj.page, word, sessionUser, function (err, docs) {
-                    cb(null, {docs: docs || [], page: pageObj.page, totalPage: pageObj.totalPage, total: total});
-                });
-            } else {
-                cb(null, {docs: [], page: 1, totalPage: 0, total: 0});
-            }
-        }]
-    }, function (err, results) {
-        var r = results.pageDocs;
-        res.render("search", {
-            docs: r.docs, title: "全文搜索：" + word, key: word,
-            page: r.page, totalPage: r.totalPage, total: r.total,
-            url: "/content/search?word=" + encodeURIComponent(word) + "&"
+    // WP3 组合过滤：scope=wiki 时限定 docType=wiki 并可再按 spaceId 收窄；
+    // 缺省 docType=blog（博客搜索不混入文档，见 searchHybrid 默认值）。
+    var opts = {};
+    if (req.query.docType === 'wiki' || req.query.scope === 'wiki') opts.docType = 'wiki';
+    if (req.query.spaceId) opts.spaceId = req.query.spaceId;
+    if (req.query.category) opts.category = req.query.category;
+    if (req.query.tag) opts.tag = req.query.tag;
+
+    Content.searchHybrid(page, word, sessionUser, opts, function (err, result) {
+        if (err) console.error('[searchFull] ' + err.message);
+        var r = result || {docs: [], total: 0};
+        var pageObj = cmsUtils.page(page, r.total);
+        var docs = r.docs || [];
+        // Wiki 结果补 spaceSlug：卡片据此生成 /wiki/:spaceSlug/:slug 链接，避免点进博客详情页
+        var wikiIds = {};
+        docs.forEach(function (d) {
+            if (d.docType === 'wiki' && d.spaceId) wikiIds[String(d.spaceId)] = true;
+        });
+        var idList = Object.keys(wikiIds);
+        function renderWithSlugs(slugMap) {
+            docs.forEach(function (d) {
+                if (slugMap[String(d.spaceId)]) d.spaceSlug = slugMap[String(d.spaceId)];
+            });
+            var queryStr = '?word=' + encodeURIComponent(word);
+            ['docType', 'scope', 'spaceId', 'category', 'tag'].forEach(function (k) {
+                if (req.query[k]) queryStr += '&' + k + '=' + encodeURIComponent(req.query[k]);
+            });
+            res.render("search", {
+                docs: docs, title: "全文搜索：" + word, key: word,
+                page: pageObj.page, totalPage: pageObj.totalPage, total: r.total,
+                url: "/content/search" + queryStr + "&"
+            });
+        }
+        if (!idList.length) return renderWithSlugs({});
+        // 一次批量取知识库 slug（Space 无 findByIds 时用逐条，知识库数量少）
+        var Space = require('./../models/Space.js');
+        var pending = idList.length, slugMap = {};
+        idList.forEach(function (sid) {
+            Space.findById(sid, function (e, space) {
+                if (!e && space) slugMap[sid] = space.slug;
+                if (--pending === 0) renderWithSlugs(slugMap);
+            });
         });
     });
 };

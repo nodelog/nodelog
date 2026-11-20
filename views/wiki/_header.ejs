@@ -19,6 +19,10 @@
       <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
     </button>
     <form class="wiki-search" action="/content/search" method="get" role="search">
+      <input type="hidden" name="docType" value="wiki"/>
+      <% if (typeof space !== 'undefined' && space && space._id) { %>
+      <input type="hidden" name="spaceId" value="<%= space._id %>"/>
+      <% } %>
       <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
       <input type="search" name="word" class="wiki-search__input" placeholder="搜索文档…" aria-label="搜索文档" maxlength="50"/>
     </form>
