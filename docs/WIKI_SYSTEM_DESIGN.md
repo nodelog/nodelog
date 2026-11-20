@@ -305,3 +305,16 @@ Blog 文章：Content(docType:blog, spaceId:null)  ← 完全独立，走原博�
 **验证**：14 个方法脚本断言全部含 docType 过滤；node --check、静态断言 32/32 全过。
 
 **教训**：给已有集合加"类型"字段时，必须回头把所有既有查询补上过滤——否则新类型数据会静默混入旧类型的所有列表/计数。排查：`grep -n "constants.CONTENT_ENABLE_STATUS" models/Content.js` 逐条看是否带类型约束。
+
+---
+
+## 16. 编辑器分屏按屏宽 + 工作台顶栏移动端（2026-11-20）
+
+| # | 反馈 | 处理 |
+|---|---|---|
+| 1 | 移动端编辑器应即时渲染（屏幕小放不下分屏） | 两处 Vditor 的 `mode` 从固定 `sv` 改为 `window.innerWidth <= 768 ? 'ir' : 'sv'`：桌面分屏预览、移动端即时渲染（`views/editor.ejs` 博客 + `public/js/wiki-admin.js` Wiki 工作台） |
+| 2 | 知识库工作台顶部菜单移动端适配 | `views/manager/wiki/_header.ejs` + `wiki-admin.css` 的 767px 断点：隐藏「知识库工作台」胶囊与用户名，两个按钮（查看前台/博客后台）缩为图标，品牌 flex 收缩+站名省略号；三个 tab 改横向可滚动、`white-space:nowrap` |
+
+**验证**：390px 容器探针——品牌[12,122]、工具[300,378]、胶囊/用户名 disp:none、`scrollW==clientW==390` 无溢出；截图确认顶栏一行完整、tab 不挤压。node --check、EJS 编译 3 页、静态断言 32/32 全过。
+
+**教训**：响应式决策不能一刀切——分屏预览在桌面好用的模式在手机上会挤压，须按屏宽分支（编辑器 mode、顶栏元素密度都要分端考虑）。

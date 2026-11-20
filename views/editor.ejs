@@ -139,7 +139,8 @@
 
   var vd = new Vditor('vditor', {
     cdn: '/vendor/vditor',
-    mode: 'sv',   // 分屏预览：左写 Markdown 右看渲染效果（博客与 Wiki 工作台口径一致）
+    // 桌面分屏预览(sv)；移动端屏窄，改即时渲染(ir)避免两栏挤压
+    mode: (window.innerWidth <= 768 ? 'ir' : 'sv'),
     lang: 'zh_CN',
     value: initial,
     height: 540,

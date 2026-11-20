@@ -58,7 +58,8 @@
   var vd = null;
   if (window.Vditor) {
     vd = new Vditor('wa-vditor', {
-      cdn: '/vendor/vditor', mode: 'sv', lang: 'zh_CN',  // 分屏预览，与博客编辑器一致
+      // 桌面分屏(sv)；移动端屏窄用即时渲染(ir)，与博客编辑器口径一致
+      cdn: '/vendor/vditor', mode: (window.innerWidth <= 768 ? 'ir' : 'sv'), lang: 'zh_CN',
       height: 560, cache: {enable: false},
       outline: {enable: true, position: 'right'},
       upload: {accept: 'image/*', handler: function (files) {

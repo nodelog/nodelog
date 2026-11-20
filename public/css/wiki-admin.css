@@ -7,15 +7,17 @@ body.wiki-admin-body { min-height: 100vh; background: var(--bg); color: var(--in
     padding: 0 clamp(16px, 3vw, 40px); background: var(--surface);
     border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 30;
 }
-.wiki-admin-topbar__brand { display: flex; align-items: center; gap: 10px; font-weight: 700; }
-.wiki-admin-topbar__brand svg { color: var(--accent); }
+.wiki-admin-topbar__brand { display: flex; align-items: center; gap: 10px; font-weight: 700; min-width: 0; }
+.wiki-admin-topbar__brand svg { color: var(--accent); flex: none; }
+.wiki-admin-topbar__name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .wiki-admin-topbar__tag {
     font-size: 11px; color: var(--accent); background: var(--accent-weak);
-    padding: 3px 9px; border-radius: 999px; letter-spacing: .04em;
+    padding: 3px 9px; border-radius: 999px; letter-spacing: .04em; white-space: nowrap;
 }
-.wiki-admin-topbar__tools { display: flex; align-items: center; gap: 10px; }
+.wiki-admin-topbar__tools { display: flex; align-items: center; gap: 10px; flex: none; }
 .wiki-admin-btn {
-    display: inline-flex; align-items: center; height: 34px; padding: 0 12px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap;
+    height: 34px; padding: 0 12px;
     border: 1px solid var(--border); border-radius: 8px; background: var(--surface);
     color: var(--ink); font-size: 13px; text-decoration: none; cursor: pointer;
 }
@@ -108,7 +110,21 @@ body.wiki-admin-body { min-height: 100vh; background: var(--bg); color: var(--in
 #wa-vditor { min-height: 560px; }
 
 @media (max-width: 900px) {
-    .wa-grid { grid-template-columns: 1fr; }
+    .wiki-grid { grid-template-columns: 1fr; }
     .wa-side { border-right: 0; border-bottom: 1px solid var(--border); }
     .wa-editor__fields, .wa-import__fields { grid-template-columns: 1fr; }
+}
+@media (max-width: 767px) {
+    /* 工作台顶栏：隐藏胶囊/用户名，按钮缩为图标，杜绝挤压 */
+    .wiki-admin-topbar { height: 52px; padding: 0 12px; gap: 8px; }
+    .wiki-admin-topbar__brand { flex: 0 1 auto; gap: 6px; }
+    .wiki-admin-topbar__brand svg { width: 20px; height: 20px; }
+    .wiki-admin-topbar__name { font-size: 14px; }
+    .wiki-admin-topbar__tag, .wiki-admin-user { display: none; }
+    .wiki-admin-topbar__tools { gap: 6px; }
+    .wiki-admin-btn { width: 36px; height: 36px; padding: 0; }
+    .wiki-admin-btn span { display: none; }
+    /* tab 横排可滚动，文字不换行 */
+    .wa-tabs { padding: 0 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .wa-tab { flex: none; padding: 12px 14px; font-size: 13px; white-space: nowrap; }
 }

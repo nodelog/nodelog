@@ -10,11 +10,17 @@
 <header class="wiki-admin-topbar">
   <div class="wiki-admin-topbar__brand">
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
-    <span><%= session.site.name %></span><span class="wiki-admin-topbar__tag">知识库工作台</span>
+    <span class="wiki-admin-topbar__name"><%= session.site.name %></span><span class="wiki-admin-topbar__tag">知识库工作台</span>
   </div>
   <div class="wiki-admin-topbar__tools">
-    <a href="/wiki" target="_blank" rel="noopener noreferrer" class="wiki-admin-btn">查看前台</a>
-    <a href="/manager" class="wiki-admin-btn">返回博客后台</a>
+    <a href="/wiki" target="_blank" rel="noopener noreferrer" class="wiki-admin-btn" title="查看前台">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6M10 14 21 3"/></svg>
+      <span>查看前台</span>
+    </a>
+    <a href="/manager" class="wiki-admin-btn" title="返回博客后台">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+      <span>博客后台</span>
+    </a>
     <span class="wiki-admin-user"><%= session.user ? (session.user.realName || session.user.userName) : '' %></span>
   </div>
 </header>
