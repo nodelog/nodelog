@@ -30,7 +30,14 @@ function normalizeSlug(raw, name) {
 // GET /manager/wiki —— 统一工作台（独立全宽页；tabs：知识库 / 文档编辑 / 导入）
 exports.workspace = function (req, res) {
     var Content = require('./../models/Content.js');
-    Space.findVisible(req.session.user, function (err, spaces) {
+    // 工作台只列「我能管理的库」= 自己 owner 的；管理员看全部。
+    // 不能用 findVisible（那是前台可见性：公开库对所有登录用户可见），
+    // 否则别人建的公开库会出现在我的「知识库列表」里，误导为可管理。
+    var isAdmin = req.session.user && req.session.user.role === 0;
+    var loadSpaces = isAdmin ? Space.findAllForAdmin : function (cb) {
+        Space.findByOwner(req.session.user._id, cb);
+    };
+    loadSpaces(function (err, spaces) {
         if (err) console.error('[spaceAdmin.workspace] ' + err.message);
         var list = err ? [] : (spaces || []);
         if (!list.length) {

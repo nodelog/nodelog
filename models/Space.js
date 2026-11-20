@@ -73,6 +73,10 @@ SpaceDAO.prototype.findVisible = function (currentUser, callback) {
 SpaceDAO.prototype.findByOwner = function (owner, callback) {
     SpaceModel.find({owner: owner, status: 0}).sort({order: 1, name: 1}).exec(callback);
 };
+// 管理员工作台：列出全部未软删的知识库（普通用户用 findByOwner 只看自己的）
+SpaceDAO.prototype.findAllForAdmin = function (callback) {
+    SpaceModel.find({status: 0}).sort({order: 1, name: 1}).exec(callback);
+};
 // 单个可见性判定（供文档详情复用）：公开或自己是 owner
 SpaceDAO.prototype.isVisible = function (space, currentUser) {
     if (!space) return false;

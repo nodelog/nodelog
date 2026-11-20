@@ -281,7 +281,11 @@ var route = function (app) {
     app.post('/manager/wiki/space/update', L, spaceAdmin.update);
     app.post('/manager/wiki/space/delete', L, spaceAdmin.delete);
     app.get('/manager/wiki/import', L, function (req, res) {
-        require('./../models/Space').findByOwner(req.session.user._id, function (err, spaces) {
+        var isAdmin = req.session.user && req.session.user.role === 0;
+        var load = isAdmin ? require('./../models/Space').findAllForAdmin : function (cb) {
+            require('./../models/Space').findByOwner(req.session.user._id, cb);
+        };
+        load(function (err, spaces) {
             res.render('manager/wikiImport', {
                 title: '导入 Wiki 文档', currentMenu: 'wikiImport', spaces: err ? [] : (spaces || [])
             });
