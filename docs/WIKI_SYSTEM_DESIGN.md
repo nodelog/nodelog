@@ -464,3 +464,22 @@ Blog 文章：Content(docType:blog, spaceId:null)  ← 完全独立，走原博�
 **验证**：EJS 编译 5 页、space/page/list 三种页面真渲染 + VM 执行 config（合法 JS、值正确）、静态断言 32/32 全过。
 
 **教训**：EJS 在 `<script>` 里输出 JSON 必须用 `<%- %>`（不转义）；`<%= %>` 会把引号变实体导致 JS 语法错误、整段配置静默丢失。凡是 `JSON.stringify` 注入脚本都要用不转义输出。
+
+---
+
+## 25. 命令面板搜索条数（9→30）+ 完整结果出口（2026-11-21）
+
+用户反馈搜索最多只显示 9 条。
+
+**分析**：分两个场景——
+- 搜索结果页 9 条/页是**正常的**（有分页器翻页，PER_PAGE_COUNT=9）。
+- **命令面板是真 bug**：`suggestJson` 调 `searchHybrid(1,...)` 只取第 1 页 9 条，而面板无分页 UI、也不提示还有更多。
+
+**修复**：
+- `searchHybrid` 新增 `opts.limit`：不传仍用 PER_PAGE_COUNT(9)（结果页行为不变）；传了按 limit 返回。召回池 `LIMIT = max(200, pageSize*2)` 保证够用。
+- `suggestJson` 传 `limit:30`（每类 30 条，跨库共最多 60）。
+- 命令面板结果底部加「查看完整搜索结果 →」出口，口径与面板 homeType 一致（wiki 带 docType=wiki + spaceId；博客走默认）。
+
+**边界**：完整搜索页暂只支持单一 docType，跨库模式的出口指向博客全量搜索（Wiki 结果已在面板内可点开）——独立需求，未扩范围。
+
+**验证**：node --check 3 文件、limit 分页算法 4 项、EJS 编译 4 页、5 项关键路径、静态断言 32/32、真渲染（出口样式协调）全过。

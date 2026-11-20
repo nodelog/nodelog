@@ -168,6 +168,15 @@
       });
       html += '</div>';
     });
+    // 面板最多显示若干条；给「查看完整结果」出口，口径与面板默认范围一致。
+    // 注：完整搜索页暂只支持单一 docType，跨库模式下此链接指向博客全量搜索（Wiki 结果已在面板内可点开）。
+    var word = state.input.value.trim();
+    var full = '/content/search?word=' + encodeURIComponent(word);
+    if (state.homeType === 'wiki') {
+      full += '&docType=wiki';
+      if (state.spaceId) full += '&spaceId=' + encodeURIComponent(state.spaceId);
+    }
+    html += '<a class="cmdp-more" href="' + esc(full) + '">查看完整搜索结果 →</a>';
     state.list.innerHTML = html;
   }
 

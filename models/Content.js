@@ -205,7 +205,9 @@ ContentDAO.prototype.searchHybrid = function (page, word, currentUser, opts, cal
     page = Math.max(1, parseInt(page, 10) || 1);
     var docType = opts.docType || constants.DOC_TYPE_BLOG;
     var regex = new RegExp(escapeRegExp(word), 'i');
-    var LIMIT = 200; // 两路各取上限，本地 932 篇足够；避免无界查询
+    var pageSize = Math.max(1, parseInt(opts.limit, 10) || constants.PER_PAGE_COUNT);
+    // 召回池至少覆盖本页所需；两路各取，本地 932 篇足够；避免无界查询
+    var LIMIT = Math.max(200, pageSize * 2);
 
     // 可见性基准（复用逻辑但与 visibleTerm 分开，因为要叠加组合过滤）
     function baseTerm() {
@@ -265,8 +267,8 @@ ContentDAO.prototype.searchHybrid = function (page, word, currentUser, opts, cal
             if (!seen[k]) { seen[k] = true; merged.push(d); }
         });
         var total = merged.length;
-        var start = (page - 1) * constants.PER_PAGE_COUNT;
-        var slice = merged.slice(start, start + constants.PER_PAGE_COUNT);
+        var start = (page - 1) * pageSize;
+        var slice = merged.slice(start, start + pageSize);
         enrichDocs(slice, function (e2, docs) {
             if (e2) return callback(e2, {docs: [], total: total});
             callback(null, {docs: docs, total: total});
