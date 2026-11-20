@@ -501,3 +501,20 @@ Blog 文章：Content(docType:blog, spaceId:null)  ← 完全独立，走原博�
 **验证**：分页算法 7 项（60→8页/环绕/跨页等）、node --check 2 文件、10 项关键路径断言、EJS 编译 3 页、静态断言 32/32、真渲染（底栏页码+翻页提示+开关同行不溢出）全过。
 
 **边界**：最多 60 条/类（8 页），超出部分走「查看完整搜索结果」出口；完整搜索页仍是 9 条/页传统分页。
+
+---
+
+## 27. 修复工作台点顶级分类节点不加载编辑（2026-11-21）
+
+用户反馈：文档编辑 tab 点顶级节点只展开、不再自动加载该节点到编辑区（上次改展开功能的回归）。
+
+**根因**：`wiki-admin.js` 点击处理里，分类节点分支 `if (sub) { toggleNode(pid); return; }` —— 展开后直接 return，跳过了下面的 `loadPage(found)`。上次做"点节点展开"时为避免展开动作触发编辑，加了 return，把编辑弄丢了。
+
+**修复**：
+- 分类节点点击 = 展开（幂等）+ 加载该节点进编辑区：去掉 return，`if (sub) expandNode(pid);` 后继续执行 loadPage。
+- 新增 `expandNode`（只展开不折叠）与 `setNodeOpen`（公共），箭头按钮仍用 `toggleNode`（纯展开/折叠，不碰编辑器）——职责分离：点整行=展开+编辑，点箭头=只折叠。
+- **关键配套**：`loadPage` 会调 `renderPages()` 重绘，而重绘按 `openIds`（当前编辑节点的祖先链）决定展开。顶级节点无 parent，若只算祖先会被重绘折叠。故 `buildOpenIds` 把 activeId 自身也加入 openIds，保证点开的分类节点重绘后仍展开。
+
+**验证**：node --check、点击链路 6 项断言（展开无 return / loadPage / expandNode 幂等 / 箭头用 toggle / buildOpenIds 含自身 / loadPage 重绘）、静态断言 32/32 全过。
+
+**教训**：改"点击展开"这类交互时，别用 return 一刀切掉原有动作；且注意重绘（renderPages）会重置 DOM 状态，展开态必须由数据源（openIds）驱动而非只改 DOM。

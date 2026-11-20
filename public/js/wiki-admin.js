@@ -100,6 +100,7 @@
 
 function buildOpenIds(pid) {
   var cur = byId[pid], guard = 0;
+  if (cur) openIds[pid] = true;   // 当前编辑节点自身也展开（分类节点点开后重绘仍保持展开）
   while (cur && cur.parent && byId[String(cur.parent)] && ++guard < 50) {
     openIds[String(cur.parent)] = true;
     cur = byId[String(cur.parent)];
@@ -169,15 +170,19 @@ if (activeId) buildOpenIds(activeId);
     var name = $('wa-doc-name').value || '该页面';
     confirmAction('确认删除「' + name + '」？此操作不可撤销。', function () { doDeleteDoc(id); }, '删除页面');
   });
-  // 展开/折叠分类节点，同步按钮状态；不触碰右侧编辑器
-  function toggleNode(tid) {
+  // 展开/折叠分类节点，同步按钮状态；供箭头按钮专用（不动右侧编辑器）
+  function setNodeOpen(tid, open) {
     var sub = $('wa-page-list').querySelector('[data-children-of="' + tid + '"]');
     if (!sub) return;
-    var willOpen = sub.hidden;
-    sub.hidden = !willOpen;
+    sub.hidden = !open;
     var btn = $('wa-page-list').querySelector('.wa-page-toggle[data-toggle="' + tid + '"]');
-    if (btn) { btn.classList.toggle('is-open', willOpen); btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false'); }
+    if (btn) { btn.classList.toggle('is-open', open); btn.setAttribute('aria-expanded', open ? 'true' : 'false'); }
   }
+  function toggleNode(tid) {
+    var sub = $('wa-page-list').querySelector('[data-children-of="' + tid + '"]');
+    if (sub) setNodeOpen(tid, sub.hidden);
+  }
+  function expandNode(tid) { setNodeOpen(tid, true); }  // 点整行只展开（幂等），不折叠
   $('wa-page-list').addEventListener('click', function (e) {
     var del = e.target.closest ? e.target.closest('[data-del]') : null;
     if (del) {
@@ -196,9 +201,10 @@ if (activeId) buildOpenIds(activeId);
     var item = e.target.closest ? e.target.closest('.wa-page-item') : null;
     if (!item) return;
     var pid = item.getAttribute('data-id');
-    // 分类节点（有子节点）：点击整行只展开/折叠，保持右侧当前编辑不变
+    // 分类节点（有子节点）：点整行 → 展开（幂等）+ 加载该节点进编辑区；
+    // 折叠请用左侧箭头按钮。此前 toggleNode 后直接 return 丢了编辑（回归缺陷）。
     var sub = $('wa-page-list').querySelector('[data-children-of="' + pid + '"]');
-    if (sub) { toggleNode(pid); return; }
+    if (sub) expandNode(pid);
     var all = pagesBySpace[currentSpaceId()] || [];
     var found = null;
     for (var i = 0; i < all.length; i++) { if (String(all[i]._id) === pid) { found = all[i]; break; } }
