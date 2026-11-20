@@ -9,8 +9,8 @@
       </button>
     </div>
     <p class="nl-share__title" id="wikiShareTitle"></p>
-    <div class="wiki-share__qr" id="wikiShareQr">
-      <div class="wiki-share__qr-box"><img id="wikiShareQrImg" alt="扫码访问本文档"/></div>
+    <div class="nl-share__qr">
+      <div class="nl-share__qr-box"><img id="wikiShareQrImg" alt="扫码访问本文档"/></div>
       <p>扫码在手机上打开</p>
     </div>
     <div class="nl-share__wechat" id="wikiShareWechat">
@@ -33,7 +33,7 @@
   if (!btn || !panel) return;
   var linkEl = document.getElementById('wikiShareLink');
   var qrImg = document.getElementById('wikiShareQrImg');
-  var qrBox = document.getElementById('wikiShareQr');
+  var qrBox = qrImg ? qrImg.closest('.nl-share__qr') : null;
   function meta(p) { var el = document.querySelector('meta[property="' + p + '"]'); return el ? (el.getAttribute('content') || '') : ''; }
   var url = location.href.split('#')[0];
   var title = meta('og:title') || document.title || '';

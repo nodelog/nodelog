@@ -89,17 +89,6 @@ body.wiki-admin-body { min-height: 100vh; background: var(--bg); color: var(--in
 .wa-input--title { font-size: 16px; font-weight: 600; }
 .wa-textarea { resize: vertical; line-height: 1.6; }
 .wa-hidden { display: none !important; }
-.wa-btn {
-    display: inline-flex; align-items: center; justify-content: center;
-    height: 34px; padding: 0 14px; border: 1px solid var(--border); border-radius: 8px;
-    background: var(--surface); color: var(--ink); font-size: 13px; cursor: pointer; white-space: nowrap;
-}
-.wa-btn:hover { border-color: var(--accent); }
-.wa-btn--primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-.wa-btn--primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: var(--accent-ink); }
-.wa-btn--danger { color: var(--danger); }
-.wa-btn--danger:hover { border-color: var(--danger); }
-
 /* 导入面板 */
 .wa-import { max-width: 900px; padding: 24px clamp(16px, 3vw, 40px); }
 .wa-import h2 { font-size: 22px; margin: 0 0 8px; }

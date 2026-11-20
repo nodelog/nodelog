@@ -14,7 +14,7 @@
       <aside class="wa-side">
         <div class="wa-side__head">
           <select id="wa-space-select" class="wa-select" aria-label="选择知识库"></select>
-          <button type="button" id="wa-new-doc" class="wa-btn wa-btn--primary" title="在当前库新建页面">+ 新建页面</button>
+          <button type="button" id="wa-new-doc" class="btn btn-primary" title="在当前库新建页面">+ 新建页面</button>
         </div>
         <div class="wa-side__section-title">页面列表</div>
         <ul class="wa-page-list" id="wa-page-list"></ul>
@@ -32,8 +32,8 @@
         <div id="wa-vditor"></div>
         <div class="wa-editor__actions">
           <span class="wa-msg" id="wa-edit-msg" role="status"></span>
-          <button type="button" id="wa-doc-delete" class="wa-btn wa-btn--danger">删除</button>
-          <button type="button" id="wa-doc-save" class="wa-btn wa-btn--primary">保存</button>
+          <button type="button" id="wa-doc-delete" class="btn btn-danger">删除</button>
+          <button type="button" id="wa-doc-save" class="btn btn-primary">保存</button>
         </div>
       </div>
     </div>
@@ -60,7 +60,7 @@
       <textarea id="wa-import-content" class="wa-textarea" rows="14" placeholder="# 文档标题&#10;&#10;粘贴或读入 Markdown 内容…"></textarea>
       <div class="wa-editor__actions">
         <span class="wa-msg" id="wa-import-msg" role="status"></span>
-        <button type="button" id="wa-import-submit" class="wa-btn wa-btn--primary">导入</button>
+        <button type="button" id="wa-import-submit" class="btn btn-primary">导入</button>
       </div>
     </div>
   </div>
@@ -69,7 +69,7 @@
   <div class="wa-panel" data-panel="space">
     <div class="wa-grid">
       <aside class="wa-side">
-        <div class="wa-side__head"><button type="button" id="wa-new-space" class="wa-btn wa-btn--primary">+ 新建知识库</button></div>
+        <div class="wa-side__head"><button type="button" id="wa-new-space" class="btn btn-primary">+ 新建知识库</button></div>
         <div class="wa-side__section-title">知识库列表</div>
         <ul class="wa-page-list" id="wa-space-list"></ul>
       </aside>
@@ -86,15 +86,17 @@
         <label>排序（越小越靠前）<input type="number" id="wa-space-order" class="wa-input" value="0"/></label>
         <div class="wa-editor__actions">
           <span class="wa-msg" id="wa-space-msg" role="status"></span>
-          <button type="button" id="wa-space-cancel" class="wa-btn" style="display:none">取消编辑</button>
-          <button type="button" id="wa-space-delete" class="wa-btn wa-btn--danger" style="display:none">删除</button>
-          <button type="button" id="wa-space-save" class="wa-btn wa-btn--primary">保存</button>
+          <button type="button" id="wa-space-cancel" class="btn" style="display:none">取消编辑</button>
+          <button type="button" id="wa-space-delete" class="btn btn-danger" style="display:none">删除</button>
+          <button type="button" id="wa-space-save" class="btn btn-primary">保存</button>
         </div>
       </div>
     </div>
   </div>
 </div>
 
+<!-- 统一提示体系：ui.js 先于工作台脚本加载，保证 NL.toast 可用 -->
+<script defer src="/js/ui.js"></script>
 <!-- Vditor 本地资源 -->
 <link rel="stylesheet" href="/vendor/vditor/dist/index.css"/>
 <link rel="stylesheet" href="/css/vditor-fix.css"/>

@@ -259,3 +259,19 @@ Blog 文章：Content(docType:blog, spaceId:null)  ← 完全独立，走原博�
 | 6 | 知识库首页看不到分享按钮 | 之前只有文档详情页有。给 `space.ejs` 加分享按钮 + `include _share`（shareLabel 可配），控制器传 ogTitle/ogDesc/ogImage；分享出去显示知识库名与简介 |
 
 **CSS 令牌教训（重要）**：项目可用间距令牌只有 `--space-1/2/3/4/6/8/12/18`。用不存在的令牌（如 `--space-5`）会导致整条 CSS 声明静默失效——表现为"样式没生效/贴边"。排查：`grep -o -- "--space-[0-9]*" 文件 | sort -u` 对照 theme.css 定义。
+
+---
+
+## 13. 第五轮：提示体系统一 + 编辑器分屏 + 博客二维码（2026-11-20）
+
+**全系统提示审计结论**：项目去框架化后其实已统一到 `ui.js` 的 `window.NL`（toast/alert/modal）+ app.css 的 `.nl-toast/.nl-modal`；`myMsg` 只是 `NL.toast` 的薄别名。唯一"第二套"是 wiki 工作台的 `.wa-msg` 内联提示 + `.wa-btn` 按钮。
+
+| # | 优化 | 处理 |
+|---|---|---|
+| 1 | 工作台保存无提示 + 全系统提示/按钮统一 | wiki-admin.js 的 `msg()` 改走 `NL.toast`（kind 映射 ok→success/error→error）；wiki 独立页补 toast 宿主 + ui.js（ui.js 提前到工作台脚本前加载）；`.wa-btn` 全部换 `.btn/.btn-primary/.btn-danger`，删除 wa-btn 死样式 |
+| 2 | 编辑器默认分屏预览 | 两处 `new Vditor` 的 `mode` 从 `wysiwyg` 改 `sv`（splitView，Vditor 3.10.8 确认支持）：`views/editor.ejs`（博客）、`public/js/wiki-admin.js`（Wiki） |
+| 3 | 博客分享加二维码 | `views/contentDetail.ejs` 分享弹层加 `.nl-share__qr`（复用 `/api/qrcode`）；二维码样式提取到 theme.css 的 `.nl-share__qr`，Wiki 分享弹层也统一用它，删除 wiki.css 的重复样式——博客与 Wiki 分享弹层共用一套 |
+
+**一位一码**：分享二维码样式只定义在 theme.css；toast 只有 NL.toast 一套；按钮只有 `.btn` 一套；Vditor mode 两处口径一致（sv）。
+
+自检：node --check 3 文件、EJS 编译 8 页、静态断言 32/32、Vditor sv 枚举确认、分享弹层真渲染无错位，全过。

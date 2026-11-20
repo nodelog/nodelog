@@ -11,10 +11,12 @@
       return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c];
     });
   }
+  // 统一提示：与全站共用 NL.toast（ui.js），不再用内联 .wa-msg 第二套体系
   function msg(id, text, kind) {
-    var el = $(id); if (!el) return;
-    el.textContent = text || '';
-    el.className = 'wa-msg' + (kind ? ' is-' + kind : '');
+    var k = kind === 'ok' ? 'success' : (kind === 'error' ? 'error' : 'info');
+    if (text && window.NL && NL.toast) NL.toast(text, 2400, k);
+    // 清空旧的内联提示残留（历史页面可能还留有该节点）
+    var el = $(id); if (el) { el.textContent = ''; el.className = 'wa-msg'; }
   }
   function post(url, data, cb) {
     fetch(url, {method: 'POST', credentials: 'same-origin',
@@ -56,7 +58,7 @@
   var vd = null;
   if (window.Vditor) {
     vd = new Vditor('wa-vditor', {
-      cdn: '/vendor/vditor', mode: 'wysiwyg', lang: 'zh_CN',
+      cdn: '/vendor/vditor', mode: 'sv', lang: 'zh_CN',  // 分屏预览，与博客编辑器一致
       height: 560, cache: {enable: false},
       outline: {enable: true, position: 'right'},
       upload: {accept: 'image/*', handler: function (files) {
