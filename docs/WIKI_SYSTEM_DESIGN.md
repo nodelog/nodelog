@@ -288,3 +288,20 @@ Blog 文章：Content(docType:blog, spaceId:null)  ← 完全独立，走原博�
 - 移动端搜索框默认折叠为图标按钮，点击在顶栏下方展开一行搜索条（点外部/Esc 收起）；桌面端仍是常驻搜索框，切换按钮仅移动端显示。
 - 隐藏"知识库"胶囊；品牌 `flex:0 1 auto` + 站名省略号截断；返回/工作台只留图标（文字 `.wiki-topbar__label` 隐藏）；所有工具元素 `flex:none; white-space:nowrap` 防竖排。
 - 真机 390px 容器探针验证：品牌[12,122]、搜索[216,252]、主题、返回[300,336]、工作台[342,378]，`topbarScrollW==clientW==390` 无溢出；截图确认一行完整显示、无竖排无重叠。
+
+---
+
+## 15. Wiki 文档混入博客前台修复（2026-11-20）
+
+**问题**：用户发现 Wiki 文档出现在博客前端页面。根因是 WP1 加 `docType` 后，博客前台所有查询都没排除 `docType:'wiki'`——`visibleTerm()`（首页/总数）与 findByCategory/findByWord/searchText/findAllByWord/findByTag/findByUser 及各 count 方法全部漏过滤。
+
+**修复**（`models/Content.js`）：给 14 个博客前台查询/计数方法的查询 term 加 `docType: DOC_TYPE_BLOG`（与 `$or` 并列，MongoDB 里是 AND）：
+- `visibleTerm()`（findByPage + getCount 间接覆盖）
+- findByCategory / findByWord / searchText / findAllByWord / findByUser / findByTag
+- getCountByTag / getCountByCategory / getCountByCategoryOnly / getCountByUser / getCountByWord / getCountByText
+
+**不改的**：后台看板统计（getPendingCount/getTrend/sourceApp 系列）口径仍含所有内容类型；`findByName`（判重用，不展示）未动，避免扩大范围。Wiki 自己的查询（findBySpace/findPageBySlug/findPagesBySpaces）本就限定 `DOC_TYPE_WIKI`，不受影响。
+
+**验证**：14 个方法脚本断言全部含 docType 过滤；node --check、静态断言 32/32 全过。
+
+**教训**：给已有集合加"类型"字段时，必须回头把所有既有查询补上过滤——否则新类型数据会静默混入旧类型的所有列表/计数。排查：`grep -n "constants.CONTENT_ENABLE_STATUS" models/Content.js` 逐条看是否带类型约束。

@@ -62,14 +62,21 @@ ContentSchema.index({ name: 'text', content: 'text', tags: 'text' });
 // 新内容默认发布状态；草稿不进公开列表。
 // 注意：draft 是 P0 新增字段，历史文档没有该字段。MongoDB 中 {draft:false} 不会匹配「字段不存在」的文档，
 // 会把 P0 之前发布的所有文章一并过滤掉（首页变「暂无内容」/空白）。统一用 {draft:{$ne:true}} 兼容新旧数据。
+// 博客前台可见性基准：只返回博客文章，Wiki 文档走独立知识库路由，绝不混入博客列表。
 function visibleTerm(currentUser) {
     if (currentUser == null) {
-        return {"status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}};
+        return {
+            docType: constants.DOC_TYPE_BLOG,
+            "status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}
+        };
     }
-    return {$or: [
-        {"status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}},
-        {"author": currentUser._id, "status": {$ne: constants.CONTENT_UNABLE_STATUS}}
-    ]};
+    return {
+        docType: constants.DOC_TYPE_BLOG,
+        $or: [
+            {"status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}},
+            {"author": currentUser._id, "status": {$ne: constants.CONTENT_UNABLE_STATUS}}
+        ]
+    };
 }
 
 // 批量补全作者/分类信息，替代原先逐条 async.whilst 的 N+1 查询
@@ -145,11 +152,11 @@ ContentDAO.prototype.findByPage = function (page, currentUser, callback) {
     });
 };
 ContentDAO.prototype.findByCategory = function (page, category, currentUser, callback) {
-    var term = {"category": category};
+    var term = {"category": category, "docType": constants.DOC_TYPE_BLOG};
     if (currentUser == null) {
-        term = {"category": category, "status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}};
+        term = {"category": category, "docType": constants.DOC_TYPE_BLOG, "status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}};
     } else {
-        term = {"category": category, $or: [
+        term = {"category": category, "docType": constants.DOC_TYPE_BLOG, $or: [
             {"status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}},
             {"author": currentUser._id, "status": {$ne: constants.CONTENT_UNABLE_STATUS}}
         ]};
@@ -165,11 +172,11 @@ ContentDAO.prototype.findByCategory = function (page, category, currentUser, cal
     });
 };
 ContentDAO.prototype.findByWord = function (page, word, currentUser, callback) {
-    var term = {"name": new RegExp(escapeRegExp(word), 'i')};
+    var nameTerm = {"name": new RegExp(escapeRegExp(word), 'i')};
     if (currentUser == null) {
-        term = {"name": new RegExp(escapeRegExp(word), 'i'), "status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}};
+        term = {"name": nameTerm.name, "docType": constants.DOC_TYPE_BLOG, "status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}};
     } else {
-        term = {"name": new RegExp(escapeRegExp(word), 'i'), $or: [
+        term = {"name": nameTerm.name, "docType": constants.DOC_TYPE_BLOG, $or: [
             {"status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}},
             {"author": currentUser._id, "status": {$ne: constants.CONTENT_UNABLE_STATUS}}
         ]};
@@ -188,9 +195,9 @@ ContentDAO.prototype.findByWord = function (page, word, currentUser, callback) {
 ContentDAO.prototype.searchText = function (page, word, currentUser, callback) {
     var term = {"$text": {$search: word}};
     if (currentUser == null) {
-        term = {"$text": {$search: word}, "status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}};
+        term = {"$text": {$search: word}, "docType": constants.DOC_TYPE_BLOG, "status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}};
     } else {
-        term = {"$text": {$search: word}, $or: [
+        term = {"$text": {$search: word}, "docType": constants.DOC_TYPE_BLOG, $or: [
             {"status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}},
             {"author": currentUser._id, "status": {$ne: constants.CONTENT_UNABLE_STATUS}}
         ]};
@@ -206,9 +213,9 @@ ContentDAO.prototype.searchText = function (page, word, currentUser, callback) {
     });
 };
 ContentDAO.prototype.findAllByWord = function (word, currentUser, callback) {
-    var term = {"name": new RegExp(escapeRegExp(word), 'i'), "status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}};
+    var term = {"name": new RegExp(escapeRegExp(word), 'i'), "docType": constants.DOC_TYPE_BLOG, "status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}};
     if (currentUser != null) {
-        term = {"name": new RegExp(escapeRegExp(word), 'i'), $or: [
+        term = {"name": new RegExp(escapeRegExp(word), 'i'), "docType": constants.DOC_TYPE_BLOG, $or: [
             {"status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}},
             {"author": currentUser._id, "status": {$ne: constants.CONTENT_UNABLE_STATUS}}
         ]};
@@ -221,7 +228,7 @@ ContentDAO.prototype.findAllByWord = function (word, currentUser, callback) {
     });
 };
 ContentDAO.prototype.findByUser = function (page, author, callback) {
-    var query = ContentModel.find({"author": author, "status": {$ne: constants.CONTENT_UNABLE_STATUS}});
+    var query = ContentModel.find({"author": author, "docType": constants.DOC_TYPE_BLOG, "status": {$ne: constants.CONTENT_UNABLE_STATUS}});
     query.select('name author category createTime modifyTime view status original slug cover excerpt tags docType');
     query.sort({"createTime": -1});
     query.limit(constants.PER_PAGE_COUNT);
@@ -243,9 +250,9 @@ ContentDAO.prototype.findByTag = function (page, tag, currentUser, callback) {
     var tagTerm = tagRegex(tag);
     var term;
     if (currentUser == null) {
-        term = {"tags": tagTerm, "status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}};
+        term = {"tags": tagTerm, "docType": constants.DOC_TYPE_BLOG, "status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}};
     } else {
-        term = {"tags": tagTerm, $or: [
+        term = {"tags": tagTerm, "docType": constants.DOC_TYPE_BLOG, $or: [
             {"status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}},
             {"author": currentUser._id, "status": {$ne: constants.CONTENT_UNABLE_STATUS}}
         ]};
@@ -264,9 +271,9 @@ ContentDAO.prototype.getCountByTag = function (tag, currentUser, callback) {
     var tagTerm = tagRegex(tag);
     var term;
     if (currentUser == null) {
-        term = {"tags": tagTerm, "status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}};
+        term = {"tags": tagTerm, "docType": constants.DOC_TYPE_BLOG, "status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}};
     } else {
-        term = {"tags": tagTerm, $or: [
+        term = {"tags": tagTerm, "docType": constants.DOC_TYPE_BLOG, $or: [
             {"status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}},
             {"author": currentUser._id, "status": {$ne: constants.CONTENT_UNABLE_STATUS}}
         ]};
@@ -296,9 +303,9 @@ ContentDAO.prototype.getTrend = function (days, callback) {
 ContentDAO.prototype.getCountByCategory = function (category, currentUser, callback) {
     var term;
     if (currentUser == null) {
-        term = {"category": category, "status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}};
+        term = {"category": category, "docType": constants.DOC_TYPE_BLOG, "status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}};
     } else {
-        term = {"category": category, $or: [
+        term = {"category": category, "docType": constants.DOC_TYPE_BLOG, $or: [
             {"status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}},
             {"author": currentUser._id, "status": {$ne: constants.CONTENT_UNABLE_STATUS}}
         ]};
@@ -308,12 +315,12 @@ ContentDAO.prototype.getCountByCategory = function (category, currentUser, callb
     });
 };
 ContentDAO.prototype.getCountByCategoryOnly = function (category, callback) {
-    ContentModel.count({"category": category, "status": {$ne: constants.CONTENT_UNABLE_STATUS}}, function (err, total) {
+    ContentModel.count({"category": category, "docType": constants.DOC_TYPE_BLOG, "status": {$ne: constants.CONTENT_UNABLE_STATUS}}, function (err, total) {
         callback(err, total);
     });
 };
 ContentDAO.prototype.getCountByUser = function (author, callback) {
-    ContentModel.count({"author": author, "status": {$ne: constants.CONTENT_UNABLE_STATUS}}, function (err, total) {
+    ContentModel.count({"author": author, "docType": constants.DOC_TYPE_BLOG, "status": {$ne: constants.CONTENT_UNABLE_STATUS}}, function (err, total) {
         callback(err, total);
     });
 };
@@ -353,9 +360,9 @@ ContentDAO.prototype.countBySourceApps = function (appIds, callback) {
 ContentDAO.prototype.getCountByWord = function (word, currentUser, callback) {
     var term;
     if (currentUser == null) {
-        term = {"name": new RegExp(escapeRegExp(word), 'i'), "status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}};
+        term = {"name": new RegExp(escapeRegExp(word), 'i'), "docType": constants.DOC_TYPE_BLOG, "status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}};
     } else {
-        term = {"name": new RegExp(escapeRegExp(word), 'i'), $or: [
+        term = {"name": new RegExp(escapeRegExp(word), 'i'), "docType": constants.DOC_TYPE_BLOG, $or: [
             {"status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}},
             {"author": currentUser._id, "status": {$ne: constants.CONTENT_UNABLE_STATUS}}
         ]};
@@ -367,9 +374,9 @@ ContentDAO.prototype.getCountByWord = function (word, currentUser, callback) {
 ContentDAO.prototype.getCountByText = function (word, currentUser, callback) {
     var term;
     if (currentUser == null) {
-        term = {"$text": {$search: word}, "status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}};
+        term = {"$text": {$search: word}, "docType": constants.DOC_TYPE_BLOG, "status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}};
     } else {
-        term = {"$text": {$search: word}, $or: [
+        term = {"$text": {$search: word}, "docType": constants.DOC_TYPE_BLOG, $or: [
             {"status": constants.CONTENT_ENABLE_STATUS, "draft": {"$ne": true}},
             {"author": currentUser._id, "status": {$ne: constants.CONTENT_UNABLE_STATUS}}
         ]};
