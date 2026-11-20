@@ -169,6 +169,15 @@ if (activeId) buildOpenIds(activeId);
     var name = $('wa-doc-name').value || '该页面';
     confirmAction('确认删除「' + name + '」？此操作不可撤销。', function () { doDeleteDoc(id); }, '删除页面');
   });
+  // 展开/折叠分类节点，同步按钮状态；不触碰右侧编辑器
+  function toggleNode(tid) {
+    var sub = $('wa-page-list').querySelector('[data-children-of="' + tid + '"]');
+    if (!sub) return;
+    var willOpen = sub.hidden;
+    sub.hidden = !willOpen;
+    var btn = $('wa-page-list').querySelector('.wa-page-toggle[data-toggle="' + tid + '"]');
+    if (btn) { btn.classList.toggle('is-open', willOpen); btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false'); }
+  }
   $('wa-page-list').addEventListener('click', function (e) {
     var del = e.target.closest ? e.target.closest('[data-del]') : null;
     if (del) {
@@ -181,17 +190,15 @@ if (activeId) buildOpenIds(activeId);
     var tg = e.target.closest ? e.target.closest('.wa-page-toggle[data-toggle]') : null;
     if (tg) {
       e.stopPropagation();
-      var tid = tg.getAttribute('data-toggle');
-      var sub = $('wa-page-list').querySelector('[data-children-of="' + tid + '"]');
-      var willOpen = sub && sub.hidden;
-      if (sub) sub.hidden = !willOpen;
-      tg.classList.toggle('is-open', !!willOpen);
-      tg.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+      toggleNode(tg.getAttribute('data-toggle'));
       return;
     }
     var item = e.target.closest ? e.target.closest('.wa-page-item') : null;
     if (!item) return;
     var pid = item.getAttribute('data-id');
+    // 分类节点（有子节点）：点击整行只展开/折叠，保持右侧当前编辑不变
+    var sub = $('wa-page-list').querySelector('[data-children-of="' + pid + '"]');
+    if (sub) { toggleNode(pid); return; }
     var all = pagesBySpace[currentSpaceId()] || [];
     var found = null;
     for (var i = 0; i < all.length; i++) { if (String(all[i]._id) === pid) { found = all[i]; break; } }

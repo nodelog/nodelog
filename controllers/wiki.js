@@ -58,6 +58,9 @@ exports.page = function (req, res) {
                 rendered = String(doc.content || '');
             }
             var crumbs = wikiTree.breadcrumb(pages, doc._id);
+            // 目录树默认折叠，但当前页的祖先分类链要展开 → 把面包屑上的 id 传给树模板
+            var openIds = {};
+            (crumbs || []).forEach(function (c) { openIds[String(c._id)] = true; });
             // 相关资源：同库内共享任一标签的其他页面（最多 8 条），标签为空时退化为最近更新
             var docTags = doc.tags || [];
             var related = [];
@@ -87,7 +90,7 @@ exports.page = function (req, res) {
             res.render('wiki/page', {
                 title: doc.name + ' - ' + space.name, currentMenu: 'wiki',
                 space: space, doc: doc, rendered: rendered, toc: toc,
-                tree: tree, breadcrumb: crumbs, currentId: doc._id,
+                tree: tree, breadcrumb: crumbs, currentId: doc._id, openIds: openIds,
                 related: related, tags: tags, pageCount: pages.length,
                 ogTitle: doc.name + ' - ' + space.name, ogDesc: ogDesc, ogImage: ogImage
             });

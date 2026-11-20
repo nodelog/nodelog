@@ -1,0 +1,54 @@
+<%- include('_header') %>
+<div class="wiki-shell">
+  <div class="wiki-grid">
+    <aside class="wiki-aside">
+      <div class="wiki-aside__head">
+        <a class="wiki-aside__back" href="/wiki" title="返回知识库列表">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>全部知识库
+        </a>
+      </div>
+      <div class="wiki-aside__head">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <h2 class="wiki-aside__title" title="知识库搜索">知识库搜索</h2>
+      </div>
+      <div class="wiki-aside__body">
+        <p class="wiki-aside__empty">仅在知识库文档中搜索，不含博客文章。</p>
+      </div>
+    </aside>
+
+    <div class="wiki-main">
+      <nav class="wiki-crumb" aria-label="面包屑">
+        <a href="/wiki">知识库</a>
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+        <span aria-current="page">搜索结果</span>
+      </nav>
+      <div class="wiki-hero">
+        <div class="wiki-doc__head">
+          <h1 class="wiki-hero__title">搜索「<%= key %>」</h1>
+        </div>
+        <p class="wiki-hero__desc">在知识库中找到 <%= total %> 篇相关文档</p>
+        <% if (docs && docs.length) { %>
+        <div class="post-list">
+          <% docs.forEach(function (doc) { %>
+            <%- include('../common/postCard', { doc: doc, variant: 'list', key: key }) %>
+          <% }); %>
+        </div>
+        <%- include('../common/pagination', { page: page, totalPage: totalPage, url: (typeof locals.url === 'string' && locals.url) ? locals.url : '/content/search?word=' + encodeURIComponent(key) + '&docType=wiki&' }) %>
+        <% } else { %>
+        <div class="wiki-empty">没有找到相关文档。换个关键词试试。</div>
+        <% } %>
+      </div>
+    </div>
+
+    <aside class="wiki-rail">
+      <div class="wiki-rail__block">
+        <h3 class="wiki-rail__title">搜索范围</h3>
+        <p style="color:var(--muted);line-height:1.7;margin:0">仅知识库文档。要搜博客文章请到 <a href="/content/search?word=<%= encodeURIComponent(key) %>&docType=blog" style="color:var(--accent)">博客搜索</a>。</p>
+      </div>
+      <div class="wiki-rail__block">
+        <a class="wiki-tag" href="/wiki" title="返回知识库">← 返回知识库</a>
+      </div>
+    </aside>
+  </div>
+</div>
+<%- include('_footer') %>

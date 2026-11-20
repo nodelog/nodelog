@@ -212,8 +212,10 @@ exports.searchFull = function (req, res) {
             ['docType', 'scope', 'spaceId', 'category', 'tag'].forEach(function (k) {
                 if (req.query[k]) queryStr += '&' + k + '=' + encodeURIComponent(req.query[k]);
             });
-            res.render("search", {
-                docs: docs, title: "全文搜索：" + word, key: word,
+            // scope=wiki / docType=wiki 用知识库风格搜索页，避免从知识库跳到博客外观让人困惑
+            var isWiki = opts.docType === 'wiki';
+            res.render(isWiki ? "wiki/search" : "search", {
+                docs: docs, title: (isWiki ? "知识库搜索：" : "全文搜索：") + word, key: word,
                 page: pageObj.page, totalPage: pageObj.totalPage, total: r.total,
                 url: "/content/search" + queryStr + "&"
             });

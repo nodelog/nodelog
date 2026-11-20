@@ -1,13 +1,26 @@
 <%- include('_header') %>
 <div class="wiki-shell">
-  <div class="wiki-grid wiki-static-grid">
+  <div class="wiki-grid">
+    <aside class="wiki-aside">
+      <div class="wiki-aside__head">
+        <a class="wiki-aside__back" href="/wiki" title="返回知识库列表">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>全部知识库
+        </a>
+      </div>
+      <div class="wiki-aside__head">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41 13.42 20.6a2 2 0 0 1-2.83 0L2 12V4a2 2 0 0 1 2-2h8l8.59 8.59a2 2 0 0 1 0 2.82Z"/><circle cx="7.5" cy="7.5" r="1"/></svg>
+        <h2 class="wiki-aside__title" title="标签：<%= tag.name %>"># <%= tag.name %></h2>
+      </div>
+      <div class="wiki-aside__body">
+        <p class="wiki-aside__empty">共 <%= total %> 篇相关文档，均来自知识库。</p>
+      </div>
+    </aside>
+
     <div class="wiki-main">
       <nav class="wiki-crumb" aria-label="面包屑">
         <a href="/wiki">知识库</a>
         <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
-        <span>标签</span>
-        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
-        <span aria-current="page"><%= tag.name %></span>
+        <span>标签 # <%= tag.name %></span>
       </nav>
       <div class="wiki-hero">
         <div class="wiki-doc__head">
@@ -26,10 +39,14 @@
         <% } %>
       </div>
     </div>
+
     <aside class="wiki-rail">
       <div class="wiki-rail__block">
-        <h3 class="wiki-rail__title">标签</h3>
-        <a class="wiki-tag" href="/wiki" title="返回知识库">返回知识库</a>
+        <h3 class="wiki-rail__title">说明</h3>
+        <p style="color:var(--muted);line-height:1.7;margin:0">此页汇总知识库中带有「<%= tag.name %>」标签的文档，文档链接均指向对应知识库。</p>
+      </div>
+      <div class="wiki-rail__block">
+        <a class="wiki-tag" href="/wiki" title="返回知识库">← 返回知识库</a>
       </div>
     </aside>
   </div>

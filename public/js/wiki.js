@@ -2,31 +2,8 @@
 (function () {
   'use strict';
 
-  // 目录树折叠：默认全部折叠，仅展开「当前页面所在路径」的祖先链
-  function setRow(row, collapsed) {
-    row.classList.toggle('is-collapsed', collapsed);
-    var btn = row.querySelector(':scope > .wiki-tree__toggle');
-    if (btn) btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-  }
-  function initTree() {
-    document.querySelectorAll('.wiki-tree__row').forEach(function (row) {
-      var toggle = row.querySelector(':scope > .wiki-tree__toggle');
-      if (toggle && !toggle.classList.contains('is-empty')) setRow(row, true);
-    });
-    // 展开当前页及其祖先（当前页在树里带 is-current）
-    var current = document.querySelector('.wiki-tree__row.is-current');
-    if (current) {
-      var row = current;
-      while (row && row.classList) {
-        setRow(row, false);
-        var parentUl = row.parentElement;             // 当前 li 所在的 ul
-        var parentLi = parentUl && parentUl.parentElement; // 父级 li
-        row = parentLi && parentLi.querySelector(':scope > .wiki-tree__row');
-      }
-    }
-  }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initTree);
-  else initTree();
+  // 目录树折叠：折叠状态由服务端渲染（_tree.ejs 按 openIds 算好当前页祖先链），
+  // 这里只负责点击切换，不再在初始化时强制全折叠——否则会覆盖服务端展开的当前分类。
 
   // 点箭头切换折叠
   document.addEventListener('click', function (e) {
