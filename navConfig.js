@@ -44,8 +44,8 @@ var frontGroups = [
                 href: '/tags/all', className: 'js-tags-menu'   // /tags 是 JSON API，页面走 /tags/all
             },
             {
-                key: 'wiki', label: '知识库', title: 'Wiki 知识库',
-                href: '/wiki', className: 'js-wiki-menu'
+                key: 'wiki', label: '知识库', title: 'Wiki 知识库（新窗口打开）',
+                href: '/wiki', className: 'js-wiki-menu', target: '_blank'
             },
             {
                 key: 'log', label: '公告', title: '系统公告',
@@ -64,11 +64,6 @@ var frontGroups = [
             {
                 key: 'content', label: '写文章', title: '写文章',
                 href: '/content/addPage', className: 'js-post-log',
-                requiresLogin: true
-            },
-            {
-                key: 'wiki', label: '新建文档', title: '新建 Wiki 文档',
-                href: '/content/addPage?docType=wiki', className: 'js-new-wiki',
                 requiresLogin: true
             }
         ]
@@ -119,8 +114,7 @@ var adminGroups = [
             { key: 'category', label: '分类', href: '/manager/category/admin?page=1', roles: 'admin' },
             { key: 'categoryRefactor', label: '分类重构', href: '/manager/category/refactor', roles: 'admin' },
             { key: 'tag', label: '标签', href: '/manager/tag?page=1', roles: 'admin' },
-            { key: 'wikiSpace', label: '知识库', href: '/manager/wiki/space', roles: 'admin' },
-            { key: 'wikiImport', label: '导入文档', href: '/manager/wiki/import', roles: 'admin' },
+            { key: 'wikiSpace', label: '知识库', href: '/manager/wiki', roles: 'admin' },
             { key: 'log', label: '公告', href: '/manager/log/admin?page=1', roles: 'admin' },
             { key: 'link', label: '链接', href: '/manager/link', roles: 'admin' }
         ]

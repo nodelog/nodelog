@@ -37,7 +37,8 @@
             </li>
             <% }else{ %>
             <li>
-                <a href="<%= item.href %>" title="<%= item.title %>" class="color-white <%= item.className %> <%= active ? 'current-menu' : '' %>" <%= active ? 'aria-current="page"' : '' %> ><%= item.label %><%if(item.badge){%> <span class="badge js-log-count"></span><%}%></a>
+                <a href="<%= item.href %>" title="<%= item.title %>" class="color-white <%= item.className %> <%= active ? 'current-menu' : '' %>" <%= active ? 'aria-current="page"' : '' %>
+                   <% if (item.target) { %>target="<%= item.target %>" rel="noopener noreferrer"<% } %> ><%= item.label %><%if(item.badge){%> <span class="badge js-log-count"></span><%}%></a>
             </li>
             <% } %>
             <% }); %>

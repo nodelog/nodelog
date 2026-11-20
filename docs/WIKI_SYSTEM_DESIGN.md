@@ -209,3 +209,24 @@ Blog 文章：Content(docType:blog, spaceId:null)  ← 完全独立，走原博�
 **待确认后继续**：① 前端方向确认（三栏/配色/文案）；② WP3 检索底座（text 索引重建 + 组合过滤）。
 
 > 后台 Space CRUD 已在同批次补齐（原列为待办，因「不补就无法从界面建库」而提前完成）。
+
+---
+
+## 10. 方向修正（2026-11-20 第二轮，用户反馈后）
+
+用户对 WP4 第一版提出 5 点修正，已采纳并落地：
+
+| # | 用户意见 | 修正实现 |
+|---|---|---|
+| 1 | 知识库前台应独立，不跟博客集成；菜单新标签打开；内容 100% 宽、不留白 | 新增 `views/wiki/_header.ejs`/`_footer.ejs` 独立壳层（独立顶栏：品牌+知识库标识+搜索+返回博客），三栏页面改用独立壳；`wiki.css` 全宽化（去 760px 阅读栏→1080px、padding 收紧、三栏占满视口）；导航项加 `target:_blank`，`header.ejs` 透传 target |
+| 2 | 前台不该有录入入口，前台专给博客 | 删除 navConfig cta 区「新建文档」入口 |
+| 3 | 后台「知识库」「导入文档」两个菜单应合并 | 合并为单一「知识库」菜单 → `/manager/wiki` 统一工作台 |
+| 4 | 知识库后台也应独立全宽 | 新增 `views/manager/wiki/_header.ejs` 独立后台顶栏 + `wiki-admin.css` 全宽布局 |
+| 5 | 导入页纯文本框不合适，应用编辑器 | 统一工作台 `/manager/wiki` 三 tab（文档编辑/导入/知识库管理）；文档编辑用本地 **Vditor**（隐藏源 + getValue 同步）；支持新建/编辑/删除页面、库 CRUD、导入——全部在一个全宽页面完成 |
+
+**新增文件**：`views/wiki/_header.ejs`、`views/wiki/_footer.ejs`、`views/manager/wikiWorkspace.ejs`、`views/manager/wiki/_header.ejs`、`views/manager/wiki/_footer.ejs`、`public/css/wiki-admin.css`、`public/js/wiki-admin.js`。
+**新增接口**：`GET /manager/wiki`（工作台）、`POST /manager/wiki/doc/save`、`POST /manager/wiki/doc/delete`；`Content.findPagesForEdit`、`spaceAdmin.workspace/saveDoc/deleteDoc`；导入接口兼容 `spaceId` 参数。
+
+**真渲染验证**：1600px 截图 `.design/wiki-shots/independent.png` 确认独立顶栏 + 全宽三栏 + 无溢出。
+
+**边界**：`views/manager/wikiSpace.ejs`、`views/manager/wikiImport.ejs` 保留为兼容页面（直接访问 URL 仍可用），但主入口已统一到工作台。

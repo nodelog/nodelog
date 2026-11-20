@@ -257,6 +257,9 @@ var route = function (app) {
     // ---- Wiki 文档导入（A，仅管理员；复用 buildFields/风控/标签重算；不改 CSV columns）----
     var wikiImport = require('./../controllers/wikiImport');
     var spaceAdmin = require('./../controllers/spaceAdmin');
+    app.get('/manager/wiki', A, spaceAdmin.workspace);
+    app.post('/manager/wiki/doc/save', A, spaceAdmin.saveDoc);
+    app.post('/manager/wiki/doc/delete', A, spaceAdmin.deleteDoc);
     app.get('/manager/wiki/space', A, spaceAdmin.page);
     app.post('/manager/wiki/space/add', A, spaceAdmin.add);
     app.post('/manager/wiki/space/update', A, spaceAdmin.update);

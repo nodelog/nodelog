@@ -1,0 +1,111 @@
+<%- include('wiki/_header') %>
+<div class="wa-shell" id="wa-app">
+
+  <!-- 顶部 tab -->
+  <div class="wa-tabs" role="tablist" aria-label="知识库工作台功能">
+    <button type="button" class="wa-tab is-active" data-tab="edit" role="tab" aria-selected="true">文档编辑</button>
+    <button type="button" class="wa-tab" data-tab="import" role="tab" aria-selected="false">导入文档</button>
+    <button type="button" class="wa-tab" data-tab="space" role="tab" aria-selected="false">知识库管理</button>
+  </div>
+
+  <!-- ===== Tab 1：文档编辑（左库树 + 中 Vditor）===== -->
+  <div class="wa-panel is-active" data-panel="edit">
+    <div class="wa-grid">
+      <aside class="wa-side">
+        <div class="wa-side__head">
+          <select id="wa-space-select" class="wa-select" aria-label="选择知识库"></select>
+          <button type="button" id="wa-new-doc" class="wa-btn wa-btn--primary" title="在当前库新建页面">+ 新建页面</button>
+        </div>
+        <div class="wa-side__section-title">页面列表</div>
+        <ul class="wa-page-list" id="wa-page-list"></ul>
+      </aside>
+      <div class="wa-editor">
+        <div class="wa-editor__fields">
+          <input type="text" id="wa-doc-id" class="wa-hidden"/>
+          <input type="text" id="wa-doc-name" class="wa-input wa-input--title" placeholder="文档标题（同时决定链接 slug）"/>
+          <input type="text" id="wa-doc-tags" class="wa-input" placeholder="标签，逗号分隔（可选）"/>
+          <input type="text" id="wa-doc-slug" class="wa-input" placeholder="Slug（留空由标题生成）"/>
+        </div>
+        <input type="hidden" id="wa-doc-space"/>
+        <!-- Vditor 隐藏源 + 挂载点 -->
+        <textarea id="wa-editor-source" class="wa-hidden" aria-hidden="true"></textarea>
+        <div id="wa-vditor"></div>
+        <div class="wa-editor__actions">
+          <span class="wa-msg" id="wa-edit-msg" role="status"></span>
+          <button type="button" id="wa-doc-delete" class="wa-btn wa-btn--danger">删除</button>
+          <button type="button" id="wa-doc-save" class="wa-btn wa-btn--primary">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Tab 2：导入文档 ===== -->
+  <div class="wa-panel" data-panel="import">
+    <div class="wa-import">
+      <h2>导入 Markdown 文档</h2>
+      <p class="wa-hint">选择目标知识库，粘贴 Markdown 或选择 .md 文件。同名文档在同一库内不可重复导入。</p>
+      <div class="wa-import__fields">
+        <label>目标知识库
+          <select id="wa-import-space" class="wa-select"></select>
+        </label>
+        <label>文档标题（留空取正文一级标题）
+          <input type="text" id="wa-import-name" class="wa-input"/>
+        </label>
+        <label>标签（逗号分隔，可选）
+          <input type="text" id="wa-import-tags" class="wa-input"/>
+        </label>
+      </div>
+      <label>Markdown 正文</label>
+      <input type="file" id="wa-import-file" accept=".md,.markdown,.txt,text/markdown,text/plain"/>
+      <textarea id="wa-import-content" class="wa-textarea" rows="14" placeholder="# 文档标题&#10;&#10;粘贴或读入 Markdown 内容…"></textarea>
+      <div class="wa-editor__actions">
+        <span class="wa-msg" id="wa-import-msg" role="status"></span>
+        <button type="button" id="wa-import-submit" class="wa-btn wa-btn--primary">导入</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Tab 3：知识库管理 ===== -->
+  <div class="wa-panel" data-panel="space">
+    <div class="wa-grid">
+      <aside class="wa-side">
+        <div class="wa-side__head"><button type="button" id="wa-new-space" class="wa-btn wa-btn--primary">+ 新建知识库</button></div>
+        <div class="wa-side__section-title">知识库列表</div>
+        <ul class="wa-page-list" id="wa-space-list"></ul>
+      </aside>
+      <div class="wa-space-form">
+        <h2 id="wa-space-form-title">新建知识库</h2>
+        <input type="hidden" id="wa-space-id"/>
+        <label>名称<input type="text" id="wa-space-name" class="wa-input" placeholder="如：链付收银SAAS"/></label>
+        <label>Slug（留空自动生成）<input type="text" id="wa-space-slug" class="wa-input" placeholder="linkon-saas"/></label>
+        <label>简介<textarea id="wa-space-desc" class="wa-textarea" rows="3"></textarea></label>
+        <label>可见性<select id="wa-space-visibility" class="wa-select">
+          <option value="public">公开（游客可读）</option>
+          <option value="private">私有（仅创建者/管理员）</option>
+        </select></label>
+        <label>排序（越小越靠前）<input type="number" id="wa-space-order" class="wa-input" value="0"/></label>
+        <div class="wa-editor__actions">
+          <span class="wa-msg" id="wa-space-msg" role="status"></span>
+          <button type="button" id="wa-space-cancel" class="wa-btn" style="display:none">取消编辑</button>
+          <button type="button" id="wa-space-delete" class="wa-btn wa-btn--danger" style="display:none">删除</button>
+          <button type="button" id="wa-space-save" class="wa-btn wa-btn--primary">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Vditor 本地资源 -->
+<link rel="stylesheet" href="/vendor/vditor/dist/index.css"/>
+<link rel="stylesheet" href="/css/vditor-fix.css"/>
+<script src="/vendor/vditor/dist/index.min.js"></script>
+<script>
+// 后端注入的初始数据（JSON.stringify 的 </script> 需转义，防止提前闭合脚本）
+window.__WIKI_ADMIN__ = {
+  spaces: <%- JSON.stringify(spaces || []).replace(/<\/script/gi, '<\\/script') %>,
+  pagesBySpace: <%- JSON.stringify(pagesBySpace || {}).replace(/<\/script/gi, '<\\/script') %>,
+  initialSpace: <%- JSON.stringify(initialSpace || '') %>
+};
+</script>
+<script src="/js/wiki-admin.js" defer></script>
+<%- include('wiki/_footer') %>

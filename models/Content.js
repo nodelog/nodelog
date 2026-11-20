@@ -499,6 +499,15 @@ ContentDAO.prototype.findPageBySlug = function (spaceId, slug, currentUser, call
     }
     ContentModel.findOne(term, callback);
 };
+// 工作台编辑用：取某库全部页面的正文（供点击页面后灌入 Vditor）
+ContentDAO.prototype.findPagesForEdit = function (spaceId, callback) {
+    ContentModel.find({
+        docType: constants.DOC_TYPE_WIKI,
+        spaceId: spaceId,
+        status: {$ne: constants.CONTENT_UNABLE_STATUS}
+    }).select('name slug content contentType tags excerpt parent wikiOrder')
+      .sort({wikiOrder: 1, createTime: 1}).exec(callback);
+};
 // 统计某库的页面数（右栏「本库信息」用）
 ContentDAO.prototype.countBySpace = function (spaceId, callback) {
     ContentModel.count({

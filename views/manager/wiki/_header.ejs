@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<%- include('../../common/meta') %>
+<title><%= title || '知识库工作台' %> - <%= session.site.name %></title>
+<link rel="stylesheet" href="/css/wiki.css"/>
+<link rel="stylesheet" href="/css/wiki-admin.css"/>
+</head>
+<body class="wiki-admin-body js-body">
+<header class="wiki-admin-topbar">
+  <div class="wiki-admin-topbar__brand">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
+    <span><%= session.site.name %></span><span class="wiki-admin-topbar__tag">知识库工作台</span>
+  </div>
+  <div class="wiki-admin-topbar__tools">
+    <a href="/wiki" target="_blank" rel="noopener noreferrer" class="wiki-admin-btn">查看前台</a>
+    <a href="/manager" class="wiki-admin-btn">返回博客后台</a>
+    <span class="wiki-admin-user"><%= session.user ? (session.user.realName || session.user.userName) : '' %></span>
+  </div>
+</header>

@@ -55,6 +55,7 @@ exports.import = function (req, res) {
     var name = resolveName(req.body.name, text);
     if (!name) return res.status(400).json({success: false, msg: '无法确定文档标题，请传入 name'});
     var spaceSlug = String(req.body.spaceSlug || '').trim();
+    var spaceId = kit.isObjectId(req.body.spaceId) ? String(req.body.spaceId) : '';
 
     function saveWithSpace(spaceId) {
         // 构造伪 req 复用 buildFields，保证与编辑器/API 同源归一化（docType 固定 wiki、格式 markdown）。
@@ -115,6 +116,11 @@ exports.import = function (req, res) {
     if (spaceSlug) {
         Space.findBySlug(spaceSlug, function (sErr, space) {
             if (sErr || !space) return res.status(404).json({success: false, msg: '知识库不存在：' + spaceSlug});
+            saveWithSpace(space._id);
+        });
+    } else if (spaceId) {
+        Space.findById(spaceId, function (sErr, space) {
+            if (sErr || !space) return res.status(404).json({success: false, msg: '知识库不存在'});
             saveWithSpace(space._id);
         });
     } else {

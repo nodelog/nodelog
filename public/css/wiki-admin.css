@@ -1,0 +1,125 @@
+/* Wiki 后台工作台：独立全宽布局，与博客后台容器隔离 */
+html, body.wiki-admin-body { margin: 0; padding: 0; }
+body.wiki-admin-body { min-height: 100vh; background: var(--bg); color: var(--ink); }
+
+.wiki-admin-topbar {
+    height: 56px; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 clamp(16px, 3vw, 40px); background: var(--surface);
+    border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 30;
+}
+.wiki-admin-topbar__brand { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+.wiki-admin-topbar__brand svg { color: var(--accent); }
+.wiki-admin-topbar__tag {
+    font-size: 11px; color: var(--accent); background: var(--accent-weak);
+    padding: 3px 9px; border-radius: 999px; letter-spacing: .04em;
+}
+.wiki-admin-topbar__tools { display: flex; align-items: center; gap: 10px; }
+.wiki-admin-btn {
+    display: inline-flex; align-items: center; height: 34px; padding: 0 12px;
+    border: 1px solid var(--border); border-radius: 8px; background: var(--surface);
+    color: var(--ink); font-size: 13px; text-decoration: none; cursor: pointer;
+}
+.wiki-admin-btn:hover { border-color: var(--accent); color: var(--accent); }
+.wiki-admin-user { font-size: 13px; color: var(--muted); margin-left: 6px; }
+
+/* tabs */
+.wa-shell { width: 100%; }
+.wa-tabs {
+    display: flex; gap: 4px; padding: 0 clamp(16px, 3vw, 40px);
+    background: var(--surface); border-bottom: 1px solid var(--border);
+}
+.wa-tab {
+    border: 0; background: transparent; color: var(--muted); cursor: pointer;
+    padding: 14px 18px; font-size: 14px; font-weight: 600;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.wa-tab:hover { color: var(--accent); }
+.wa-tab.is-active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* 面板切换 */
+.wa-panel { display: none; width: 100%; }
+.wa-panel.is-active { display: block; }
+
+/* 编辑/管理两栏 */
+.wa-grid { display: grid; grid-template-columns: 300px minmax(0, 1fr); min-height: calc(100vh - 110px); }
+.wa-side { border-right: 1px solid var(--border); background: var(--surface-2); padding: 16px; }
+.wa-side__head { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; }
+.wa-side__head .wa-select { flex: 1; }
+.wa-side__section-title {
+    font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--muted); margin: 12px 4px 8px;
+}
+.wa-page-list { list-style: none; margin: 0; padding: 0; }
+.wa-page-list li { margin-bottom: 4px; }
+.wa-page-item {
+    display: flex; align-items: center; gap: 6px; width: 100%;
+    padding: 8px 10px; border: 1px solid transparent; border-radius: 8px;
+    background: transparent; text-align: left; cursor: pointer;
+    color: var(--ink); font-size: 14px;
+}
+.wa-page-item:hover { background: var(--accent-weak); color: var(--accent); }
+.wa-page-item.is-active { background: var(--accent-weak); color: var(--accent); font-weight: 600; border-color: var(--border); }
+.wa-page-item__name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wa-page-item__del {
+    border: 0; background: transparent; color: var(--muted); cursor: pointer; padding: 2px 4px;
+    opacity: 0; font-size: 15px;
+}
+.wa-page-item:hover .wa-page-item__del { opacity: 1; }
+.wa-page-item__del:hover { color: var(--danger); }
+.wa-empty { padding: 14px; font-size: 13px; color: var(--muted); line-height: 1.7; }
+
+/* 编辑区 */
+.wa-editor { padding: 20px clamp(16px, 2vw, 32px); min-width: 0; }
+.wa-editor__fields { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.wa-editor__actions {
+    display: flex; align-items: center; gap: 10px; justify-content: flex-end;
+    margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border);
+}
+.wa-msg { margin-right: auto; font-size: 13px; color: var(--muted); }
+.wa-msg.is-error { color: var(--danger); }
+.wa-msg.is-ok { color: var(--success); }
+
+/* 通用控件 */
+.wa-input, .wa-select, .wa-textarea {
+    width: 100%; box-sizing: border-box; padding: 9px 12px;
+    border: 1px solid var(--border); border-radius: 8px;
+    background: var(--surface); color: var(--ink); font-size: 14px; font-family: inherit;
+}
+.wa-input:focus, .wa-select:focus, .wa-textarea:focus { outline: none; border-color: var(--accent); }
+.wa-input--title { font-size: 16px; font-weight: 600; }
+.wa-textarea { resize: vertical; line-height: 1.6; }
+.wa-hidden { display: none !important; }
+.wa-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    height: 34px; padding: 0 14px; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--surface); color: var(--ink); font-size: 13px; cursor: pointer; white-space: nowrap;
+}
+.wa-btn:hover { border-color: var(--accent); }
+.wa-btn--primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.wa-btn--primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: var(--accent-ink); }
+.wa-btn--danger { color: var(--danger); }
+.wa-btn--danger:hover { border-color: var(--danger); }
+
+/* 导入面板 */
+.wa-import { max-width: 900px; padding: 24px clamp(16px, 3vw, 40px); }
+.wa-import h2 { font-size: 22px; margin: 0 0 8px; }
+.wa-hint { font-size: 13px; color: var(--muted); margin: 0 0 20px; line-height: 1.7; }
+.wa-import__fields { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 16px; }
+.wa-import label, .wa-space-form label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+.wa-import label .wa-input, .wa-import label .wa-select,
+.wa-space-form label .wa-input, .wa-space-form label .wa-select,
+.wa-space-form label .wa-textarea { margin-top: 6px; }
+.wa-import input[type=file] { margin-bottom: 12px; font-size: 13px; }
+
+/* 库管理表单 */
+.wa-space-form { max-width: 720px; padding: 24px clamp(16px, 3vw, 40px); }
+.wa-space-form h2 { font-size: 22px; margin: 0 0 20px; }
+
+/* Vditor 高度 */
+#wa-vditor { min-height: 560px; }
+
+@media (max-width: 900px) {
+    .wa-grid { grid-template-columns: 1fr; }
+    .wa-side { border-right: 0; border-bottom: 1px solid var(--border); }
+    .wa-editor__fields, .wa-import__fields { grid-template-columns: 1fr; }
+}
