@@ -22,7 +22,8 @@ body.wiki-body > #wiki-main { flex: 1; }
     color: var(--accent); background: var(--accent-weak);
     padding: 3px 9px; border-radius: 999px;
 }
-.wiki-topbar__tools { display: flex; align-items: center; gap: 10px; }
+.wiki-topbar__tools { display: flex; align-items: center; gap: 8px; flex: none; }
+.wiki-search-toggle { display: none; }   /* 仅移动端出现 */
 .wiki-search {
     display: flex; align-items: center; gap: 8px;
     background: var(--surface-2); border: 1px solid var(--border);
@@ -295,6 +296,31 @@ body.wiki-body > #wiki-main { flex: 1; }
     .wiki-rail__block { flex: 1; }
 }
 @media (max-width: 767px) {
+    /* ---- 顶栏移动端：压缩为图标行，搜索折叠展开，杜绝挤压竖排 ---- */
+    .wiki-topbar { height: 52px; padding: 0 12px; gap: 8px; }
+    .wiki-topbar__brand { flex: 0 1 auto; min-width: 0; gap: 6px; }
+    .wiki-topbar__brand svg { width: 20px; height: 20px; }
+    .wiki-topbar__name {
+        font-size: 14px; overflow: hidden; text-overflow: ellipsis;
+        white-space: nowrap; min-width: 0;
+    }
+    .wiki-topbar__tag { display: none; }
+    .wiki-topbar__tools { gap: 6px; flex: none; }
+    .wiki-topbar__tools > * { flex: none; white-space: nowrap; }
+    /* 搜索框默认折叠为顶栏下的独立一行 */
+    .wiki-search {
+        display: none; position: absolute; left: 0; right: 0; top: 52px;
+        border-radius: 0; border-left: 0; border-right: 0;
+        padding: 0 16px; height: 48px;
+    }
+    .wiki-search.is-open { display: flex; }
+    .wiki-search__input { flex: 1; width: auto; min-width: 0; font-size: 16px; }
+    .wiki-search-toggle { display: inline-flex; padding: 0; width: 36px; justify-content: center; }
+    /* 主题/返回/工作台：只留图标，文字标签隐藏 */
+    .wiki-topbar__icon { padding: 0; width: 36px; justify-content: center; }
+    .wiki-topbar__back, .wiki-topbar__admin { padding: 0; width: 36px; justify-content: center; }
+    .wiki-topbar__label { display: none; }
+
     .wiki-grid { display: block; }
     .wiki-aside { border-right: 0; border-bottom: 1px solid var(--border); padding: var(--space-3); }
     .wiki-aside__body { display: none; }
