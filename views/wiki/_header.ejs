@@ -3,7 +3,7 @@
 <head>
 <%- include('../common/meta-front') %>
 <title><%= title || '知识库' %> - <%= session.site.name %></title>
-<link rel="stylesheet" href="/css/wiki.css"/>
+<link rel="stylesheet" href="/css/wiki.css?v=<%= (session.site && session.site.version) ? encodeURIComponent(String(session.site.version)) : '20261120' %>"/>
 </head>
 <body class="wiki-body js-body">
 <a class="skip-link" href="#wiki-main">跳到主内容</a>

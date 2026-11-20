@@ -14,10 +14,12 @@
 <!--alexa排名验证-->
 <meta name="alexaVerifyID" content="UmbHL7uQNFzJnFyC4OkkDx5CA3E"/>
 <title><%if(locals.title){%><%=title%><%}%>-<%=session.site.name%></title>
-<!-- 前台样式：tokens.css（链付收银SAAS 设计语言基线变量源）→ theme.css（NODELOG 语义别名 + 组件库）→ app.css（结构层） -->
-<link rel="stylesheet" href="/css/tokens.css">
-<link rel="stylesheet" href="/css/theme.css">
-<link rel="stylesheet" href="/css/app.css">
+<!-- 前台样式：tokens.css（链付收银SAAS 设计语言基线变量源）→ theme.css（NODELOG 语义别名 + 组件库）→ app.css（结构层）
+     ?v 用站点版本号破缓存：改版后无需用户手动清缓存即可拿到新 CSS（含移动端图标规则） -->
+<% var cssVer = (session.site && session.site.version) ? encodeURIComponent(String(session.site.version)) : '20261120'; %>
+<link rel="stylesheet" href="/css/tokens.css?v=<%= cssVer %>">
+<link rel="stylesheet" href="/css/theme.css?v=<%= cssVer %>">
+<link rel="stylesheet" href="/css/app.css?v=<%= cssVer %>">
 <% if (typeof needEditor !== 'undefined' && needEditor) { %>
 <!-- 仅编辑页按需加载：编辑器图标 / 旧工具栏 / 代码高亮 -->
 <link rel="stylesheet" href="/css/font-awesome.css">

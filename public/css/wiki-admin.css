@@ -110,7 +110,7 @@ body.wiki-admin-body { min-height: 100vh; background: var(--bg); color: var(--in
 #wa-vditor { min-height: 560px; }
 
 @media (max-width: 900px) {
-    .wiki-grid { grid-template-columns: 1fr; }
+    .wa-grid { grid-template-columns: 1fr; }   /* 工作台单栏（此前误写成 .wiki-grid 导致规则失效） */
     .wa-side { border-right: 0; border-bottom: 1px solid var(--border); }
     .wa-editor__fields, .wa-import__fields { grid-template-columns: 1fr; }
 }

@@ -6,14 +6,16 @@
     color: #eee;
     background-color: transparent;
 }
+/* 自适应菜单：图标用 currentColor 继承按钮文字色，浅色/深色顶栏都能自适应。
+   旧版硬编码 #fff 会让浅色顶栏上的汉堡三条杠变成白底白杠（看起来是空白方框）。 */
 .navbar-toggle {
-    border-color: #fff;
+    border-color: currentColor;
 }
 .navbar-toggle:hover,  .navbar-toggle:focus {
-    border-color: #ccc;
+    border-color: var(--accent, #ccc);
 }
 .navbar-toggle .icon-bar {
-    background-color: #fff;
+    background-color: currentColor;
 }
 /*自适应菜单--end*/
 .bg-gray {

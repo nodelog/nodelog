@@ -3,8 +3,9 @@
 <head>
 <%- include('../../common/meta') %>
 <title><%= title || '知识库工作台' %> - <%= session.site.name %></title>
-<link rel="stylesheet" href="/css/wiki.css"/>
-<link rel="stylesheet" href="/css/wiki-admin.css"/>
+<% var wikiCssVer = (session.site && session.site.version) ? encodeURIComponent(String(session.site.version)) : '20261120'; %>
+<link rel="stylesheet" href="/css/wiki.css?v=<%= wikiCssVer %>"/>
+<link rel="stylesheet" href="/css/wiki-admin.css?v=<%= wikiCssVer %>"/>
 </head>
 <body class="wiki-admin-body js-body">
 <header class="wiki-admin-topbar">
