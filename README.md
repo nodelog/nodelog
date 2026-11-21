@@ -188,6 +188,8 @@ node scripts/verify-open-platform.js             # 开放平台自检
 - [`docs/article-api.md`](docs/article-api.md) — 开放文章发布 API v3
 - [`docs/open-platform.md`](docs/open-platform.md) — 开放平台（扫码登录 / JS-SDK）
 - [`docs/admin-framework.md`](docs/admin-framework.md)、[`docs/admin-ui-framework.md`](docs/admin-ui-framework.md) — 后台框架约定
+- [`docs/GIT_REMOTE_POLICY.md`](docs/GIT_REMOTE_POLICY.md) — 源码仓库分工（私有主库 / 公开库）与公开库发布流程
+- [`COMMERCIAL_CHANGELOG.md`](COMMERCIAL_CHANGELOG.md) — 商业功能开发说明（每次升级记录，同步到公开库 `public` 分支）
 
 ## 部署检查清单
 
@@ -199,9 +201,13 @@ node scripts/verify-open-platform.js             # 开放平台自检
 
 ## 源码仓库与授权
 
-- Gitee：<https://gitee.com/nodelog/nodelog>
-- GitHub：<https://github.com/nodelog/nodelog>
+源码分三库管理（详见 [`docs/GIT_REMOTE_POLICY.md`](docs/GIT_REMOTE_POLICY.md)）：
 
-仓库用于源码展示与个人学习。**商用部署（含企业/客户站点、二次分发）需取得商业授权**，
+- **私有主库**（腾讯工蜂）：商业版功能开发的全量代码库，是默认开发/同步目标。
+- **公开展示库**：Gitee <https://gitee.com/nodelog/nodelog>、GitHub <https://github.com/nodelog/nodelog>。
+  两库的 `master` 用于源码展示与个人学习；`public` 分支为纯开源基线，仅发布开源 BUG 修复与
+  [`COMMERCIAL_CHANGELOG.md`](COMMERCIAL_CHANGELOG.md) 中的商业功能文字说明（不含商业源码）。
+
+公开库**用于源码展示与个人学习**。**商用部署（含企业/客户站点、二次分发）需取得商业授权**，
 授权范围、价格与支持方式见 [`LICENSE`](LICENSE) 或访问项目站点的「源码授权」页（`https://blog.jiangzi.xin/license/`）咨询。
 历史版本（2026-11-21 前）仍以 Apache 2.0 授权，见 [`LICENSE-APACHE-2.0`](LICENSE-APACHE-2.0)。
