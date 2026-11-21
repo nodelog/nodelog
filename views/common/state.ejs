@@ -1,0 +1,43 @@
+<%
+  // 四类状态唯一组件。失败绝不降级成空态：error/fail 必须带重试，且不改动已渲染内容与输入。
+  var k = (typeof kind !== 'undefined' && kind) ? kind : 'empty';
+  var s = (typeof size !== 'undefined' && size) ? size : 'block';
+  var isErr = (k === 'error' || k === 'fail');
+  var isAlert = (k === 'error');
+  var hasSecond = (typeof actionHref2 !== 'undefined' && actionHref2 && typeof actionText2 !== 'undefined' && actionText2);
+%>
+<div class="state state--<%= k %> state--<%= s %>" data-state="<%= k %>"
+     role="<%= isAlert ? 'alert' : 'status' %>"
+     aria-live="<%= isAlert ? 'assertive' : 'polite' %>" aria-atomic="true">
+<% if (k === 'loading') { %>
+  <div class="state-skeleton" aria-hidden="true">
+    <span class="sk sk--title"></span><span class="sk sk--line"></span><span class="sk sk--line sk--short"></span>
+  </div>
+  <span class="sr-only">正在加载</span>
+<% } else { %>
+  <span class="state-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"
+    fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <% if (isErr) { %><path d="M12 3 2 20h20L12 3z"/><path d="M12 9v5"/><circle cx="12" cy="17.5" r=".8"/>
+    <% } else if (k === 'success') { %><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>
+    <% } else if (k === 'empty') { %><circle cx="12" cy="12" r="9"/><path d="M8 13h8"/>
+    <% } else { %><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="8" r=".8"/><% } %>
+  </svg></span>
+  <div class="state-body">
+    <% if (typeof title !== 'undefined' && title) { %><p class="state-title"><%= title %></p><% } %>
+    <% if (typeof text !== 'undefined' && text) { %><p class="state-text"><%= text %></p><% } %>
+    <% if ((typeof retryUrl !== 'undefined' && retryUrl) || (typeof actionHref !== 'undefined' && actionHref) || hasSecond) { %>
+    <div class="state-actions">
+      <% if (typeof retryUrl !== 'undefined' && retryUrl) { %>
+      <button type="button" class="btn btn-sm js-state-retry" data-retry="<%= retryUrl %>"><%= (typeof retryLabel !== 'undefined' && retryLabel) ? retryLabel : '重试' %></button>
+      <% } %>
+      <% if (typeof actionHref !== 'undefined' && actionHref) { %>
+      <a class="state-link" href="<%= actionHref %>"><%= actionText %></a>
+      <% } %>
+      <% if (hasSecond) { %>
+      <a class="state-link" href="<%= actionHref2 %>"><%= actionText2 %></a>
+      <% } %>
+    </div>
+    <% } %>
+  </div>
+<% } %>
+</div>

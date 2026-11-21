@@ -1,0 +1,74 @@
+<%- include('header') %>
+<ol class="breadcrumb">
+    <li><a href="/manager">后台首页</a></li>
+    <li class="active">敏感词管理</li>
+</ol>
+<%
+  // 本页零新增 JS：data-res="sensitive-word" 由 common.js apiFor() 自动拼 /manager/sensitive-word/<action>。
+  // 新增/编辑/批量/导入导出/单条状态/删除全部复用后台自治委托（common.js:1067-1339），不碰共享文件。
+  var _cats = [
+    {v:'politics',t:'涉政'}, {v:'porn',t:'色情'}, {v:'ad',t:'广告'},
+    {v:'abuse',t:'辱骂'}, {v:'custom',t:'自定义'}
+  ];
+  var _catTxt = {politics:'涉政', porn:'色情', ad:'广告', abuse:'辱骂', custom:'自定义'};
+  var _docs = Array.isArray(docs) ? docs : [];
+%>
+<h3>敏感词管理</h3>
+<div class="admin-list">
+  <%- include('../common/adminToolbar', { bar: {
+      res: 'sensitive-word', base: '/manager/sensitive-word', keyword: true,
+      status: [{v:'0',t:'启用'},{v:'1',t:'停用'}],
+      sort: [{v:'createTime',t:'创建时间'},{v:'modifyTime',t:'修改时间'},{v:'word',t:'词'}],
+      batch: true, batchStatuses: [{v:'0',t:'启用'},{v:'1',t:'停用'}],
+      io: true,
+      add: { label: '新增敏感词', fields: [
+        {n:'word', t:'敏感词', k:'text', req:1, max:64},
+        {n:'category', t:'分类', k:'select', o:_cats, d:'custom'},
+        {n:'status', t:'状态', k:'select', o:[{v:'0',t:'启用'},{v:'1',t:'停用'}], d:'0'}
+      ]}
+  } }) %>
+  <div class="bg-white jumbotron clear-margin">
+    <% if (_docs.length > 0) { %>
+    <table class="table table-hover">
+      <thead>
+      <tr>
+        <th class="admin-col-check" aria-label="选择"></th>
+        <th class="admin-col-opt">编号</th>
+        <th>敏感词</th>
+        <th class="admin-col-opt">分类</th>
+        <th class="admin-col-opt">创建时间</th>
+        <th class="admin-col-status">状态</th>
+        <th class="admin-col-actions">操作</th>
+      </tr>
+      </thead>
+      <tbody>
+      <% _docs.forEach(function (d, i) { %>
+        <% var _id = String(d._id == null ? '' : d._id); %>
+        <% var _w = d.word == null ? '' : String(d.word); %>
+        <% var _s = (d.status === 1 || String(d.status) === '1') ? '1' : '0'; %>
+        <tr data-id="<%= _id %>" data-word="<%= _w %>" data-category="<%= d.category || 'custom' %>" data-status="<%= _s %>">
+          <td><input type="checkbox" class="js-batch-check" value="<%= _id %>" aria-label="选择 <%= _w %>"></td>
+          <td class="admin-col-opt"><%= i + 1 %></td>
+          <td><%= _w %></td>
+          <td class="admin-col-opt"><%= _catTxt[d.category] || '自定义' %></td>
+          <td class="admin-col-opt"><%= format(d.createTime) %></td>
+          <td><label class="admin-status-toggle">
+              <input type="checkbox" class="js-admin-status" data-id="<%= _id %>" data-status="<%= _s %>" <%= _s === '0' ? 'checked' : '' %>>
+              <% /* 文案与 common.js:1064 updateRowStatus 硬编码的「正常/禁用」对齐，避免切换后跳变；筛选下拉仍用 Spec 的启用/停用。 */ %>
+              <span class="js-status-label"><%= _s === '0' ? '正常' : '禁用' %></span>
+            </label></td>
+          <td class="admin-col-actions"><span class="admin-row-actions">
+              <button type="button" class="js-admin-edit" data-id="<%= _id %>" data-title="敏感词">编辑</button>
+              <button type="button" class="js-admin-delete" data-id="<%= _id %>">删除</button>
+            </span></td>
+        </tr>
+      <% }); %>
+      </tbody>
+    </table>
+    <%- include('../common/adminPager', { url: url, page: page, totalPage: totalPage }) %>
+    <% } else { %>
+    <%- include('../common/state', { kind:'empty', size:'inline', title:(locals.keyword||locals.status) ? '没有符合条件的敏感词' : '暂无敏感词', text:(locals.keyword||locals.status) ? '试试调整筛选条件或重置' : '点「新增敏感词」或导入 CSV 建立词库' }) %>
+    <% } %>
+  </div>
+</div>
+<%- include('footer') %>

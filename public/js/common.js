@@ -1,0 +1,1678 @@
+/* =========================================================================
+   NODELOG · common.js  —  零依赖原生重写（替代 jQuery + layer 版本）
+   行为 100% 对齐旧版：分类菜单 / 评论加载更多 / 搜索建议 / 登录态 /
+   增删改（文章·分类·公告·用户）/ 后台开关 / 链接墙 / 回顶。
+   依赖：ui.js（window.NL.toast/alert/modal/loading/closeAll）。
+   ========================================================================= */
+(function () {
+  'use strict';
+
+  /* ---------------- 极简 DOM / 请求工具 ---------------- */
+  function qs(sel, root) { return (root || document).querySelector(sel); }
+  function qsa(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+  function val(el) { return el ? el.value : ''; }
+  function setVal(el, v) { if (el) el.value = (v == null ? '' : v); }
+  function attr(el, n) { return el ? el.getAttribute(n) : null; }
+  function setAttr(el, n, v) { if (el) el.setAttribute(n, v); }
+  function show(el) { if (el) el.classList.remove('hide'); }
+  function hide(el) { if (el) el.classList.add('hide'); }
+  function fadeOut(el) { if (el) el.classList.add('hide'); }       // 等价旧 .fadeOut()
+  function fadeToggle(el) { if (el) el.classList.toggle('hide'); } // 等价旧 .fadeToggle()
+
+  // 事件：无 sel 直绑；有 sel 走事件委托（等价旧 .on/.delegate/.live）
+  function on(el, evt, sel, handler) {
+    if (!el) return;
+    // 3 参直绑：on(el, evt, handler) —— 兼容旧 jQuery 版 .on 的直接绑定语义
+    if (typeof sel === 'function') { handler = sel; sel = null; }
+    // 支持空格分隔的多事件（如 'keydown keyup focus click change'，
+    // 原生 addEventListener 只接受单一事件类型，不拆分会导致监听器永不触发）
+    String(evt).trim().split(/\s+/).forEach(function (type) {
+      if (!type) return;
+      if (sel) {
+        el.addEventListener(type, function (e) {
+          var t = e.target.closest(sel);
+          if (t && el.contains(t)) handler.call(t, e, t);
+        });
+      } else {
+        el.addEventListener(type, handler);
+      }
+    });
+  }
+
+  function getJSON(url, data) {
+    var q = data ? ('?' + new URLSearchParams(data).toString()) : '';
+    return fetch(url + q, { credentials: 'same-origin' }).then(function (r) { return r.json(); });
+  }
+  function postForm(url, data) {
+    return fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(data || {}).toString()
+    }).then(function (r) { return r.json(); });
+  }
+
+  /* ---------------- 旧 layer 封装 → NL ---------------- */
+  function myMsg(m) { NL.toast(m); }
+  function myAlert(m, cb) { NL.alert(m, { onConfirm: cb }); }
+  function myPage(title, area, html, cb) { NL.modal({ title: title, content: html, onOpen: cb }); }
+  function loading(text) { NL.loading(text); }
+  function closeLayer() { NL.closeAll(); }
+
+  /* ---------------- 旧工具函数 ---------------- */
+  function limitLength(el, length) {
+    if (el && el.value.length >= length) el.value = el.value.substring(0, length);
+  }
+  function canInput(el, length) {
+    return length - (el ? el.value.length : 0);
+  }
+  Date.prototype.format = function (fmt) {
+    if (fmt == null) fmt = 'yyyy-MM-dd hh:mm:ss';
+    var o = { 'M+': this.getMonth() + 1, 'd+': this.getDate(), 'h+': this.getHours(), 'H+': this.getHours(), 'm+': this.getMinutes(), 's+': this.getSeconds() };
+    if (/(y+)/.test(fmt)) fmt = fmt.replace(RegExp.$1, (this.getFullYear() + '').substr(4 - RegExp.$1.length));
+    for (var k in o) {
+      if (new RegExp('(' + k + ')').test(fmt)) {
+        fmt = fmt.replace(RegExp.$1, (RegExp.$1.length === 1) ? (o[k]) : (('00' + o[k]).substr(('' + o[k]).length)));
+      }
+    }
+    return fmt;
+  };
+  function fmtCommentTime(v) {
+    if (v == null || v === '') return '';
+    var d = new Date(v);
+    if (isNaN(d.getTime())) return '';
+    return (typeof d.format === 'function') ? d.format('yyyy-MM-dd hh:mm:ss') : d.toLocaleString();
+  }
+
+  var sessionUser = null;
+  var url = location.href;
+  var beforeUnloadHandler = function () { return '您输入的内容尚未保存，确定离开此页面吗？'; };
+  function setHtml(el, h) { if (el) el.innerHTML = h; }
+
+  /* 发布/保存成功后清除本地草稿。
+     编辑器脚本暴露 __nlClearDraft（关闭后续写入 + 轮换会话 id）；这里再无条件
+     扫一遍 nl-draft-* 兜底，即使编辑器脚本未就绪（Vditor 加载失败）也能清干净。
+     旧版只清单个 nl-draft-new，浏览器里已经存在的残留草稿从未被清过，
+     一进「写文章」页就回灌上次内容 —— 这次连存量一起清。 */
+  function clearDraft(id) {
+    try { if (typeof window.__nlClearDraft === 'function') window.__nlClearDraft(); } catch (e) {}
+    try {
+      var keys = [], i;
+      for (i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
+      keys.forEach(function (k) {
+        if (!k || k.indexOf('nl-draft-') !== 0) return;
+        if (k === 'nl-draft-new' || k.indexOf('nl-draft-new-') === 0 || (id && k === 'nl-draft-' + id)) {
+          localStorage.removeItem(k);
+        }
+      });
+      sessionStorage.removeItem('nl-draft-sid');
+    } catch (e) {}
+  }
+
+  /* ---------------- 初始化（登录态拉取后执行）---------------- */
+  function init() {
+    /* 正文链接新窗口打开 */
+    on(document, 'click', '.js-content a', function (e) {
+      var link = this.getAttribute('href');
+      if (link && link.indexOf('javascript:;') === -1) { window.open(link, '_blank'); e.preventDefault(); }
+    });
+
+    if (url.indexOf('/manager') === -1) loadCategoryMenu();
+    ensureCategories(initCategoryPickers); // 写/编页 + 管理端编辑页的可搜索分类选择器
+    bindCategoryAuto(); // 标题输入后完全自动预选最相关分类（可手动改）
+
+    /* 主导航：移动端折叠 + 分类下拉（替代 Bootstrap JS） */
+    on(document, 'click', '.navbar-toggle', function () {
+      var target = attr(this, 'data-target') || '#example-navbar-collapse';
+      var el = qs(target);
+      if (el) {
+        var open = el.classList.toggle('in');
+        this.setAttribute('aria-expanded', open ? 'true' : 'false');
+      }
+    });
+    /* 顶栏下拉统一处理：分类 / 账号都由 [data-nav-toggle] 触发，同一时刻只开一个；
+       点击外部或按 Esc 关闭，并把焦点还给触发器（§7 纯键盘口径）。 */
+    function closeDropdowns(except) {
+      qsa('.dropdown.open').forEach(function (d) {
+        if (d === except) return;
+        d.classList.remove('open');
+        var t = d.querySelector('[data-nav-toggle]');
+        if (t) t.setAttribute('aria-expanded', 'false');
+      });
+    }
+    on(document, 'click', '[data-nav-toggle]', function (e) {
+      e.preventDefault();
+      var dd = this.closest('.dropdown');
+      if (!dd) return;
+      var willOpen = !dd.classList.contains('open');
+      closeDropdowns(dd);
+      if (willOpen) dd.classList.add('open'); else dd.classList.remove('open');
+      this.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    });
+    on(document, 'click', function (e) {
+      if (!e.target.closest('.dropdown')) closeDropdowns(null);
+    });
+    on(document, 'keydown', function (e) {
+      if (e.key !== 'Escape' && e.key !== 'Esc') return;
+      if (!qs('.dropdown.open')) return;
+      var t = qs('.dropdown.open [data-nav-toggle]');
+      closeDropdowns(null);
+      if (t) t.focus();
+    });
+
+    /* 分类菜单自动筛选 */
+    on(qs('.js-category-menu'), 'keyup focus click change', '.js-category-auto', function (e) {
+      e.stopPropagation();
+      var _val = (this.value || '').trim().toLowerCase();
+      qsa('.js-category-menu li').forEach(function (li) {
+        var a = li.querySelector('a');
+        if (!a) return;
+        if (_val === '' || a.textContent.toLowerCase().indexOf(_val) !== -1) li.classList.remove('hide');
+        else li.classList.add('hide');
+      });
+    });
+
+    /* 登录（微信扫码由 qr-login.js 在捕获阶段接管，这里仅保留程序化触发） */
+    var loginFlag = attr(qs('.js-login-flag'), 'value');
+    if (loginFlag === 'true' && qs('.js-login-btn')) qs('.js-login-btn').click();
+
+    /* 退出 */
+    on(document, 'click', '.js-logout-btn', function () {
+      myAlert('您确定从服务器退出当前登录的用户吗？', function () {
+        closeLayer(); loading();
+        getJSON('/user/logout', {}).then(function () {
+          sessionUser = null;
+          /* 账号区按「已登录块 / 未登录块」整体切换，不再逐个隐藏 li 内的 a，
+             避免账号下拉展开态在退出后留下空白占位。 */
+          qsa('.js-login-toggle').forEach(function (el) {
+            el.style.display = el.classList.contains('js-when-logged-out') ? '' : 'none';
+          });
+          NL.closeAll();
+          window.removeEventListener('beforeunload', beforeUnloadHandler);
+          if (url.indexOf('/manager') !== -1) location.href = '/';
+        });
+      });
+    });
+
+    /* 删除用户 */
+    on(document, 'click', '.js-user-delete', function () {
+      var id = attr(this, 'data-id');
+      var self = this;
+      myAlert('删除后无法恢复，您确定要删除吗？', function () {
+        closeLayer(); loading();
+        postForm('/manager/user/delete', { id: id }).then(function (data) {
+          if (data.success) fadeOut(self.parentNode.parentNode);
+          myMsg(data.msg);
+        });
+      });
+    });
+
+    /* 后台开关：用户状态 / 内容共享 / 用户角色（原生 checkbox 替代 bootstrapSwitch） */
+    bindSwitch('.js-user-status', '/manager/user/update', function (checked) { return { status: checked ? 0 : 1 }; });
+    bindSwitch('.js-content-status', '/manager/content/share', function (checked) { return { status: checked ? 0 : 2 }; });
+    bindSwitch('.js-user-role', '/manager/user/update', function (checked) { return { role: checked ? 0 : 1 }; });
+
+    /* 分页上下页 */
+    on(document, 'click', '.js-pre-page', function () {
+      var page = parseInt(attr(this, 'data-page'), 10);
+      if (page <= 1) { myMsg('已经是第一页'); return; }
+      location.href = attr(this, 'data-url') + 'page=' + (page - 1);
+    });
+    on(document, 'click', '.js-next-page', function () {
+      var page = parseInt(attr(this, 'data-page'), 10);
+      var total = parseInt(attr(this, 'data-total'), 10);
+      if (page >= total) { myMsg('后面没有了'); return; }
+      location.href = attr(this, 'data-url') + 'page=' + (page + 1);
+    });
+    /* 跳转到指定页码（配合 views/common/pager.ejs 的 .js-jump-input/.js-jump-go）。
+       data-url 由 adminPager 拼好（已带筛选、末尾 ? 或 &），这里只追加 page=n。 */
+    on(document, 'click', '.js-jump-go', function () {
+      var total = parseInt(attr(this, 'data-total'), 10) || 1;
+      var box = this.parentNode;
+      var input = box && box.querySelector ? box.querySelector('.js-jump-input') : null;
+      var n = parseInt(input && input.value, 10);
+      if (isNaN(n) || !n) { myMsg('请输入有效页码'); return; }
+      if (n < 1) n = 1;
+      if (n > total) n = total;
+      location.href = attr(this, 'data-url') + 'page=' + n;
+    });
+    /* 跳页输入框回车即跳转 */
+    on(document, 'keydown', '.js-jump-input', function (e) {
+      if (e && (e.key === 'Enter' || e.keyCode === 13)) {
+        e.preventDefault();
+        var box = this.parentNode;
+        var go = box && box.querySelector ? box.querySelector('.js-jump-go') : null;
+        if (go) go.click();
+      }
+    });
+
+    /* 添加 / 修改 / 删除分类 */
+    on(document, 'click', '.js-add-category', function () {
+      myPage('添加分类', ['310px', '160px'], qs('.js-add-category-panel').innerHTML, function (modal) {
+        var input = modal.querySelector('.js-category-name');
+        if (input) input.focus();
+      });
+    });
+    on(document, 'click', '.js-save-category', function () {
+      var scope = qs('.layermcont') || document;
+      var name = scope.querySelector('.js-category-name');
+      var nameVal = name ? name.value.trim() : '';
+      var id = name ? name.getAttribute('data-id') : null;
+      if (nameVal === '') { myMsg('分类名称不能为空'); return; }
+      if (!id) {
+        postForm('/manager/category/add', { name: nameVal }).then(function (data) {
+          if (data.success) { closeLayer(); location.href = '/manager/category?page=1'; }
+          myMsg(data.msg);
+        });
+      } else {
+        postForm('/manager/category/modify', { id: id, name: nameVal }).then(function (data) {
+          if (data.success) { closeLayer(); var cur = qs('.js-modify-category-current'); if (cur) cur.textContent = nameVal; }
+          myMsg(data.msg);
+        });
+      }
+    });
+    on(document, 'click', '.js-category-delete', function () {
+      var id = attr(this, 'data-id');
+      var self = this;
+      myAlert('删除后无法恢复，您确定要删除此分类吗？', function () {
+        closeLayer(); loading();
+        postForm('/manager/category/delete', { id: id }).then(function (data) {
+          if (data.success) fadeOut(self.parentNode.parentNode);
+          myMsg(data.msg);
+        });
+      });
+    });
+    on(document, 'click', '.js-modify-category', function () {
+      var cur = qs('.js-modify-category-current');
+      if (cur) cur.classList.remove('js-modify-category-current');
+      this.classList.add('js-modify-category-current');
+      var value = this.textContent;
+      var id = attr(this, 'data-id');
+      myPage('修改分类', ['310px', '160px'], qs('.js-add-category-panel').innerHTML, function (modal) {
+        var input = modal.querySelector('.js-category-name');
+        if (input) { input.value = value; input.setAttribute('data-id', id); }
+        var focus = modal.querySelector('.layermcont .js-category-name');
+        if (focus) focus.focus();
+      });
+    });
+
+    /* 标题字数限制 + 剩余字数 */
+    function bindCounter(sel) {
+      on(document, 'keyup change focus blur', sel, function () {
+        var max = parseInt(attr(this, 'maxlength'), 10);
+        if (this.value.length >= max) limitLength(this, max);
+        var out = qs('.js-content-name-chars');
+        if (out) out.textContent = canInput(this, max);
+      });
+    }
+    bindCounter('.js-add-content-name');
+    bindCounter('.js-add-log-name');
+
+    /* 保存文章 */
+    on(document, 'click', '.js-save-content', function () {
+      if (sessionUser == null) { if (qs('.js-login-btn')) qs('.js-login-btn').click(); return; }
+      var name = val(qs('.js-add-content-name')).trim();
+      var oldName = attr(qs('.js-add-content-name'), 'data-name');
+      var id = attr(qs('.js-add-content-name'), 'data-id');
+      var content = val(qs('.js-editor'));
+      var category = val(qs('.js-category-value'));
+      var original = val(qs('input[name="original"]')).trim();
+      var rawTags = val(qs('.js-tags-value')).trim();
+      var tags = rawTags || extractTags(name, content).join(', '); // 标签留空则发布/保存时自动提取
+      var contentType = val(qs('.js-content-type')) || 'markdown';
+      if (name === '') { myMsg('标题不能为空'); return; }
+      if (content.trim() === '') { myMsg('内容不能为空'); return; }
+      loading();
+      // 前台「写文章」固定为博客文章；Wiki 文档统一在后台知识库工作台录入/编辑
+      postForm('/content/add', {
+        id: id, name: name, content: content, contentType: contentType,
+        docType: 'blog',
+        category: category, oldName: oldName, original: original, tags: tags
+      }).then(function (data) {
+        closeLayer();
+        myMsg(data.msg);
+        if (data.success) {
+          // 发布/保存成功：清掉本次及历史遗留的全部 new 草稿，下次写新文章必为空白
+          clearDraft(id);
+          window.removeEventListener('beforeunload', beforeUnloadHandler);
+          if (id != null) location.href = '/content/detail?view=contentDetail&id=' + id;
+          else location.href = '/';
+        }
+      });
+    });
+
+    /* 自动生成标签（标题 + 正文关键词提取） */
+    on(document, 'click', '.js-auto-tags', function () { autoGenerateTags(); });
+    bindTagFields(); // 标签预览 chips + 懒人自动填充
+
+    /* 删除文章 */
+    on(document, 'click', '.js-content-delete', function () {
+      var id = attr(this, 'data-id');
+      var self = this;
+      myAlert('删除后无法恢复，您确定要删除吗？', function () {
+        closeLayer(); loading();
+        postForm('/manager/content/delete', { id: id }).then(function (data) {
+          if (data.success) fadeOut(self.parentNode.parentNode);
+          myMsg(data.msg);
+        });
+      });
+    });
+
+    /* 跳转评论输入框 */
+    on(document, 'click', '.js-open-comment-btn', function () { var el = qs('.js-comment-input'); if (el) el.focus(); });
+
+    /* 发表评论 */
+    on(document, 'click', '.js-post-comment-btn', function () {
+      var id = attr(this, 'data-id');
+      var name = attr(this, 'data-name');
+      var email = attr(this, 'data-email');
+      var comment = val(qs('.js-comment-input')).trim();
+      if (comment === '') { myMsg('评论内容为空'); return; }
+      loading();                              // F2: 不再紧跟 closeLayer()，让加载层在请求期间真实可见
+      postForm('/comment/add', { contentId: id, name: name, email: email, comment: comment }).then(function (data) {
+        closeLayer(); myMsg(data.msg);
+        if (data.success) {
+          // I2: 免整页刷新——乐观插入新评论、更新计数、清空输入框
+          // 控制器 /comment/add 仅返回 {success,msg}，无新评论对象，故用输入值本地构造
+          var panel = qs('.js-comment-panel');
+          if (panel) {
+            var emptyState = panel.querySelector('.state');
+            if (emptyState) panel.innerHTML = '';
+            panel.insertAdjacentHTML('afterbegin', commentItem({ userName: name, comment: comment, createTime: new Date() }));
+          }
+          var title = qs('.js-comment-title');
+          if (title) {
+            var mm = title.textContent.match(/\((\d+)\)/);
+            var nn = mm ? (parseInt(mm[1], 10) + 1) : 1;
+            var base = title.textContent.replace(/\s*\(\d+\)\s*$/, '');
+            title.textContent = base + ' (' + nn + ')';
+          }
+          var ci = qs('.js-comment-input'); if (ci) ci.value = '';
+        }
+      });
+    });
+
+    /* 评论区：详情页加载 + 加载更多 */
+    if (url.indexOf('view=contentDetail') !== -1 || qs('.js-doc-id')) {
+      var docId = val(qs('.js-doc-id'));
+      if (sessionUser != null && sessionUser._id !== docId) {
+        var pc = qs('.js-post-comment-btn'); if (pc) pc.disabled = false;
+        var ci = qs('.js-comment-input'); if (ci) ci.setAttribute('placeholder', '请输入评论');
+      }
+      loadComments(1);
+      on(qs('.js-comment-panel'), 'click', '.js-state-retry', function () {
+        var retry = attr(this, 'data-retry');
+        if (retry === 'comments') {
+          setHtml(qs('.js-comment-panel'), NL.state('loading', { size: 'block' }));
+          loadComments(1);
+        } else if (retry === 'more-comments') {
+          if (qs('.js-more-comment-btn')) qs('.js-more-comment-btn').click();
+        }
+      });
+      qsa('.js-content *').forEach(function (el) {
+        if (el.offsetWidth > window.screen.width - 60) el.style.width = (window.screen.width - 60) + 'px';
+      });
+    }
+
+    /* 评论输入框聚焦 → 未登录则登录 */
+    on(document, 'focus', '.js-comment-input', function () {
+      if (sessionUser == null) { this.blur(); if (qs('.js-login-btn')) qs('.js-login-btn').click(); }
+    });
+
+    /* 我的文章：入口已改为真实链接（可深链接 / 中键打开 / 无 JS 可用），
+       仅未登录时拦截默认跳转并唤起扫码登录。 */
+    on(document, 'click', '.js-my-content-menu', function (e) {
+      if (sessionUser == null) {
+        e.preventDefault();
+        if (qs('.js-login-btn')) qs('.js-login-btn').click();
+      }
+    });
+    on(document, 'click', '.js-refresh', function () { location.reload(); });
+
+    /* 作者前台自助删除自己的文章：正文页 + 我的文章列表通用（后端按 author 归属软删） */
+    on(document, 'click', '.js-delete-article', function () {
+      if (sessionUser == null) { if (qs('.js-login-btn')) qs('.js-login-btn').click(); return; }
+      var btn = this;
+      var id = attr(btn, 'data-id');
+      if (!id) return;
+      NL.alert('确定要删除这篇文章吗？删除后可在后台恢复。', {
+        confirmText: '删除',
+        cancelText: '取消',
+        onConfirm: function () {
+          btn.disabled = true;
+          var oldText = btn.textContent;
+          btn.textContent = '删除中…';
+          postForm('/content/delete', { id: id }).then(function (r) {
+            if (r && r.success) {
+              NL.toast('删除成功');
+              var card = btn.closest('.post-card');
+              if (card) { // 列表页：就地移除
+                card.parentNode && card.parentNode.removeChild(card);
+                var kicker = qs('.kicker');
+                if (kicker) kicker.textContent = kicker.textContent.replace(/\d+/, function (n) {
+                  return String(Math.max(0, parseInt(n, 10) - 1));
+                });
+                if (!document.querySelector('.post-card')) location.reload();
+              } else { // 正文页：删除后回到「我的文章」
+                location.href = '/content/user?page=1';
+              }
+            } else {
+              btn.disabled = false;
+              btn.textContent = oldText;
+              NL.alert(r && r.msg ? r.msg : '删除失败', { confirmText: '知道了' });
+            }
+          }).catch(function () {
+            btn.disabled = false;
+            btn.textContent = oldText;
+            NL.alert('网络错误，删除失败', { confirmText: '知道了' });
+          });
+        }
+      });
+    });
+
+
+    /* 搜索：回车跳转 + 实时建议 */
+    on(document, 'keydown keyup focus click change', '.js-search', function (e) {
+      var max = parseInt(attr(this, 'maxlength'), 10);
+      if (this.value.length >= max) limitLength(this, max);
+      this.classList.add('search-focus');
+      var word = this.value.trim();
+      if (e.keyCode === 13) {
+        if (word === '') { myMsg('请输入关键字'); return false; }
+        loading('开始搜索 "' + word + '" 相关日志…');
+        location.href = '/content/search?word=' + encodeURIComponent(word) + '&page=1';
+      } else {
+        if (word === '') { setHtml(qs('.js-search-panel'), ''); hide(qs('.js-search-panel')); qs('.js-search-bar').classList.remove('open'); return; }
+        suggestDebounced(word, '/content/search');
+      }
+    });
+    on(document, 'click', '.js-search-panel', function (e) {
+      var retry = e.target.closest('.js-state-retry');
+      if (retry && attr(retry, 'data-retry') === 'search') suggest((qs('.js-search').value || '').trim(), '/content/search', null);
+    });
+    on(document, 'keyup focus click change', '.js-search-panel .js-search-auto', function (e) {
+      e.stopPropagation();
+      var _val = (this.value || '').trim().toLowerCase();
+      qsa('.js-search-panel li').forEach(function (li) {
+        var a = li.querySelector('a'); if (!a) return;
+        if (_val === '' || a.textContent.toLowerCase().indexOf(_val) !== -1) li.classList.remove('hide');
+        else li.classList.add('hide');
+      });
+    });
+    function searchState() {
+      if ((qs('.js-search').value || '').trim() !== '') qs('.js-search').classList.add('search-focus');
+      else qs('.js-search').classList.remove('search-focus');
+    }
+    on(document, 'blur', '.js-search', searchState);
+    if (url.indexOf('/manager') === -1) searchState();
+
+    /* QQ 反馈图标 hover 切换 */
+    on(document, 'mouseenter', '.js-qq-feedback', function () { var img = this.querySelector('img'); if (img) img.src = '/images/qq-enable.jpg'; });
+    on(document, 'mouseleave', '.js-qq-feedback', function () { var img = this.querySelector('img'); if (img) img.src = '/images/qq-disable.png'; });
+
+    /* 写公告 */
+    on(document, 'click', '.js-add-log-btn', function () {
+      if (sessionUser == null) { if (qs('.js-login-btn')) qs('.js-login-btn').click(); return; }
+      var name = val(qs('.js-add-log-name')).trim();
+      var content = val(qs('.js-editor'));
+      if (name === '') { myMsg('标题不能为空'); return; }
+      if (content.trim() === '') { myMsg('内容不能为空'); return; }
+      loading();
+      postForm('/manager/log/add', { name: name, content: content }).then(function (data) {
+        closeLayer(); myMsg(data.msg);
+        if (data.success) location.href = '/manager/log?view=manager/log&page=1';
+      });
+    });
+    on(document, 'click', '.js-log-delete', function () {
+      var id = attr(this, 'data-id');
+      var self = this;
+      myAlert('删除后无法恢复，您确定要删除吗？', function () {
+        closeLayer(); loading();
+        postForm('/manager/log/delete', { id: id }).then(function (data) {
+          if (data.success) fadeOut(self.parentNode.parentNode);
+          myMsg(data.msg);
+        });
+      });
+    });
+
+    /* 用户编辑面板 */
+    function fillUserEditForm(u) {
+      setVal(qs('input[name=userName]'), u.userName || '');
+      setVal(qs('input[name=realName]'), u.realName || '');
+      setVal(qs('input[name=email]'), u.email || '');
+      setVal(qs('input[name=phone]'), u.phone || '');
+      setVal(qs('input[name=password]'), '');
+    }
+    var editingUserId = null;
+    on(document, 'click', '.js-user-edit', function () {
+      editingUserId = attr(this, 'data-id');
+      fillUserEditForm({
+        userName: attr(this, 'data-user-name') || '',
+        realName: attr(this, 'data-real-name') || '',
+        email: attr(this, 'data-email') || '',
+        phone: attr(this, 'data-phone') || ''
+      });
+      fadeToggle(qs('.js-user-edit-panel'));
+    });
+    on(document, 'click', '.js-user-edit-cancel', function () { fadeToggle(qs('.js-user-edit-panel')); });
+    on(document, 'click', '.js-user-edit-save', function () {
+      var id = editingUserId || (sessionUser && sessionUser._id);
+      postForm('/manager/user/update', {
+        id: id,
+        userName: val(qs('input[name=userName]')).trim(),
+        realName: val(qs('input[name=realName]')).trim(),
+        password: val(qs('input[name=password]')).trim(),
+        email: val(qs('input[name=email]')).trim(),
+        phone: val(qs('input[name=phone]')).trim()
+      }).then(function (data) {
+        if (data.result === true) location.reload();
+        else myMsg(data.msg || data.result);
+      });
+    });
+
+    /* 站点配置 */
+    on(document, 'click', '.js-site-edit-save', function () {
+      var data = qsa('form[name=siteForm] [name]').map(function (el) {
+        return encodeURIComponent(el.name) + '=' + encodeURIComponent(el.value);
+      }).join('&');
+      loading();
+      fetch('/manager/site/update', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: data
+      }).then(function (r) { return r.json(); }).then(function (data) {
+        myMsg(data.msg); if (data.success) location.reload();
+      });
+    });
+
+    /* 前台公告数 */
+    if (url.indexOf('/manager') === -1) {
+      getJSON('/log/count', {}).then(function (data) {
+        var el = qs('.js-log-count'); if (el) el.textContent = data.count;
+      });
+    }
+
+    /* 微信/微博 关注浮层（原生轻量 popover 替代 Bootstrap .popover） */
+    bindPopover('.js-attention-weixin', popverWeixinTempl());
+    bindPopover('.js-attention-weibo', popverWeiboTempl());
+    bindPopover('.js-attention-weixinweibo', popverWeixinWeiboTempl());
+
+    /* ESC / 关闭全部 */
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' || e.keyCode === 27) {
+        qsa('.dropdown.open').forEach(function (d) {
+          d.classList.remove('open');
+          var t = d.querySelector('[aria-expanded]'); if (t) t.setAttribute('aria-expanded', 'false');
+        });
+        NL.closeAll();
+      }
+    });
+    on(document, 'click', '.layer-close-all', function () { NL.closeAll(); });
+
+    /* 友链墙 */
+    getJSON('/link/list', {}).then(function (data) {
+      if (data.success) {
+        var _html = '';
+        (data.data || []).forEach(function (val, i) {
+          if (i !== 0) _html += '&nbsp;&nbsp;|&nbsp;&nbsp;';
+          _html += '<a href="' + val.url + '"' + (val.blank === 0 ? ' target="_blank"' : '') + '>' + val.name + '</a>';
+        });
+        var panel = qs('.js-links-panel'); if (panel) panel.insertAdjacentHTML('beforeend', _html);
+      }
+    });
+  }
+
+  /* ---------------- 分类菜单 ---------------- */
+  // 缓存全量分类，供导航菜单与写/编页「可搜索分类选择器」复用；单次请求，多处共享
+  var allCategories = [];
+  var categoryPromise = null;
+  function fetchCategories() {
+    if (categoryPromise) return categoryPromise;
+    categoryPromise = getJSON('/category/all', {}).then(function (data) {
+      allCategories = (data && data.docs) || [];
+      return allCategories;
+    });
+    return categoryPromise;
+  }
+
+  // 懒加载分类（loadCategoryMenu 也会填充；管理端页面不跑 loadCategoryMenu，这里兜底）
+  function ensureCategories(cb) {
+    fetchCategories().then(function (list) { cb(list); }).catch(function () { cb([]); });
+  }
+
+  // 从分类列表构建「父 -> 子」森林，供层级展示（前端导航下拉 / 写作页选择器 / 后台表格）。
+  // /category/all 返回的分类 parent 已是字符串 id（或 null），无需再 toObject。
+  function buildCategoryForest(list) {
+    var arr = (list || []);
+    var map = {}, tops = [];
+    arr.forEach(function (c) { map[String(c._id)] = c; c.__children = []; });
+    arr.forEach(function (c) {
+      var p = c.parent || null;
+      var pid = p ? String(p) : null;
+      // 自父(self-parent)直接降为顶级，避免森林塌成空（成环防护的第一道，编辑表单已第二道拦截）。
+      if (pid && map[pid] && pid !== String(c._id)) map[pid].__children.push(c);
+      else tops.push(c);
+    });
+    return { map: map, tops: tops };
+  }
+
+  // 可搜索分类选择器（替代原生 <select>）：输入框即筛选，下拉点选，选中值写入隐藏 .js-category-value
+  function initCategoryPickers() {
+    qsa('.js-category-picker').forEach(function (root) {
+      if (root.__pickInit) return; root.__pickInit = true;
+      var input = qs('.js-category-input', root);
+      var hidden = qs('.js-category-value', root);
+      var menu = qs('.js-category-menu-list', root);
+      if (!input || !hidden || !menu) return;
+      function render(filter) {
+        var f = (filter || '').trim().toLowerCase();
+        var cur = hidden.value;
+        var html = '';
+        var idx = 0;
+        var forest = buildCategoryForest(allCategories);
+        function matchName(c) { return f === '' || (c.name || '').toLowerCase().indexOf(f) !== -1; }
+        function opt(c, indent) {
+          var isSel = (String(c._id) === String(cur));
+          html += '<li class="category-picker__item' + (indent ? ' cat-indent' : '') + (isSel ? ' is-selected' : '') + '"'
+            + ' role="option" aria-selected="' + (isSel ? 'true' : 'false') + '"'
+            + ' tabindex="-1" id="cat-opt-' + (idx++) + '"'
+            + ' data-id="' + c._id + '" data-name="' + c.name + '">' + c.name + '</li>';
+        }
+        forest.tops.forEach(function (top) {
+          var children = top.__children || [];
+          var topHit = matchName(top);
+          var shown = children.filter(matchName);
+          if (!topHit && !shown.length) return;            // 分组标题与子项都不匹配则整组跳过
+          html += '<li class="category-picker__group" role="presentation">' + top.name + '</li>';
+          if (topHit && !children.length) opt(top, false);   // 无子项的一级分类本身可选
+          shown.forEach(function (ch) { opt(ch, true); });
+        });
+        if (!html) html = '<li class="category-picker__empty">无匹配分类</li>';
+        menu.innerHTML = html;
+      }
+      function setActive(items, idx) {
+        items.forEach(function (it, i) { it.classList.toggle('is-active', i === idx); });
+        menu.setAttribute('aria-activedescendant', items[idx] ? items[idx].id : '');
+      }
+      function open() { render(input.value); menu.classList.add('is-open'); var its = qsa('.category-picker__item', menu); if (its.length) setActive(its, 0); }
+      function close() { menu.classList.remove('is-open'); }
+      function choose(li) {
+        if (!li || !li.getAttribute('data-id')) return;
+        hidden.value = li.getAttribute('data-id');
+        input.value = li.getAttribute('data-name');
+        qsa('.category-picker__item', menu).forEach(function (it) {
+          it.setAttribute('aria-selected', it === li ? 'true' : 'false');
+          it.classList.remove('is-active');
+        });
+        menu.setAttribute('aria-activedescendant', '');
+        close();
+      }
+      input.addEventListener('focus', open);
+      input.addEventListener('input', function () { render(this.value); menu.classList.add('is-open'); });
+      input.addEventListener('keydown', function (e) {
+        var items = qsa('.category-picker__item', menu);
+        if (!items.length) return;
+        var activeId = menu.getAttribute('aria-activedescendant');
+        var idx = -1;
+        for (var i = 0; i < items.length; i++) { if (items[i].id === activeId) { idx = i; break; } }
+        if (e.key === 'ArrowDown') { e.preventDefault(); idx = (idx + 1) % items.length; setActive(items, idx); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); idx = (idx - 1 + items.length) % items.length; setActive(items, idx); }
+        else if (e.key === 'Enter') { e.preventDefault(); choose(idx >= 0 ? items[idx] : items[0]); }
+        else if (e.key === 'Escape') { close(); }
+      });
+      menu.addEventListener('click', function (e) {
+        var li = e.target.closest ? e.target.closest('.category-picker__item') : null;
+        choose(li);
+      });
+      document.addEventListener('click', function (e) { if (!root.contains(e.target)) close(); });
+      // 编辑页回填已选分类名称
+      var pre = hidden.value;
+      if (pre) {
+        var found = null;
+        allCategories.forEach(function (c) { if (String(c._id) === String(pre)) found = c; });
+        if (found) input.value = found.name;
+      }
+      render('');
+    });
+  }
+
+  // 内置别名/触发词兜底词典（方案 B 懒人模式）：分类未单独配置 keywords 时，
+  // 按其【名称】命中下列同义触发词，让语义匹配开箱即用，无需手动为每个分类填词。
+  // 用户一旦在后台为该分类填了 keywords，则以用户配置为准（见 matchCategory）。
+  var CATEGORY_ALIAS = {
+    'ui': ['界面', '前端', '交互', '用户体验', 'ux', 'ui设计', '原型', '视觉'],
+    '前端': ['frontend', 'js', 'javascript', 'css', 'html', '网页', 'web前端', '浏览器', 'vue', 'react'],
+    '后端': ['backend', '服务端', 'server', 'api', '接口', '微服务'],
+    '运维': ['devops', '部署', '服务器', 'linux', 'docker', 'k8s', 'kubernetes', '监控', 'ci', 'cdn', 'nginx'],
+    '数据库': ['db', 'mysql', 'mongodb', 'redis', 'sql', 'nosql', 'postgres'],
+    '算法': ['algorithm', '数据结构', 'leetcode', '刷题'],
+    '人工智能': ['ai', '机器学习', '深度学习', 'ml', 'llm', '大模型', '神经网络', 'gpt'],
+    '安全': ['security', '漏洞', 'xss', 'csrf', '注入', '加密', '渗透'],
+    '移动端': ['android', 'ios', 'app', '小程序', '移动开发', 'flutter'],
+    '工具': ['tool', '效率', '插件', '脚本', 'cli', '命令行', 'ide'],
+    '架构': ['architecture', '系统设计', '高可用', '分布式', '微服务'],
+    '网络': ['network', 'http', 'tcp', 'dns', '协议']
+  };
+
+  // 从已有分类中匹配最相关的一个（完全自动预选分类用，方案 B 语义匹配）
+  function matchCategory(title, content) {
+    if (!allCategories || !allCategories.length) return null;
+    var titleLow = (title || '').toLowerCase();
+    var textLow = ((title || '') + '\n' + (content || '')).toLowerCase();
+    var best = null, bestScore = 0;
+    allCategories.forEach(function (c) {
+      var name = (c.name || '').trim().toLowerCase();
+      if (!name || name.length < 2) return;                  // 跳过过短分类名，降低误命中
+      // 触发词来源：用户配置 keywords 优先；否则用内置别名兜底词典（仅当名称命中词典）
+      var terms = [];
+      var kwRaw = (c.keywords || '').trim();
+      if (kwRaw) {
+        kwRaw.split(/[,，\s]+/).forEach(function (s) { var t = s.trim().toLowerCase(); if (t) terms.push(t); });
+      } else if (CATEGORY_ALIAS[name]) {
+        CATEGORY_ALIAS[name].forEach(function (t) { terms.push(t.toLowerCase()); });
+      }
+      // 超短拉丁缩写（UI/API/DB/JS/CSS 等）：区分度极低、正文极易偶发命中，
+      // 仅在标题出现时才参与匹配，正文出现一律忽略（宁可不选也不错选）
+      var isShortLatin = /^[a-z0-9]+$/.test(name) && name.length <= 3;
+      var score = 0;
+      // 1) 分类【名称】本身命中（绝对主导）
+      var nameTitle = titleLow.indexOf(name) !== -1;
+      var nameBody = textLow.indexOf(name) !== -1;
+      if (!(isShortLatin && !nameTitle)) {
+        if (nameTitle) score += 50;
+        else if (nameBody) score += 1;
+      }
+      // 2) 触发词/别名命中（权重低于名称，但高于旧版纯正文子串）
+      terms.forEach(function (t) {
+        if (!t) return;
+        var tTitle = titleLow.indexOf(t) !== -1;
+        var tBody = textLow.indexOf(t) !== -1;
+        if (t.length >= 2) {
+          if (tTitle) score += 30;
+          if (tBody) score += 8;
+        } else {
+          // 极短触发词（如 js/ui）只在标题命中，避免正文噪声
+          if (tTitle) score += 30;
+        }
+      });
+      if (score > bestScore) { bestScore = score; best = c; }
+    });
+    return bestScore > 0 ? best : null;
+  }
+  // 完全自动预选分类：标题输入后若未手动选分类，自动填入最相关分类（可手动改）
+  function bindCategoryAuto() {
+    var root = qs('.js-category-picker');
+    if (!root || root.__catAutoBound) return;
+    root.__catAutoBound = true;
+    var hidden = qs('.js-category-value', root);
+    var input = qs('.js-category-input', root);
+    var menu = qs('.js-category-menu-list', root);
+    if (!hidden || !input) return;
+    var tmr;
+    function schedule() {
+      clearTimeout(tmr);
+      tmr = setTimeout(function () {
+        if (hidden.value) return;                     // 已手动选定则不覆盖
+        if (document.activeElement === input) return;  // 用户正在操作分类框则不打扰
+        var title = val(qs('.js-add-content-name')) || '';
+        var content = '';
+        if (window.__vditor && typeof window.__vditor.getValue === 'function') {
+          try { content = window.__vditor.getValue() || ''; } catch (e) {}
+        } else { content = val(qs('.js-editor')) || ''; }
+        var cat = matchCategory(title, content);
+        if (cat) {
+          hidden.value = cat._id;
+          input.value = cat.name;
+          if (menu) qsa('.category-picker__item', menu).forEach(function (it) {
+            var sel = it.getAttribute('data-id') === String(cat._id);
+            it.setAttribute('aria-selected', sel ? 'true' : 'false');
+            it.classList.toggle('is-selected', sel);
+          });
+          var hint = qs('.js-cat-hint');
+          if (hint) hint.textContent = '已自动匹配分类「' + cat.name + '」，可手动修改';
+        }
+      }, 800);
+    }
+    var titleEl = qs('.js-add-content-name');
+    if (titleEl) titleEl.addEventListener('input', schedule);
+  }
+
+  function loadCategoryMenu() {
+    fetchCategories().then(function (docs) {
+      allCategories = docs;
+      var html = '<li style="padding: 5px;"><input type="text" class="form-control js-category-auto" placeholder="输入" autofocus x-webkit-speech></li>';
+      html += '<li><a href="/" class="l-option">全部文章</a></li>';
+      var _url = '', _addHtml = '', _editHtml = '';
+      var _categoryId = val(qs('.js-edit-content-category'));
+      var forest = buildCategoryForest(docs);
+      forest.tops.forEach(function (top) {
+        var topId = top._id, topName = top.name;
+        var children = top.__children || [];
+        var topUrl = '/content/category?categoryId=' + topId + '&page=1';
+        if (!children.length) {
+          // 无子分类的一级分类：直接作为可点链接
+          html += '<li><a href="' + topUrl + '" class="l-option">' + topName + '</a></li>';
+          if (url.indexOf('content/addPage') !== -1) {
+            _addHtml += '<option value="' + topId + '">' + topName + '</option>';
+          } else if (url.indexOf('view=editContent') !== -1) {
+            _editHtml += (topId != _categoryId)
+              ? '<option value="' + topId + '">' + topName + '</option>'
+              : '<option value="' + topId + '" selected>' + topName + '</option>';
+          }
+        } else {
+          // 有子分类：一级作为分组标题（不可点），二级缩进为链接
+          html += '<li class="js-cat-group"><span class="cat-group__title">' + topName + '</span></li>';
+          _addHtml += '<optgroup label="' + topName + '">'
+          _editHtml += '<optgroup label="' + topName + '">'
+          children.forEach(function (ch) {
+            var chUrl = '/content/category?categoryId=' + ch._id + '&page=1';
+            html += '<li><a href="' + chUrl + '" class="l-option cat-indent">' + ch.name + '</a></li>';
+            if (url.indexOf('content/addPage') !== -1) {
+              _addHtml += '<option value="' + ch._id + '">' + ch.name + '</option>';
+            } else if (url.indexOf('view=editContent') !== -1) {
+              _editHtml += (ch._id != _categoryId)
+                ? '<option value="' + ch._id + '">' + ch.name + '</option>'
+                : '<option value="' + ch._id + '" selected>' + ch.name + '</option>';
+            }
+          });
+          _addHtml += '</optgroup>';
+          _editHtml += '</optgroup>';
+        }
+      });
+      var menu = qs('.js-category-menu');
+      if (menu) menu.innerHTML = html;
+
+      if (url.indexOf('content/category') !== -1) {
+        qsa('.js-category-menu li').forEach(function (li) {
+          var a = li.querySelector('a');
+          if (a && (url.indexOf(a.getAttribute('href')) !== -1)) {
+            a.parentNode.classList.add('l-option-current');
+            a.classList.add('l-option-current');
+            return false;
+          }
+        });
+      }
+      if (url.indexOf('content/addPage') !== -1) {
+        if (sessionUser == null && qs('.js-login-btn')) qs('.js-login-btn').click();
+        window.addEventListener('beforeunload', beforeUnloadHandler);
+      }
+      if (url.indexOf('view=editContent') !== -1) {
+        if (sessionUser == null && qs('.js-login-btn')) qs('.js-login-btn').click();
+        window.addEventListener('beforeunload', beforeUnloadHandler);
+      }
+    }).catch(function () {
+      var menu = qs('.js-category-menu');
+      if (menu) menu.innerHTML = '<li><a href="/" class="l-option">全部文章</a></li>' +
+        '<li>' + NL.state('error', { title: '分类没加载出来', text: '稍后重试，或回首页浏览文章', retry: 'categories' }) + '</li>';
+    });
+
+    on(qs('.js-category-menu'), 'click', '.js-state-retry', function () {
+      if (attr(this, 'data-retry') !== 'categories') return;
+      categoryPromise = null;   // 允许重试重新拉取分类
+      var menu = qs('.js-category-menu');
+      if (menu) menu.innerHTML = '<li>' + NL.state('loading') + '</li>';
+      loadCategoryMenu();
+    });
+  }
+
+  /* ---------------- 标签：客户端自动提取（零依赖，离线可用）---------------- */
+  var STOP_EN = ('the and for with this that content div span class http https www com net org var function return null true false node code html body script style import export from use using new not are was were been have has had will would can could should may might must do does did a an as at by in of on or to is it if else while let const app via per using get set type number string boolean').split(' ');
+  var STOP_ZH = '的了是在和与等你我他她它这那有个不也都就而及或对于把被让给从到上下中内外前后已将又很更最再比因为由经但却若如着过才么什被并且其也们得能会要被比被';
+  function zhHasStop(g) {
+    for (var i = 0; i < g.length; i++) { if (STOP_ZH.indexOf(g.charAt(i)) !== -1) return true; }
+    return false;
+  }
+  // 从标题+正文提取候选标签：英文/技术词 + 中文 2~3 字 n-gram，过滤停用词
+  function extractTags(title, content) {
+    var text = (title || '') + '\n' + (content || '');
+    text = text.replace(/```[\s\S]*?```/g, ' ').replace(/`[^`]*`/g, ' '); // 去代码块/行内代码
+    text = text.replace(/<[^>]+>/g, ' ');                                  // 去 HTML
+    text = text.replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1');                 // 链接/图片保留文字
+    text = text.replace(/[#>*_~=\-]+/g, ' ');                              // 去 markdown 符号
+    // 英文 / 技术词
+    var enTerms = {};
+    var enRe = /[A-Za-z][A-Za-z0-9]*(?:\.[A-Za-z0-9]+)*/g, m;
+    while ((m = enRe.exec(text)) !== null) {
+      var w = m[0]; if (w.length < 2) continue;
+      var low = w.toLowerCase();
+      if (STOP_EN.indexOf(low) !== -1) continue;
+      enTerms[low] = (enTerms[low] || 0) + 1;
+    }
+    var specials = text.match(/(?:C\+\+|C#|F#|Objective\-C)/g) || [];
+    specials.forEach(function (s) { var k = s.replace(/\+/g, 'p').replace(/#/g, 's'); enTerms[k] = (enTerms[k] || 0) + 1; });
+    // 中文 n-gram（标题加权：重复一次提升权重）
+    var titleZh = (title || '').replace(/[^\u4e00-\u9fa5]/g, '');
+    var zhText = (content || '').replace(/[^\u4e00-\u9fa5]/g, ' ') + ' ' + titleZh + ' ' + titleZh;
+    var zhScores = {};
+    zhText.split(/\s+/).filter(Boolean).forEach(function (run) {
+      for (var n = 2; n <= 3; n++) {
+        for (var i = 0; i + n <= run.length; i++) {
+          var g = run.substr(i, n);
+          if (zhHasStop(g)) continue;
+          zhScores[g] = (zhScores[g] || 0) + (n === 3 ? 1.2 : 1);
+        }
+      }
+    });
+    var enList = Object.keys(enTerms).map(function (k) { return { t: k, s: enTerms[k] }; })
+      .sort(function (a, b) { return b.s - a.s; }).slice(0, 4).map(function (x) { return x.t; });
+    var zhList = Object.keys(zhScores).map(function (k) { return { t: k, s: zhScores[k] }; })
+      .filter(function (x) { return x.s >= 2; })        // 至少加权出现两次才入选
+      .sort(function (a, b) { return b.s - a.s; }).slice(0, 4).map(function (x) { return x.t; });
+    var result = enList.concat(zhList), seen = {}, out = [];
+    result.forEach(function (t) { var key = t.toLowerCase(); if (!seen[key]) { seen[key] = 1; out.push(t); } });
+    return out.slice(0, 6);
+  }
+  function renderTagPreview(input) {
+    var box = qs('.js-tag-preview');
+    if (!box || !input) return;
+    var tags = input.value.split(',').map(function (t) { return t.trim(); }).filter(Boolean);
+    if (!tags.length) { box.innerHTML = ''; return; }
+    box.innerHTML = tags.map(function (t) {
+      return '<span class="tag-preview__chip" data-tag="' + t.replace(/"/g, '&quot;') + '">' + t +
+        '<button type="button" class="tag-preview__chip-remove" aria-label="移除">×</button></span>';
+    }).join('');
+  }
+  function setTagHint(msg) {
+    var hint = qs('.js-tag-hint');
+    if (hint) hint.textContent = msg || '';
+  }
+  function autoGenerateTags() {
+    var input = qs('.js-tags-value');
+    if (!input) return;
+    var title = val(qs('.js-add-content-name')) || '';
+    var content = '';
+    if (window.__vditor && typeof window.__vditor.getValue === 'function') {
+      try { content = window.__vditor.getValue() || ''; } catch (e) { content = ''; }
+    } else {
+      content = val(qs('.js-editor')) || '';
+    }
+    if (!title.trim() && !content.trim()) { setTagHint('请先填写标题或正文'); return; }
+    var tags = extractTags(title, content);
+    var existing = input.value.split(',').map(function (t) { return t.trim(); }).filter(Boolean);
+    tags.forEach(function (t) { if (existing.indexOf(t) === -1) existing.push(t); });
+    input.value = existing.slice(0, 8).join(', ');
+    renderTagPreview(input);
+    setTagHint(tags.length ? ('已提取 ' + tags.length + ' 个候选标签，可手动增删') : '未提取到明显标签，请手动填写');
+  }
+  function bindTagFields() {
+    qsa('.js-tags-value').forEach(function (input) {
+      if (input.__tagBound) return; input.__tagBound = true;
+      renderTagPreview(input);
+      input.addEventListener('input', function () { renderTagPreview(input); setTagHint(''); });
+      var box = qs('.js-tag-preview');
+      if (box) {
+        box.addEventListener('click', function (e) {
+          var rm = e.target.closest ? e.target.closest('.tag-preview__chip-remove') : null;
+          if (!rm) return;
+          var tag = rm.parentNode.getAttribute('data-tag');
+          var arr = input.value.split(',').map(function (t) { return t.trim(); }).filter(Boolean)
+            .filter(function (t) { return t !== tag; });
+          input.value = arr.join(', ');
+          renderTagPreview(input);
+        });
+      }
+    });
+    // 懒人模式：标题写够字后，标签仍为空则自动填充候选（不覆盖手动输入）
+    var titleEl = qs('.js-add-content-name');
+    if (titleEl && !titleEl.__autoBound) {
+      titleEl.__autoBound = true;
+      var tmr;
+      titleEl.addEventListener('input', function () {
+        clearTimeout(tmr);
+        tmr = setTimeout(function () {
+          var input = qs('.js-tags-value');
+          if (!input || input.value.trim() !== '') return;
+          var content = '';
+          if (window.__vditor && typeof window.__vditor.getValue === 'function') {
+            try { content = window.__vditor.getValue() || ''; } catch (e) {}
+          } else { content = val(qs('.js-editor')) || ''; }
+          var tags = extractTags(val(titleEl), content);
+          if (tags.length) { input.value = tags.join(', '); renderTagPreview(input); }
+        }, 800);
+      });
+    }
+  }
+
+  /* ---------------- 评论加载更多 + 首屏 ---------------- */
+  function commentItem(val) {
+    return '<div class="comment-item"><div class="comment-item-head">'
+      + '<span class="comment-author">' + NL.esc(val.userName) + '</span>'
+      + '<time class="color-gray">' + NL.esc(fmtCommentTime(val.createTime)) + '</time>'
+      + '</div><div class="comment-item-body">' + NL.esc(val.comment) + '</div></div>';
+  }
+  function loadComments(reqPage) {
+    var docId = val(qs('.js-doc-id'));
+    getJSON('/comment/all', { cententId: docId, page: reqPage }).then(function (data) {
+      var docs = data.docs;
+      var panel = qs('.js-comment-panel');
+      if (!panel) return;
+      if (docs != null && docs.length > 0) {
+        var html = '';
+        docs.forEach(function (val) { html += commentItem(val); });
+        var title = qs('.js-comment-title');
+        if (title) {
+          var base = title.textContent.replace(/\s*\(\d+\)\s*$/, '');
+          title.textContent = base + ' (' + data.total + ')';
+        }
+        if (data.totalPage > 1) {
+          show(qs('.js-more-comment'));
+          var btn = qs('.js-more-comment-btn');
+          setAttr(btn, 'data-page', data.page);
+          setAttr(btn, 'data-totalPage', data.totalPage);
+          setAttr(btn, 'data-id', docId);
+        }
+        panel.innerHTML = html;
+      } else {
+        panel.innerHTML = NL.state('empty', { size: 'block', title: '还没有评论', text: '来写第一条' });
+      }
+    }).catch(function () {
+      var panel = qs('.js-comment-panel');
+      if (!panel) return;
+      var err = NL.state('error', { size: 'block', title: '评论没读出来', text: '稍后重试，文章内容不受影响', retry: 'comments' });
+      if (panel.querySelector('.comment-item')) panel.insertAdjacentHTML('beforeend', err);
+      else panel.innerHTML = err;
+    });
+  }
+  on(document, 'click', '.js-more-comment-btn', function () {
+    var page = parseInt(attr(this, 'data-page'), 10);
+    var totalPage = parseInt(attr(this, 'data-totalPage'), 10);
+    var contentId = attr(this, 'data-id');
+    if (page >= totalPage) { myMsg('没有更多的评论了'); return; }
+    getJSON('/comment/all', { cententId: contentId, page: page + 1 }).then(function (data) {
+      var docs = data.docs || [];
+      var html = '';
+      docs.forEach(function (val) { html += commentItem(val); });
+      var panel = qs('.js-comment-panel');
+      if (data.totalPage > data.page) setAttr(qs('.js-more-comment-btn'), 'data-page', data.page);
+      else hide(qs('.js-more-comment'));
+      if (panel) panel.insertAdjacentHTML('beforeend', html);
+    }).catch(function () {
+      var err = NL.state('error', { size: 'inline', title: '更多评论没读出来', text: '点此重试，文章内容不受影响', retry: 'more-comments' });
+      var panel = qs('.js-comment-panel'); if (panel) panel.insertAdjacentHTML('beforeend', err);
+    });
+  });
+
+  /* ---------------- 搜索建议 ---------------- */
+  // 防抖 + 竞态取消：连续输入只发最后一次请求，且 abort 掉在途的旧请求
+  var searchTimer = null;
+  var searchController = null;
+  function suggestDebounced(word, searchUrl) {
+    if (searchTimer) clearTimeout(searchTimer);
+    if (searchController) { try { searchController.abort(); } catch (e) {} }
+    searchController = ('AbortController' in window) ? new AbortController() : null;
+    var controller = searchController;
+    searchTimer = setTimeout(function () { suggest(word, searchUrl, controller ? controller.signal : null); }, 220);
+  }
+  function suggest(word, searchUrl, signal) {
+    var panel = qs('.js-search-panel');
+    if (!panel) return;
+    panel.innerHTML = '<li>' + NL.state('loading') + '</li>';
+    show(panel);
+    qs('.js-search-bar').classList.add('open');
+    fetch(searchUrl, {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ word: word }).toString(),
+      signal: signal || null
+    }).then(function (r) { return r.json(); }).then(function (data) {
+      var docs = (data && data.docs) || [];
+      var html = '<li style="padding: 5px;"><input type="text" class="form-control js-search-auto" placeholder="精确定位" x-webkit-speech /></li>';
+      if (docs.length > 0) {
+        docs.forEach(function (tempDoc) {
+          var _id = tempDoc._id, _name = tempDoc.name;
+          var _url = '/content/detail?id=' + _id + '&view=contentDetail';
+          html += '<li><a href="' + _url + '" class="l-option" target="_blank">' + NL.esc(_name) + '</a></li>';
+        });
+      } else {
+        html += '<li>' + NL.state('empty', { title: '没找到「' + word + '」', text: '换个词或按分类浏览', actionHref: '/', actionText: '按分类浏览' }) + '</li>';
+      }
+      panel.innerHTML = html;
+      qs('.js-search-bar').classList.add('open');
+    }).catch(function (err) {
+      if (err && err.name === 'AbortError') return; // 被新输入取消，忽略
+      panel.innerHTML = '<li>' + NL.state('error', { title: '搜索建议没加载出来', text: '按回车仍可直接搜索', retry: 'search' }) + '</li>';
+      qs('.js-search-bar').classList.add('open');
+    });
+  }
+
+  /* ---------------- 后台开关（原生 checkbox）---------------- */
+  function bindSwitch(sel, api, build) {
+    qsa(sel).forEach(function (el) {
+      var initial = attr(el, 'data-type');
+      el.checked = (initial === '0');
+      el.addEventListener('change', function () {
+        var id = attr(el, 'data-id');
+        var prev = el.checked;
+        var payload = build(el.checked);
+        payload.id = id;
+        el.disabled = true;
+        postForm(api, payload).then(function (data) {
+          el.disabled = false;
+          if (data && data.success) {
+            NL.toast(data.msg || '已保存');
+          } else {
+            el.checked = !prev;                 // 失败回滚开关
+            NL.toast((data && data.msg) || '操作失败');
+          }
+        }).catch(function () {
+          el.disabled = false;
+          el.checked = !prev;                   // 网络错误也回滚
+          NL.toast('网络错误，操作未生效');
+        });
+      });
+    });
+  }
+
+  /* ---------------- 原生 popover（替代 Bootstrap .popover）---------------- */
+  var popEl = null;
+  function showPop(html, ref) {
+    hidePop();
+    popEl = document.createElement('div');
+    popEl.className = 'nl-popover';
+    popEl.setAttribute('role', 'tooltip');
+    popEl.innerHTML = html;
+    popEl.style.cssText = 'position:fixed;z-index:var(--z-tooltip);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--elev);padding:var(--space-3);max-width:280px;';
+    document.body.appendChild(popEl);
+    var r = ref.getBoundingClientRect();
+    var top = r.bottom + 8;
+    if (top + popEl.offsetHeight > window.innerHeight) top = r.top - popEl.offsetHeight - 8;
+    popEl.style.top = top + 'px';
+    popEl.style.left = Math.max(8, r.left) + 'px';
+  }
+  function hidePop() { if (popEl && popEl.parentNode) popEl.parentNode.removeChild(popEl); popEl = null; }
+  function bindPopover(sel, html) {
+    qsa(sel).forEach(function (el) {
+      el.addEventListener('mouseenter', function () { showPop(html, el); });
+      el.addEventListener('mouseleave', function () { hidePop(); });
+    });
+  }
+  function popverWeixinTempl() {
+    return '<table class="table"><tbody><tr><td><div class="heading text-center"><i class="icon-weixin">&nbsp;</i>误码者微信</div><img src="/images/weixin.png" width="200" height="200"></td></tr></tbody></table>';
+  }
+  function popverWeiboTempl() {
+    return '<table class="table"><tbody><tr><td><div class="heading text-center"><i class="icon-weibo">&nbsp;</i>误码者微博</div><img src="/images/weibo.png" width="200" height="200"></td></tr></tbody></table>';
+  }
+  function popverWeixinWeiboTempl() {
+    return '<table class="table"><tbody><tr><td><div class="heading text-center"><i class="icon-weixin">&nbsp;</i>误码者微信</div><img src="/images/weixin.png" width="200" height="200" /></td><td><div class="heading text-center"><i class="icon-weibo">&nbsp;</i>误码者微博</div><img src="/images/weibo.png" width="200" height="200" /></td></tr></tbody></table>';
+  }
+
+  /* ---------------- 回顶（占位，元素缺失则跳过）---------------- */
+  function ScrollToTop() {
+    var btn = document.getElementById('backToTop');
+    if (!btn) return;
+    var a = 50;
+    window.addEventListener('scroll', function () {
+      if ((window.pageYOffset || document.documentElement.scrollTop) >= a) btn.classList.remove('Offscreen');
+      else btn.classList.add('Offscreen');
+    });
+    btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); return false; });
+  }
+
+  /* ---------------- 启动 ---------------- */
+  function boot() {
+    getJSON('/session', {}).then(function (data) { sessionUser = data.user; })
+      .catch(function () { sessionUser = null; })
+      .then(function () { init(); ScrollToTop(); });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
+
+/* =========================================================================
+   NODELOG · 后台管理增强（纯追加 · 自治 block · 零新依赖）
+   —— 只消费 views/common/{adminToolbar,adminPager,icons}.ejs 的数据属性；
+   —— 不重排、不覆盖上方 IIFE 的任何既有函数/委托（change-safety：唯一追加锚点）。
+   —— 依赖全局 window.NL（ui.js 提供 modal/alert/toast/closeAll）；后台 footer
+      不加载前台 state/esc 脚本，故此处做带守卫的 fallback，绝不覆盖前台实现。
+   —— 所有用户字段只经 createElement/textContent/setAttribute/DOM value 落地；
+      按钮字段描述由 data-form(JSON) 驱动；用户值一律不拼进 HTML 字符串。
+   ========================================================================= */
+(function () {
+  'use strict';
+
+  /* ---------------- 极小工具（对齐上方 IIFE 的 qs/qsa/on，含靶心防护） ---------------- */
+  function qs(sel, root) { return (root || document).querySelector(sel); }
+  function qsa(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+  function on(el, evt, sel, handler) {
+    if (!el) return;
+    el.addEventListener(evt, function (e) {
+      var t = (e.target && e.target.closest) ? e.target.closest(sel) : null;
+      if (t && el.contains(t)) handler.call(t, e, t);
+    });
+  }
+  function post(url, data) {
+    return fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(data || {}).toString()
+    }).then(function (r) {
+      if (!r.ok) {
+        // 4xx/5xx 的响应体里通常有后端给出的真实原因（参数错误/未登录/非法请求来源）。
+        // 以前直接抛 'HTTP 400'，前端只能显示「网络错误」，用户无从下手。
+        return r.json().catch(function () { return null; }).then(function (body) {
+          var e = new Error((body && (body.msg || body.message)) || ('HTTP ' + r.status));
+          e.status = r.status;
+          throw e;
+        });
+      }
+      return r.json();
+    });
+  }
+  function safeUrl(u) {
+    u = String(u == null ? '' : u).trim();
+    if (/^https?:\/\//i.test(u)) return u;
+    if (/^\/(?!\/)/.test(u)) return u;   // 拒绝 //evil.com 协议相对地址
+    return null;                          // 拒绝 javascript:/data:/vbscript:
+  }
+
+  /* ---------------- NL 带守卫 fallback（后台 footer 无前台 state/esc） ---------------- */
+  var NL = (window.NL = window.NL || {});
+  if (typeof NL.esc !== 'function') {
+    NL.esc = function (s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    };
+  }
+  if (typeof NL.state !== 'function') {
+    // 图标只用 icons.ejs 的 symbol，不引入第二套图标语言。
+    var STATE_SYMBOL = { error: 'i-shield', empty: 'i-list', success: 'i-check' };
+    NL.state = function (kind, o) {
+      o = o || {};
+      var isAlert = (kind === 'error');
+      var h = '<div class="state state--' + NL.esc(kind) + ' state--inline" data-state="' + NL.esc(kind) + '"' +
+        ' role="' + (isAlert ? 'alert' : 'status') + '" aria-live="' + (isAlert ? 'assertive' : 'polite') + '" aria-atomic="true">';
+      if (kind === 'loading') {
+        return h + '<div class="state-skeleton" aria-hidden="true"><span class="sk sk--title"></span>' +
+          '<span class="sk sk--line"></span><span class="sk sk--line sk--short"></span></div>' +
+          '<span class="sr-only">正在加载</span></div>';
+      }
+      h += '<span class="state-icon" aria-hidden="true"><svg class="nl-icon" width="20" height="20">' +
+        '<use href="#' + NL.esc(STATE_SYMBOL[kind] || 'i-list') + '"></use></svg></span><div class="state-body">';
+      if (o.title) h += '<p class="state-title">' + NL.esc(o.title) + '</p>';
+      if (o.text) h += '<p class="state-text">' + NL.esc(o.text) + '</p>';
+      if (o.retry) {
+        h += '<div class="state-actions"><button type="button" class="btn btn-sm js-state-retry" data-retry="' +
+          NL.esc(o.retry) + '">' + NL.esc(o.retryLabel || '重试') + '</button></div>';
+      }
+      return h + '</div></div>';
+    };
+  }
+
+  function toast(m) { if (typeof NL.toast === 'function') NL.toast(m); }
+  function confirmBox(msg, cb) {
+    if (typeof NL.alert === 'function') NL.alert(msg, { onConfirm: cb });
+    else if (window.confirm(msg)) cb();
+  }
+
+  /* ---------------- 上下文：从工具条 data-* 推导 API，通用不硬编码资源 ---------------- */
+  var BATCH_LIMIT = 100; // 与 controllers/adminConfig.BATCH_LIMIT 默认一致，后端校验为准
+  function toolbar(el) { return (el && el.closest) ? (el.closest('.admin-toolbar') || qs('.admin-toolbar')) : qs('.admin-toolbar'); }
+  function resOf(el) { var t = toolbar(el); return (t && t.getAttribute('data-res')) || ''; }
+  function listScope(el) { var t = toolbar(el); return (t && t.closest('.admin-list')) || document; }
+  function apiFor(res, action, el) {
+    var t = toolbar(el);
+    var custom = t ? t.getAttribute('data-' + action + '-api') : null;
+    return custom || ('/manager/' + res + '/' + action);
+  }
+  function boxes(root, checkedOnly) {
+    return qsa(checkedOnly ? '.js-batch-check:checked' : '.js-batch-check', root || document);
+  }
+  function selectedIds() {
+    return boxes(document, true).map(function (el) { return el.value; }).filter(function (v) { return v !== ''; });
+  }
+  function rowOf(id) {
+    var all = boxes(document, false);
+    for (var i = 0; i < all.length; i++) if (all[i].value === String(id)) return all[i].closest('tr');
+    return null;
+  }
+  function updateCount() {
+    qsa('.js-batch-count').forEach(function (el) {
+      el.textContent = '已选 ' + selectedIds().length + ' 条（单次≤' + BATCH_LIMIT + '）';
+    });
+  }
+  function updateRowStatus(tr, status) {
+    if (!tr) return;
+    var cb = qs('.js-admin-status', tr);
+    var label = qs('.js-status-label', tr);
+    var s = String(status);
+    if (cb) { cb.checked = (s === '0'); cb.setAttribute('data-status', s); }
+    if (label) label.textContent = (s === '0' ? '正常' : '禁用');
+  }
+
+  /* ---------------- 批量选择（全选/单选/计数，上限 100） ---------------- */
+  on(document, 'change', '.js-batch-all', function () {
+    var scope = listScope(this);
+    var all = boxes(scope, false);
+    var toCheck = this.checked;
+    var picked = 0;
+    all.forEach(function (b) {
+      if (toCheck && picked >= BATCH_LIMIT) { b.checked = false; return; }
+      b.checked = toCheck;
+      if (toCheck) picked++;
+    });
+    if (toCheck && all.length > BATCH_LIMIT) toast('单次最多 ' + BATCH_LIMIT + ' 条，已选中前 ' + BATCH_LIMIT + ' 条');
+    updateCount();
+  });
+  on(document, 'change', '.js-batch-check', function () {
+    var scope = listScope(this);
+    var all = boxes(scope, false);
+    var head = qs('.js-batch-all', scope);
+    var checked = all.filter(function (b) { return b.checked; }).length;
+    if (head) head.checked = (checked > 0 && checked === all.length);
+    updateCount();
+  });
+
+  /* ---------------- 批量删除 / 批量改状态（部分成功：失败行保留） ---------------- */
+  on(document, 'click', '.js-batch-delete', function () {
+    var ids = selectedIds();
+    if (!ids.length) { toast('请先选择要操作的记录'); return; }
+    if (ids.length > BATCH_LIMIT) { toast('单次最多操作 ' + BATCH_LIMIT + ' 条'); return; }
+    var res = resOf(this);
+    var self = this;
+    confirmBox('删除后无法恢复，确定删除选中的 ' + ids.length + ' 条记录吗？', function () {
+      post(apiFor(res, 'batch', self), { ids: ids, action: 'delete' })
+        .then(function (data) { applyBatchResult(data, ids, 'delete'); })
+        .catch(function (e) { toast((e && e.status && e.message) ? ('批量删除未生效：' + e.message) : '网络错误，批量删除未生效'); });
+    });
+  });
+  on(document, 'click', '.js-batch-status', function () {
+    var ids = selectedIds();
+    if (!ids.length) { toast('请先选择要操作的记录'); return; }
+    if (ids.length > BATCH_LIMIT) { toast('单次最多操作 ' + BATCH_LIMIT + ' 条'); return; }
+    var res = resOf(this);
+    var self = this;
+    var sel = qs('.js-batch-status-value', toolbar(this));
+    var status = sel ? sel.value : '';
+    if (status === '') { toast('请选择目标状态'); return; }
+    confirmBox('确定把选中的 ' + ids.length + ' 条记录改为目标状态吗？', function () {
+      post(apiFor(res, 'batch', self), { ids: ids, action: 'status', status: status })
+        .then(function (data) { applyBatchResult(data, ids, 'status', status); })
+        .catch(function (e) { toast((e && e.status && e.message) ? ('批量改状态未生效：' + e.message) : '网络错误，批量改状态未生效'); });
+    });
+  });
+  function clearRowError(tr) {
+    tr.classList.remove('admin-row--error');
+    tr.removeAttribute('data-batch-error');
+    var old = tr.querySelector('.admin-row-error-tag');
+    if (old && old.parentNode) old.parentNode.removeChild(old);
+  }
+  function applyBatchResult(data, ids, action, status) {
+    if (!data || data.success === false) { toast((data && data.msg) || '操作失败，原数据已保留'); return; }
+    // 响应结构异常时不要把所有行一键刷红——那会伪装成「每条都失败」，掩盖真正的问题。
+    if (!Array.isArray(data.results)) { toast('批量操作返回异常，原数据已保留，请检查服务端日志'); return; }
+    var okMap = {}, errMap = {}, okN = 0, firstErr = '';
+    data.results.forEach(function (r) {
+      if (!r) return;
+      var key = String(r.id);
+      if (r.ok) { okMap[key] = r; okN++; }
+      else { errMap[key] = r.msg || ''; if (!firstErr && r.msg) firstErr = r.msg; }
+    });
+    var failed = (typeof data.failed === 'number') ? data.failed : (ids.length - okN);
+    ids.forEach(function (id) {
+      var tr = rowOf(id);
+      if (!tr) return;
+      if (okMap[String(id)]) {
+        clearRowError(tr); // 重试成功要抹掉上一次的标红，避免残留假失败
+        if (action === 'delete') {
+          if (tr.parentNode) tr.parentNode.removeChild(tr);
+        } else {
+          updateRowStatus(tr, status);
+          var chk = qs('.js-batch-check', tr); if (chk) chk.checked = false;
+        }
+      } else {
+        // 失败行保留并就地标注（文字 + 颜色双线索，不只靠颜色），绝不整体清空/伪装空态。
+        tr.classList.add('admin-row--error');
+        tr.setAttribute('data-batch-error', '1');
+        var op = tr.querySelector('.admin-col-actions') || tr.lastElementChild;
+        var tag = op && op.querySelector('.admin-row-error-tag');
+        if (op && !tag) {
+          tag = document.createElement('span');
+          tag.className = 'admin-row-error-tag';
+          op.appendChild(tag);
+        }
+        if (tag) {
+          tag.textContent = ' 操作失败';
+          tag.title = errMap[String(id)] || ''; // 悬停可见后端逐条原因
+        }
+      }
+    });
+    updateCount();
+    if (failed > 0) toast('成功 ' + okN + ' 条，失败 ' + failed + ' 条；失败记录已保留' + (firstErr ? '（' + firstErr + '）' : ''));
+    else toast((action === 'delete' ? '已删除 ' : '已更新 ') + okN + ' 条');
+  }
+
+  /* ---------------- 单条状态 / 单条删除（失败回滚，保留原行） ---------------- */
+  on(document, 'change', '.js-admin-status', function () {
+    var el = this;
+    var tr = el.closest('tr');
+    var res = resOf(el);
+    var id = el.getAttribute('data-id');
+    var target = el.checked ? '0' : '1';
+    var prev = el.checked ? '1' : '0';
+    el.disabled = true;
+    post(apiFor(res, 'status', el), { id: id, status: target })
+      .then(function (data) {
+        el.disabled = false;
+        if (data && data.success !== false) {
+          el.setAttribute('data-status', target);
+          var label = tr ? qs('.js-status-label', tr) : null;
+          if (label) label.textContent = (target === '0' ? '正常' : '禁用');
+          toast((data && data.msg) || '状态已更新');
+        } else {
+          el.checked = (prev === '0');
+          toast((data && data.msg) || '状态更新失败，已恢复原状');
+        }
+      })
+      .catch(function () { el.disabled = false; el.checked = (prev === '0'); toast('网络错误，状态未更新'); });
+  });
+  on(document, 'click', '.js-admin-delete', function () {
+    var el = this;
+    var tr = el.closest('tr');
+    var res = resOf(el);
+    var id = el.getAttribute('data-id');
+    confirmBox('删除后无法恢复，确定删除这条记录吗？', function () {
+      post(apiFor(res, 'delete', el), { id: id })
+        .then(function (data) {
+          if (data && data.success !== false) {
+            if (tr && tr.parentNode) tr.parentNode.removeChild(tr);
+            updateCount();
+            toast((data && data.msg) || '已删除');
+          } else toast((data && data.msg) || '删除失败，原数据已保留');
+        })
+        .catch(function () { toast('网络错误，删除未生效'); });
+    });
+  });
+
+  /* ---------------- 新增 / 编辑：字段描述由 data-form(JSON) 驱动，控件全用 DOM API ---------------- */
+  function fieldsOf(btn) {
+    try { return JSON.parse(btn.getAttribute('data-form') || '[]') || []; }
+    catch (e) { return []; }
+  }
+  function openForm(btn, edit) {
+    if (typeof NL.modal !== 'function') { toast('弹层组件未就绪，请刷新页面'); return; }
+    var res = resOf(btn);
+    var bar = toolbar(btn);
+    var fields = fieldsOf(btn);
+    if (!fields.length && bar) fields = fieldsOf(bar);   // 编辑按钮未自带字段时，复用工具条新增字段
+    var title = btn.getAttribute('data-title') || '记录';
+    var api = (edit && ((btn.getAttribute('data-edit-api') || (bar && bar.getAttribute('data-edit-api')))))
+      || btn.getAttribute('data-api') || ('/manager/' + res + '/add');
+    var id = edit ? btn.getAttribute('data-id') : '';
+    var tr = edit ? btn.closest('tr') : null;
+    NL.modal({
+      title: (edit ? '编辑' : '新增') + ' · ' + title,
+      content: '', // 内容全部在 onOpen 内用 DOM 接口构建；用户字段不进 HTML 字符串
+      size: 'large',
+      onOpen: function (modal) {
+        var body = modal.querySelector('.nl-modal-body');
+        var form = document.createElement('form');
+        form.className = 'admin-form';
+        form.noValidate = true;                 // 自校验 + 就地错误，避免浏览器气泡与文案脱节
+        fields.forEach(function (f) {
+          var wrap = document.createElement('label');
+          var cap = document.createElement('span');
+          cap.textContent = f.t || f.n;
+          wrap.appendChild(cap);
+          var input;
+          if (f.k === 'textarea') { input = document.createElement('textarea'); input.rows = 4; }
+          else if (f.k === 'select') {
+            input = document.createElement('select');
+            (f.o || []).forEach(function (o) {
+              var opt = document.createElement('option');
+              opt.value = String(o.v); opt.textContent = String(o.t);
+              if (o.p != null) opt.setAttribute('data-p', String(o.p)); // 父级 id，供编辑时防环
+              input.appendChild(opt);
+            });
+          } else {
+            input = document.createElement('input');
+            // 字段类型与 adminFramework.FIELD_KINDS 对齐；未知类型安全降级为 text。
+            input.type = ['number', 'date', 'password'].indexOf(f.k) !== -1 ? f.k : 'text';
+          }
+          input.name = f.n;
+          input.className = 'form-control';
+          if (f.max) input.maxLength = parseInt(f.max, 10);
+          if (f.req) { input.required = true; input.setAttribute('aria-required', 'true'); }
+          var initial = (tr && tr.getAttribute('data-' + f.n) != null) ? tr.getAttribute('data-' + f.n) : f.d;
+          if (initial != null) input.value = String(initial);
+          wrap.appendChild(input);
+          form.appendChild(wrap);
+        });
+        // 编辑分类时：从「父分类」下拉中移除自身及其所有后代，避免人为制造循环引用
+        // （一旦成环，前端 buildCategoryForest 会无 tops，整个下拉/选择器被清空）。
+        var psel = form.elements['parent'];
+        if (edit && tr && psel) {
+          var selfId = id;
+          var childMap = {};
+          Array.prototype.forEach.call(psel.options, function (o) {
+            var p = o.getAttribute('data-p');
+            if (p) { (childMap[p] = childMap[p] || []).push(o.value); }
+          });
+          var banned = {};
+          (function collect(pid) {
+            banned[pid] = true;
+            (childMap[pid] || []).forEach(function (c) { collect(c); });
+          })(selfId);
+          Array.prototype.slice.call(psel.options).forEach(function (o) {
+            if (o.value && banned[o.value]) o.remove();
+          });
+        }
+        var err = document.createElement('p');
+        err.className = 'admin-form-error';
+        err.setAttribute('role', 'alert');
+        err.hidden = true;
+        form.appendChild(err);
+        var actions = document.createElement('div');
+        actions.className = 'admin-form-actions';
+        var cancel = document.createElement('button');
+        cancel.type = 'button'; cancel.className = 'btn'; cancel.textContent = '取消';
+        cancel.addEventListener('click', function () { NL.closeAll(); });
+        var save = document.createElement('button');
+        save.type = 'submit'; save.className = 'btn btn-primary'; save.textContent = '保存';
+        actions.appendChild(cancel); actions.appendChild(save); form.appendChild(actions);
+
+        function showErr(msg) { err.textContent = msg; err.hidden = false; }
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          err.hidden = true;
+          var payload = {};
+          var bad = null;
+          fields.forEach(function (f) {
+            var input = form.elements[f.n];
+            var v = input ? String(input.value == null ? '' : input.value).trim() : '';
+            if (f.req && v === '' && !bad) bad = { input: input, msg: (f.t || f.n) + '不能为空' };
+            payload[f.n] = v;
+          });
+          if (bad) { showErr(bad.msg); if (bad.input) bad.input.focus(); return; }
+          if (id) payload.id = id;
+          save.disabled = true;
+          post(api, payload)
+            .then(function (data) {
+              save.disabled = false;
+              if (data && data.success !== false && data.result !== false) {
+                NL.closeAll();
+                toast((data && data.msg) || '已保存');
+                location.reload();
+              } else showErr((data && data.msg) || '保存失败，请检查输入后重试');
+            })
+            .catch(function () { save.disabled = false; showErr('网络错误，保存未生效，请重试'); });
+        });
+        body.appendChild(form);
+      }
+    });
+  }
+  on(document, 'click', '.js-admin-add', function () { openForm(this, false); });
+  on(document, 'click', '.js-admin-edit', function () { openForm(this, true); });
+
+  /* ---------------- 导入 CSV（JSON body: {content}）/ 导出 CSV（GET 下载） ---------------- */
+  on(document, 'click', '.js-admin-import', function () {
+    var f = qs('.js-admin-file', toolbar(this));
+    if (f) f.click();
+  });
+  on(document, 'change', '.js-admin-file', function () {
+    var input = this;
+    var file = input.files && input.files[0];
+    if (!file) return;
+    var MAX_BYTES = 2 * 1024 * 1024;   // 与 adminConfig.IMPORT_MAX_BYTES 默认一致，后端为准
+    var MAX_ROWS = 1000;               // 与 adminConfig.IMPORT_MAX_ROWS 默认一致
+    function reset() { try { input.value = ''; } catch (e) {} } // 允许重复选同一文件
+    if (file.size > MAX_BYTES) { toast('文件超过 2MB，请拆分后重试'); reset(); return; }
+    var res = resOf(input);
+    var reader = new FileReader();
+    reader.onload = function () {
+      var text = String(reader.result || '').replace(/^\uFEFF/, '');  // 去 UTF-8 BOM
+      var rows = text.split(/\r?\n/).filter(function (line) { return line.trim() !== ''; }).length;
+      if (!text.trim()) { toast('CSV 内容不能为空'); reset(); return; }
+      if (rows > MAX_ROWS) { toast('文件超过 ' + MAX_ROWS + ' 行，请拆分后重试'); reset(); return; }
+      post(apiFor(res, 'import', input), { content: text })
+        .then(function (data) {
+          if (data && data.success !== false) {
+            toast('导入完成：成功 ' + (data.created || 0) + ' 条，失败 ' + (data.failed || 0) + ' 条');
+            location.reload();
+          } else toast((data && data.msg) || '导入失败，请检查 CSV 格式');
+        })
+        .catch(function () { toast('网络错误，导入未生效'); })
+        .then(reset);
+    };
+    reader.onerror = function () { toast('文件读取失败，请重试'); reset(); };
+    reader.readAsText(file, 'UTF-8');
+  });
+  on(document, 'click', '.js-admin-export', function () {
+    var res = resOf(this);
+    var form = qs('.js-admin-filter', toolbar(this));
+    var params = new URLSearchParams();
+    if (form) {
+      var fd = new FormData(form);
+      fd.forEach(function (v, k) { if (v !== '' && v != null) params.append(k, v); });
+    } else {
+      var cur = new URLSearchParams(location.search);
+      cur.delete('page');
+      cur.forEach(function (v, k) { params.append(k, v); });
+    }
+    window.location.assign('/manager/' + res + '/export?' + params.toString());
+  });
+
+  /* ---------------- 筛选表单提交（关键词/状态/排序）—— 显式接管，避免纯原生 GET 表单
+     在 SVG-in-button / type=search 等场景下静默失效（全后台 4 页共用同一表单模板，一处修全）。
+     兜底：若本脚本未加载，原生 form 仍能 GET 提交；本处理器 preventDefault 后改为程序化跳转，
+     行为与原生一致（按 action + 序列化非空字段跳转），但确定性更强。 ---------------- */
+  on(document, 'submit', '.js-admin-filter', function (e) {
+    e.preventDefault();
+    var form = this;
+    var params = new URLSearchParams();
+    Array.prototype.forEach.call(form.elements || [], function (el) {
+      if (!el.name) return;
+      if ((el.type === 'checkbox' || el.type === 'radio') && !el.checked) return;
+      var v = (el.value == null ? '' : String(el.value)).trim();
+      if (v !== '') params.append(el.name, v);
+    });
+    var base = (form.getAttribute('action') || '').trim() || location.pathname;
+    var qs = params.toString();
+    location.href = base + (qs ? '?' + qs : '');
+  });
+
+  /* ---------------- 初始化：进入页面先同步批量计数 ---------------- */
+  function bootAdmin() { updateCount(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootAdmin);
+  else bootAdmin();
+})();

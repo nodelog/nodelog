@@ -1,0 +1,409 @@
+/* =========================================================================
+   NODELOG · app.css
+   去框架化替代层：在 theme.css（设计令牌 + 组件库）之上，补齐 Bootstrap
+   仅作为「结构/栅格/字体」提供的那部分，全部零依赖、零 jQuery。
+   仅覆盖视图真正使用的类，不照搬 6000+ 行 bootstrap.css。
+   加载顺序：theme.css 之后。
+   ========================================================================= */
+
+/* ---- 1. 栅格（flexbox 12 列，移动优先）-------------------------------- */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  margin-left: calc(var(--space-4) * -1);
+  margin-right: calc(var(--space-4) * -1);
+}
+[class^="col-"],
+[class*=" col-"] {
+  box-sizing: border-box;
+  width: 100%;
+  padding-left: var(--space-4);
+  padding-right: var(--space-4);
+}
+.col-1  { flex: 0 0 8.3333%;  max-width: 8.3333%; }
+.col-2  { flex: 0 0 16.6667%; max-width: 16.6667%; }
+.col-3  { flex: 0 0 25%;      max-width: 25%; }
+.col-4  { flex: 0 0 33.3333%; max-width: 33.3333%; }
+.col-5  { flex: 0 0 41.6667%; max-width: 41.6667%; }
+.col-6  { flex: 0 0 50%;      max-width: 50%; }
+.col-7  { flex: 0 0 58.3333%; max-width: 58.3333%; }
+.col-8  { flex: 0 0 66.6667%; max-width: 66.6667%; }
+.col-9  { flex: 0 0 75%;      max-width: 75%; }
+.col-10 { flex: 0 0 83.3333%; max-width: 83.3333%; }
+.col-11 { flex: 0 0 91.6667%; max-width: 91.6667%; }
+.col-12 { flex: 0 0 100%;     max-width: 100%; }
+
+@media (min-width: 576px) {
+  .col-sm-1  { flex: 0 0 8.3333%;  max-width: 8.3333%; }
+  .col-sm-2  { flex: 0 0 16.6667%; max-width: 16.6667%; }
+  .col-sm-3  { flex: 0 0 25%;      max-width: 25%; }
+  .col-sm-4  { flex: 0 0 33.3333%; max-width: 33.3333%; }
+  .col-sm-5  { flex: 0 0 41.6667%; max-width: 41.6667%; }
+  .col-sm-6  { flex: 0 0 50%;      max-width: 50%; }
+  .col-sm-7  { flex: 0 0 58.3333%; max-width: 58.3333%; }
+  .col-sm-8  { flex: 0 0 66.6667%; max-width: 66.6667%; }
+  .col-sm-9  { flex: 0 0 75%;      max-width: 75%; }
+  .col-sm-10 { flex: 0 0 83.3333%; max-width: 83.3333%; }
+  .col-sm-11 { flex: 0 0 91.6667%; max-width: 91.6667%; }
+  .col-sm-12 { flex: 0 0 100%;     max-width: 100%; }
+  .col-sm-offset-1 { margin-left: 8.3333%; }
+  .col-sm-offset-2 { margin-left: 16.6667%; }
+  .col-sm-offset-3 { margin-left: 25%; }
+}
+@media (min-width: 768px) {
+  .col-md-1  { flex: 0 0 8.3333%;  max-width: 8.3333%; }
+  .col-md-2  { flex: 0 0 16.6667%; max-width: 16.6667%; }
+  .col-md-3  { flex: 0 0 25%;      max-width: 25%; }
+  .col-md-4  { flex: 0 0 33.3333%; max-width: 33.3333%; }
+  .col-md-5  { flex: 0 0 41.6667%; max-width: 41.6667%; }
+  .col-md-6  { flex: 0 0 50%;      max-width: 50%; }
+  .col-md-7  { flex: 0 0 58.3333%; max-width: 58.3333%; }
+  .col-md-8  { flex: 0 0 66.6667%; max-width: 66.6667%; }
+  .col-md-9  { flex: 0 0 75%;      max-width: 75%; }
+  .col-md-10 { flex: 0 0 83.3333%; max-width: 83.3333%; }
+  .col-md-11 { flex: 0 0 91.6667%; max-width: 91.6667%; }
+  .col-md-12 { flex: 0 0 100%;     max-width: 100%; }
+  .col-md-offset-1 { margin-left: 8.3333%; }
+  .col-md-offset-2 { margin-left: 16.6667%; }
+}
+@media (min-width: 992px) {
+  .col-lg-1  { flex: 0 0 8.3333%;  max-width: 8.3333%; }
+  .col-lg-2  { flex: 0 0 16.6667%; max-width: 16.6667%; }
+  .col-lg-3  { flex: 0 0 25%;      max-width: 25%; }
+  .col-lg-4  { flex: 0 0 33.3333%; max-width: 33.3333%; }
+  .col-lg-5  { flex: 0 0 41.6667%; max-width: 41.6667%; }
+  .col-lg-6  { flex: 0 0 50%;      max-width: 50%; }
+  .col-lg-7  { flex: 0 0 58.3333%; max-width: 58.3333%; }
+  .col-lg-8  { flex: 0 0 66.6667%; max-width: 66.6667%; }
+  .col-lg-9  { flex: 0 0 75%;      max-width: 75%; }
+  .col-lg-10 { flex: 0 0 83.3333%; max-width: 83.3333%; }
+  .col-lg-11 { flex: 0 0 91.6667%; max-width: 91.6667%; }
+  .col-lg-12 { flex: 0 0 100%;     max-width: 100%; }
+}
+
+/* ---- 2. 工具类 -------------------------------------------------------- */
+.clearfix::after { content: ""; display: table; clear: both; }
+.pull-left  { float: left; }
+.pull-right { float: right; }
+.center-block { display: block; margin-left: auto; margin-right: auto; }
+.text-left   { text-align: left; }
+.text-right  { text-align: right; }
+.text-primary { color: var(--accent); }
+.muted, .text-muted { color: var(--muted); }
+.hidden { display: none !important; }
+.show   { display: block !important; }
+.list-unstyled { list-style: none; margin: 0; padding: 0; }
+.img-responsive { display: block; max-width: 100%; height: auto; }
+
+/* ---- 3. 输入组 / 媒体对象 -------------------------------------------- */
+.input-group { display: flex; align-items: stretch; }
+.input-group .form-control { flex: 1 1 auto; min-width: 0; }
+.input-group-addon {
+  display: flex; align-items: center; padding: 0 var(--space-3);
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-right: 0; border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  color: var(--muted); font-size: var(--fs-body-sm); white-space: nowrap;
+}
+.input-group .form-control:first-child { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.input-group .form-control:last-child  { border-top-left-radius: 0;  border-bottom-left-radius: 0; }
+
+.media { display: flex; align-items: flex-start; gap: var(--space-3); }
+.media-body { flex: 1 1 auto; }
+
+/* ---- 4. 遗留组件类（原 bootstrap / 旧模板）--------------------------- */
+.page-header { padding-bottom: var(--space-2); margin: 0 0 var(--space-6); border-bottom: 1px solid var(--border); }
+.page-header h1, .page-header h2 { margin: 0; font-size: var(--fs-h2); }
+.alert-link { font-weight: 600; color: inherit; text-decoration: underline; }
+.alert .alert-link { color: inherit; }
+.bottom-border { border-bottom: 1px solid var(--border); }
+.nav-bg { background: var(--surface); color: var(--ink); }
+.navbar-fixed-top { position: fixed; top: 0; left: 0; right: 0; z-index: 1030; }
+.navbar-header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.navbar-nav { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); margin: 0; padding: 0; list-style: none; }
+.navbar-nav > li { list-style: none; }
+.badge-father { position: relative; }
+.badge-father .badge { position: absolute; top: -6px; right: -10px; }
+.previous, .next { display: inline-block; }
+.success { color: var(--success); }
+.empty { padding: var(--space-12) var(--space-4); text-align: center; color: var(--muted); }
+.empty-title { font-size: var(--fs-lead); font-weight: 600; color: var(--ink); margin: 0 0 var(--space-2); }
+.pointer { cursor: pointer; }
+.opacity-03 { opacity: .3; }
+.hover-opacity-1:hover { opacity: 1; }
+.fixed-right-top { position: fixed; right: var(--space-4); top: var(--space-4); z-index: 1040; }
+.size-40 { width: 40px; height: 40px; }
+.padding-15 { padding: 15px; }
+.no-margin { margin: 0 !important; }
+.caret { display: inline-block; width: 0; height: 0; margin-left: 4px; vertical-align: middle; border-top: 4px solid; border-right: 4px solid transparent; border-left: 4px solid transparent; }
+.close { float: right; font-size: 21px; font-weight: 700; line-height: 1; color: var(--muted); background: transparent; border: 0; cursor: pointer; }
+.close:hover { color: var(--ink); }
+.divider { height: 1px; margin: var(--space-2) 0; background: var(--border); }
+
+/* 旧模板用的 l-* 间距助手（前端页少量出现，统一补一份） */
+.l-padding-vertical { padding-top: var(--space-4); padding-bottom: var(--space-4); }
+.l-heigh-200 { min-height: 200px; }
+.l-margin-top-17 { margin-top: 17px; }
+.l-margin-top-20 { margin-top: 20px; }
+
+/* ---- 5. 折叠 / 下拉（与 theme.css 的 .in / .open 约定对齐）----------- */
+.collapse { display: none; }
+.collapse.in { display: block; }
+.dropdown-menu { display: none; }
+.open > .dropdown-menu,
+.dropdown.open > .dropdown-menu,
+.dropdown.is-open > .dropdown-menu { display: block; }
+
+/* 主导航：移动端折叠，桌面端常显 */
+.navbar-toggle { display: inline-flex; flex-direction: column; justify-content: center; gap: 4px; width: 44px; height: 44px; padding: var(--space-2); background: transparent; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); cursor: pointer; }
+.icon-bar { display: block; width: 22px; height: 2px; background: var(--ink); border-radius: 2px; }
+@media (max-width: 767px) {
+  .navbar-collapse.collapse { display: none; }
+  .navbar-collapse.collapse.in { display: block; }
+}
+@media (min-width: 768px) {
+  .navbar-toggle { display: none; }
+  .collapse.navbar-collapse { display: flex; flex-wrap: wrap; }
+  .navbar-nav { flex-wrap: nowrap; }
+}
+.manager .navbar-toggle .icon-bar { background: var(--manager-nav-fg); }
+
+/* ---- 6. Glyphicons（仅保留用到的图标，字体文件在 /public/fonts）------ */
+@font-face {
+  font-family: 'Glyphicons Halflings';
+  src: url(../fonts/glyphicons-halflings-regular.eot);
+  src: url(../fonts/glyphicons-halflings-regular.eot?#iefix) format('embedded-opentype'),
+       url(../fonts/glyphicons-halflings-regular.woff) format('woff'),
+       url(../fonts/glyphicons-halflings-regular.ttf) format('truetype'),
+       url(../fonts/glyphicons-halflings-regular.svg#glyphicons_halflingsregular) format('svg');
+}
+.glyphicon {
+  position: relative; top: 1px; display: inline-block;
+  font-family: 'Glyphicons Halflings'; font-style: normal; font-weight: 400;
+  line-height: 1; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+}
+.glyphicon-plus:before      { content: "\2b"; }
+.glyphicon-bookmark:before  { content: "\e044"; }
+.glyphicon-time:before      { content: "\e023"; }
+.glyphicon-user:before      { content: "\e008"; }
+.glyphicon-pencil:before    { content: "\270f"; }
+.glyphicon-tag:before       { content: "\e041"; }
+.glyphicon-eye-open:before  { content: "\e105"; }
+.glyphicon-envelope:before  { content: "\2709"; }
+.glyphicon-phone:before     { content: "\e145"; }
+.glyphicon-lock:before      { content: "\e033"; }
+.glyphicon-hand-right:before{ content: "\e127"; }
+
+/* ---- 7. 原生弹层 / Toast（供 ui.js 使用）----------------------------- */
+.nl-overlay {
+  position: fixed; inset: 0; z-index: var(--z-overlay);
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--space-4); background: rgba(17, 27, 33, .5);
+  animation: nl-fade .15s ease;
+}
+.nl-modal {
+  width: 100%; max-width: 360px; max-height: 86vh; overflow: auto;
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--elev); font-family: var(--font-ui);
+}
+.nl-modal-head {
+  padding: var(--space-4); border-bottom: 1px solid var(--border);
+  font-weight: 600; font-size: var(--fs-body); line-height: 1.4;
+}
+.nl-modal-body { padding: var(--space-4); font-size: var(--fs-body-sm); line-height: 1.6; word-break: break-word; }
+.nl-modal-foot { display: flex; gap: var(--space-2); justify-content: flex-end; padding: var(--space-3) var(--space-4); border-top: 1px solid var(--border); }
+.nl-modal-foot .btn { min-height: 40px; }
+.nl-loading {
+  display: inline-flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-4) var(--space-6); background: var(--surface);
+  color: var(--ink); border-radius: var(--radius); box-shadow: var(--elev); font-family: var(--font-ui);
+}
+.nl-spinner {
+  width: 20px; height: 20px; border-radius: 50%;
+  border: 2px solid var(--border); border-top-color: var(--accent);
+  animation: nl-spin .7s linear infinite;
+}
+@keyframes nl-spin { to { transform: rotate(360deg); } }
+@keyframes nl-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.toast-host { position: fixed; left: 50%; bottom: var(--space-8); transform: translateX(-50%); z-index: var(--z-toast); display: flex; flex-direction: column; gap: var(--space-2); pointer-events: none; }
+/* Toast：对齐链付收银SAAS 设计语言——语义浅底 + 深一档字 + 左侧色条 + 图标，非黑底白字 */
+.nl-toast {
+  pointer-events: auto;
+  display: flex; align-items: center; gap: var(--space-3);
+  min-width: 220px; max-width: 90vw;
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--neutral-border); border-left: 3px solid var(--brand-primary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  font-family: var(--font-sans); font-size: var(--fs-body-sm); line-height: 1.5;
+  text-align: left;
+  animation: nl-toast-in var(--dur-enter) var(--ease-out);
+  transition: opacity var(--dur-state) var(--ease-out), transform var(--dur-state) var(--ease-out);
+}
+.nl-toast-icon { display: inline-flex; flex: 0 0 auto; }
+.nl-toast-text { flex: 1 1 auto; }
+.nl-toast--success { border-left-color: var(--color-success); background: var(--color-success-bg); color: var(--color-success-ink); }
+.nl-toast--error   { border-left-color: var(--color-danger);  background: var(--color-danger-bg);  color: var(--color-danger-ink); }
+.nl-toast--info    { border-left-color: var(--color-info);    background: var(--color-info-bg);    color: var(--color-info-ink); }
+.nl-toast.is-leaving { opacity: 0; transform: translateY(8px); }
+@keyframes nl-toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .nl-overlay, .nl-toast, .nl-spinner { animation: none; }
+  .nl-spinner { border-top-color: var(--accent); }
+}
+
+/* ---- 可搜索分类选择器（替代原生 <select>）---- */
+.category-picker { position: relative; }
+.category-picker__menu {
+  position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 50;
+  margin: 0; padding: 4px; list-style: none;
+  background: var(--surface, #fff); border: 1px solid var(--border, #e0e3e6);
+  border-radius: var(--radius-sm, 8px); box-shadow: 0 8px 24px rgba(0,0,0,.12);
+  max-height: 240px; overflow-y: auto; display: none;
+}
+.category-picker__menu.is-open { display: block; }
+.category-picker__item {
+  padding: 8px 10px; border-radius: 6px; cursor: pointer;
+  font-size: 14px; color: var(--text, #1b1f26);
+}
+.category-picker__item:hover { background: var(--surface-2, #f2f4f7); }
+.category-picker__item.is-selected {
+  background: var(--accent-weak, #eef2ff); color: var(--accent, #3b5bff); font-weight: 600;
+}
+.category-picker__empty { padding: 10px; color: #9aa0a6; font-size: 13px; }
+
+/* 分类层级展示：选择器分组标题 + 二级缩进；前端导航下拉分组标题 */
+.category-picker__group {
+  padding: 8px 10px 2px; font-size: 11.5px; font-weight: 700; letter-spacing: .04em;
+  color: var(--text-weak, #8a9099);
+}
+.category-picker__item.cat-indent { padding-left: 26px; }
+.category-picker__item.cat-indent::before {
+  content: '└'; margin-right: 6px; color: var(--border, #cdd2d8);
+}
+.cat-group__title {
+  display: block; padding: 6px 12px; font-size: 12px; font-weight: 700;
+  color: #8a9099; background: rgba(0,0,0,.03); cursor: default; line-height: 1.4;
+}
+.dropdown-menu.l-select .cat-indent { padding-left: 28px; }
+
+/* ---- 标签输入 + 预览 ---- */
+.tag-field { display: flex; gap: 8px; align-items: stretch; }
+.tag-field .js-tags-value { flex: 1 1 auto; }
+.btn-ghost {
+  flex: 0 0 auto; padding: 0 14px; border: 1px solid var(--border, #e0e3e6);
+  background: var(--surface, #fff); color: var(--accent, #3b5bff);
+  border-radius: var(--radius-sm, 8px); font-size: 13px; cursor: pointer; white-space: nowrap;
+}
+.btn-ghost:hover { background: var(--accent-weak, #eef2ff); }
+.tag-preview { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.tag-preview__chip {
+  display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px;
+  background: var(--accent-weak, #eef2ff); color: var(--accent, #3b5bff);
+  border-radius: 999px; font-size: 12.5px; line-height: 1.6;
+}
+.tag-preview__chip-remove {
+  border: 0; background: transparent; color: inherit; cursor: pointer;
+  font-size: 14px; line-height: 1; padding: 0 2px; opacity: .55;
+}
+.tag-preview__chip-remove:hover { opacity: 1; }
+.tag-hint { margin: 6px 0 0; font-size: 12.5px; color: #9aa0a6; min-height: 0; }
+
+/* ---- 后台管理增强：工具条 / 批量 / 状态 / 表单（唯一 SVG 图标集 + 令牌）---- */
+.nl-icon-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+.nl-icon { width: 1.1em; height: 1.1em; flex: 0 0 auto; vertical-align: -0.15em; }
+.admin-toolbar { margin-bottom: var(--space-4); padding: var(--space-3); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.admin-filter-form { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: flex-end; }
+.admin-filter-item { display: flex; flex-direction: column; gap: var(--space-1); min-width: 132px; }
+.admin-filter-item label { font-size: var(--fs-small); color: var(--muted); }
+.admin-filter-item .form-control { min-height: 36px; width: 100%; }
+
+/* 关键词 / 检索输入框：legacy style.css 的 input[type=search]{width:0; 圆角药丸; 搜索图标底图}
+   会把这类输入框压成 0 宽、样式错乱，导致「看得见但点不进字 / 输不进内容」。
+   该规则特异性 (0,1,1) 高于 .form-control (0,1,0)，故 .form-control 无法抵消它。
+   这里用更高特异性的 .form-control[type="search"] (0,2,1) 显式恢复为标准输入框外观与宽度，
+   覆盖后台工具栏（content/category/user/log/violation 共用 adminToolbar 模板）、前端搜索页等所有
+   用 class="form-control" 的检索框；导航栏搜索用 .search-input 且 .navbar input[type="search"].search-input
+   特异性更高 (0,3,1)，仍保持 180px，不受影响。 */
+.form-control[type="search"] {
+  width: 100%; height: 44px; min-width: 0; margin: 0;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--border-strong); border-radius: var(--radius-control);
+  background: var(--surface); color: var(--ink);
+  font-size: var(--fs-body-sm); line-height: 1.4;
+  box-shadow: none; outline: none; background-image: none;
+  -webkit-appearance: none; appearance: none; box-sizing: border-box;
+}
+.admin-filter-item--actions { flex-direction: row; gap: var(--space-2); }
+.admin-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3); }
+.admin-batch { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--border); }
+.admin-batch label { display: inline-flex; gap: var(--space-1); align-items: center; font-size: var(--fs-small); color: var(--muted); }
+.admin-batch .js-batch-status-value { min-height: 36px; width: auto; }
+.admin-batch-count { font-size: var(--fs-small); color: var(--muted); font-variant-numeric: tabular-nums; }
+.admin-list .table { margin-bottom: var(--space-4); }
+.admin-col-check, .admin-col-status, .admin-col-actions { width: 1%; white-space: nowrap; }
+.admin-col-status { min-width: 116px; }
+.admin-status-toggle { display: inline-flex; align-items: center; gap: var(--space-2); min-height: 44px; cursor: pointer; }
+.admin-status-toggle input { width: 18px; height: 18px; flex: 0 0 auto; }
+.admin-status-toggle .js-status-label { font-size: var(--fs-small); }
+.admin-row-actions { display: inline-flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.admin-row-actions a, .admin-row-actions button { min-height: 44px; padding: var(--space-2) var(--space-3); }
+.admin-row-actions button { border: 0; background: transparent; color: var(--accent); cursor: pointer; font: inherit; }
+.admin-row-actions button:hover { text-decoration: underline; }
+.admin-row--error { background: var(--danger-tint); }
+.admin-row-error-tag { color: var(--danger-ink); font-size: var(--fs-small); font-weight: 600; }
+.admin-form { display: flex; flex-direction: column; gap: var(--space-3); }
+.admin-form label { display: flex; flex-direction: column; gap: var(--space-1); font-size: var(--fs-small); color: var(--muted); }
+.admin-form .form-control { min-height: 44px; }
+.admin-form-error { margin: 0; color: var(--danger-ink); font-size: var(--fs-small); }
+.admin-form-actions { display: flex; gap: var(--space-2); justify-content: flex-end; margin-top: var(--space-2); }
+@media (max-width: 640px) {
+  .admin-filter-item { flex: 1 1 140px; }
+  .admin-filter-item--actions { flex: 1 1 100%; }
+  .admin-row-actions { gap: var(--space-1); }
+}
+
+/* 后台多列表格窄屏降级：表格在父容器内横向滚动，不撑破视口。
+   真渲染实测 390px：sensitiveWord / violation 溢出由 291/352px 降为 0。
+   触控惯性滚动 + 自定义滚动条走既有令牌；原生 overflow 容器可键盘 Scroll。 */
+.admin-list .jumbotron { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.admin-list .jumbotron::-webkit-scrollbar { height: 8px; }
+.admin-list .jumbotron::-webkit-scrollbar-thumb { background: var(--border); border-radius: var(--radius-sm); }
+.admin-list .jumbotron::-webkit-scrollbar-track { background: transparent; }
+
+/* 后台分页：跳页输入框与按钮，对齐 .pager 既有 a/span 的 44px 高度（theme.css:553+）。
+   pager.ejs 新增 .pager-jump（label + input.js-jump-input + button.js-jump-go），
+   翻页逻辑在 common.js 的 .js-jump-go / .js-jump-input[Enter] 委托中。 */
+.pager li.pager-jump { align-items: center; gap: var(--space-1); border-color: transparent; padding: 0; }
+.pager .pager-jump-label { padding: 0 var(--space-1); color: var(--muted); font-size: var(--fs-small); }
+.pager .pager-jump input.js-jump-input {
+  width: 64px; min-height: 44px; padding: var(--space-2); box-sizing: border-box;
+  border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  background: var(--surface); color: var(--ink); font-size: var(--fs-small); text-align: center;
+  -moz-appearance: textfield;
+}
+.pager .pager-jump input.js-jump-input::-webkit-outer-spin-button,
+.pager .pager-jump input.js-jump-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.pager .pager-jump input.js-jump-input:focus { outline: none; border-color: var(--accent); }
+.pager .pager-jump .js-jump-go {
+  min-height: 44px; margin: 0; padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  background: var(--surface); color: var(--ink); font-size: var(--fs-small); cursor: pointer;
+}
+.pager .pager-jump .js-jump-go:hover { border-color: var(--accent); color: var(--accent); }
+
+/* 窄屏：隐藏次要列（列仍在 DOM，js-* 钩子与 data-* 零影响），保留关键列 + 操作首屏可见。 */
+@media (max-width: 640px) {
+  /* 覆盖 Bootstrap .table 的 min-width:640px（禁改第三方文件）：让表格收缩进容器，
+     处置按钮进首屏；长词任意处换行，避免撑宽。真渲染实测操作按钮 right 331/360 < 390，溢出 0。 */
+  .admin-list .table { min-width: 0; width: 100%; }
+  .admin-list td, .admin-list th { overflow-wrap: anywhere; }
+  .admin-list .admin-col-opt { display: none; }
+  .admin-list .admin-col-status { min-width: 0; }
+  .admin-list .admin-row-actions { flex-direction: column; align-items: flex-start; }
+  .admin-list .admin-row-actions a,
+  .admin-list .admin-row-actions button { min-height: 36px; padding: var(--space-1) var(--space-2); }
+}

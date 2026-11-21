@@ -1,0 +1,15 @@
+<%- include('header') %>
+<ol class="breadcrumb" aria-label="面包屑">
+    <li><a href="/">首页</a></li>
+    <li class="active" aria-current="page"><%= category.name %></li>
+</ol>
+<div class="page-head">
+    <h1><%= category.name %></h1>
+    <p class="kicker">分类 · 共 <%= total %> 篇</p>
+</div>
+<div class="layout">
+    <div class="layout-main"><%- include('contentPanel') %></div>
+    <%- include('common/sidebar') %>
+</div>
+<input type="hidden" class="js-current-menu" value="js-category-content"/>
+<%- include('footer') %>

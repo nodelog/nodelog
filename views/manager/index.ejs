@@ -1,0 +1,311 @@
+<%- include('header') %>
+
+<ol class="breadcrumb">
+    <li class="active">后台首页</li>
+</ol>
+<h3>概览</h3>
+<p class="nl-muted">欢迎使用 <%= session.site.name %> 管理后台，这里是全站运行概况。</p>
+
+<div class="nl-stat-grid">
+    <a class="nl-stat-card" href="/manager/content/admin?page=1">
+        <div class="nl-stat-num"><%= (locals.stats && stats.content) || 0 %></div>
+        <div class="nl-stat-label">文章</div>
+    </a>
+    <a class="nl-stat-card" href="/manager/user/admin?page=1">
+        <div class="nl-stat-num"><%= (locals.stats && stats.user) || 0 %></div>
+        <div class="nl-stat-label">用户</div>
+    </a>
+    <a class="nl-stat-card" href="/manager/comment?page=1">
+        <div class="nl-stat-num"><%= (locals.stats && stats.comment) || 0 %></div>
+        <div class="nl-stat-label">评论</div>
+    </a>
+    <a class="nl-stat-card" href="/manager/category/admin?page=1">
+        <div class="nl-stat-num"><%= (locals.stats && stats.category) || 0 %></div>
+        <div class="nl-stat-label">分类</div>
+    </a>
+    <a class="nl-stat-card" href="/manager/tag?page=1">
+        <div class="nl-stat-num"><%= (locals.stats && stats.tag) || 0 %></div>
+        <div class="nl-stat-label">标签</div>
+    </a>
+    <a class="nl-stat-card" href="/manager/log/admin?page=1">
+        <div class="nl-stat-num"><%= (locals.stats && stats.log) || 0 %></div>
+        <div class="nl-stat-label">公告</div>
+    </a>
+    <a class="nl-stat-card" href="/manager/sensitive-word">
+        <div class="nl-stat-num"><%= (locals.stats && stats.sensitiveWord) || 0 %></div>
+        <div class="nl-stat-label">敏感词</div>
+    </a>
+    <a class="nl-stat-card" href="/manager/violation">
+        <div class="nl-stat-num"><%= (locals.stats && stats.violation) || 0 %></div>
+        <div class="nl-stat-label">违规记录</div>
+    </a>
+</div>
+
+<div class="nl-detail-grid">
+    <!-- 最近文章 -->
+    <section class="nl-panel">
+        <div class="nl-panel-head">
+            <h4>最近文章</h4>
+            <a class="nl-more" href="/manager/content/admin?page=1">查看全部 &rsaquo;</a>
+        </div>
+        <% if (locals.recentContent && recentContent.length) { %>
+        <ul class="nl-list">
+            <% recentContent.forEach(function (d) { %>
+            <li class="nl-list-item">
+                <a class="nl-title" href="/manager/content/detail?id=<%= d._id %>"><%= d.name %></a>
+                <div class="nl-meta">
+                    <span class="nl-badge nl-badge-<%= d.status == 1 ? 'danger' : (d.status == 2 ? 'muted' : 'ok') %>"><%= d.status == 1 ? '禁用' : (d.status == 2 ? '私有' : '已发布') %></span>
+                    <span><%= d.userName || '佚名' %></span>
+                    <span class="nl-dot">&middot;</span>
+                    <span><%= d.categoryName || '未知' %></span>
+                    <span class="nl-dot">&middot;</span>
+                    <span><%= format(d.createTime) %></span>
+                </div>
+            </li>
+            <% }); %>
+        </ul>
+        <% } else { %>
+        <p class="nl-empty">暂无文章</p>
+        <% } %>
+    </section>
+
+    <!-- 待处理 -->
+    <section class="nl-panel">
+        <div class="nl-panel-head">
+            <h4>待处理</h4>
+        </div>
+        <div class="nl-todo-row">
+            <a class="nl-todo" href="/manager/violation">
+                <div class="nl-todo-num"><%= (locals.pendingViolations && pendingViolations.total) || 0 %></div>
+                <div class="nl-todo-label">违规待处理</div>
+            </a>
+            <a class="nl-todo" href="/manager/content/admin?page=1">
+                <div class="nl-todo-num"><%= (locals.pendingContent != null && pendingContent) || 0 %></div>
+                <div class="nl-todo-label">待发布内容</div>
+            </a>
+        </div>
+        <% if (locals.pendingViolations && pendingViolations.docs && pendingViolations.docs.length) { %>
+        <ul class="nl-list nl-list-sm">
+            <% pendingViolations.docs.forEach(function (v) { %>
+            <li class="nl-list-item">
+                <a class="nl-title" href="/manager/violation"><%= v.hitWord %></a>
+                <div class="nl-meta">
+                    <span><%= v.userName || '某用户' %></span>
+                    <span class="nl-dot">&middot;</span>
+                    <span><%= v.source == 'comment' ? '评论' : '文章' %><%= v.field ? ' / ' + v.field : '' %></span>
+                    <span class="nl-dot">&middot;</span>
+                    <span><%= format(v.time) %></span>
+                </div>
+            </li>
+            <% }); %>
+        </ul>
+        <% } else { %>
+        <p class="nl-empty">暂无待处理违规</p>
+        <% } %>
+    </section>
+</div>
+
+<div class="nl-detail-grid">
+    <!-- 最近评论 -->
+    <section class="nl-panel">
+        <div class="nl-panel-head">
+            <h4>最近评论</h4>
+            <a class="nl-more" href="/manager/comment?page=1">查看全部 &rsaquo;</a>
+        </div>
+        <% if (locals.recentComments && recentComments.length) { %>
+        <ul class="nl-list">
+            <% recentComments.forEach(function (c) { %>
+            <li class="nl-list-item">
+                <a class="nl-title" href="/manager/comment"><%= c.comment.length > 42 ? c.comment.slice(0, 42) + '…' : c.comment %></a>
+                <div class="nl-meta">
+                    <span class="nl-badge nl-badge-<%= c.status == 1 ? 'danger' : 'ok' %>"><%= c.status == 1 ? '禁用' : '正常' %></span>
+                    <span><%= format(c.createTime) %></span>
+                </div>
+            </li>
+            <% }); %>
+        </ul>
+        <% } else { %>
+        <p class="nl-empty">暂无评论</p>
+        <% } %>
+    </section>
+
+    <!-- 公告 / 友链 -->
+    <section class="nl-panel">
+        <div class="nl-panel-head">
+            <h4>公告 / 友链</h4>
+        </div>
+        <div class="nl-todo-row">
+            <a class="nl-todo" href="/manager/log/admin?page=1">
+                <div class="nl-todo-num"><%= (locals.disabledLog != null && disabledLog) || 0 %></div>
+                <div class="nl-todo-label">公告待复核</div>
+            </a>
+            <a class="nl-todo" href="/manager/link">
+                <div class="nl-todo-num"><%= (locals.disabledLink != null && disabledLink) || 0 %></div>
+                <div class="nl-todo-label">友链待复核</div>
+            </a>
+        </div>
+        <ul class="nl-list nl-list-sm">
+            <% if (locals.recentLogs && recentLogs.length) { %>
+            <% recentLogs.forEach(function (l) { %>
+            <li class="nl-list-item">
+                <a class="nl-title" href="/manager/log/admin?page=1"><%= l.name %></a>
+                <div class="nl-meta"><span class="nl-badge nl-badge-ok">公告</span><span><%= format(l.modifyTime) %></span></div>
+            </li>
+            <% }); %>
+            <% } %>
+            <% if (locals.recentLinks && recentLinks.length) { %>
+            <% recentLinks.forEach(function (k) { %>
+            <li class="nl-list-item">
+                <a class="nl-title" href="/manager/link"><%= k.name %></a>
+                <div class="nl-meta"><span class="nl-badge nl-badge-ok">友链</span><span><%= format(k.createTime) %></span></div>
+            </li>
+            <% }); %>
+            <% } %>
+            <% if ((!recentLogs || !recentLogs.length) && (!recentLinks || !recentLinks.length)) { %>
+            <p class="nl-empty">暂无公告与友链</p>
+            <% } %>
+        </ul>
+    </section>
+</div>
+
+<!-- 运营趋势 -->
+<section class="nl-panel nl-trend">
+    <div class="nl-panel-head">
+        <h4>运营趋势</h4>
+        <div class="nl-range">
+            <a href="/manager?range=7" class="<%= trend.range == 7 ? 'on' : '' %>">近7天</a>
+            <a href="/manager?range=30" class="<%= trend.range == 30 ? 'on' : '' %>">近30天</a>
+            <a href="/manager?range=90" class="<%= trend.range == 90 ? 'on' : '' %>">近90天</a>
+        </div>
+    </div>
+    <div class="nl-charts">
+        <div class="nl-chart">
+            <div class="nl-chart-title">文章 <b><%= trend.content.reduce(function (a, b) { return a + b; }, 0) %></b></div>
+            <div class="nl-bars"><%- spark(trend.content) %></div>
+        </div>
+        <div class="nl-chart">
+            <div class="nl-chart-title">评论 <b><%= trend.comment.reduce(function (a, b) { return a + b; }, 0) %></b></div>
+            <div class="nl-bars"><%- spark(trend.comment) %></div>
+        </div>
+        <div class="nl-chart">
+            <div class="nl-chart-title">用户 <b><%= trend.user.reduce(function (a, b) { return a + b; }, 0) %></b></div>
+            <div class="nl-bars"><%- spark(trend.user) %></div>
+        </div>
+    </div>
+    <div class="nl-axis"><span><%= trend.axis[0] %></span><span><%= trend.axis[trend.axis.length - 1] %></span></div>
+</section>
+
+<% if (session.user && session.user.role == 0) { %>
+<div class="nl-quick">
+    <h4>快捷操作</h4>
+    <a class="btn btn-default" href="/manager/setting">博客设置</a>
+    <a class="btn btn-default" href="/manager/audit/page">操作日志</a>
+</div>
+<% } %>
+
+<% function spark(series) {
+    var max = Math.max.apply(null, series.concat([1]));
+    var out = '';
+    series.forEach(function (v, i) {
+        var pct = (v / max * 100).toFixed(1);
+        var date = (locals.trend && trend.axis[i]) ? trend.axis[i] : '';
+        out += '<span class="nl-bar" style="height:' + pct + '%" title="' + date + '：' + v + '"></span>';
+    });
+    return out;
+} %>
+
+<style>
+/* ===== NODELOG 后台概览 · 统一设计令牌（浅/深色自动适配，禁止裸 hex） ===== */
+.nl-muted{color:var(--muted);font-size:var(--fs-body-sm);margin:8px 0 0}
+
+/* 统计卡：浮起 + 悬浮抬升 + 顶部渐变揭示线 */
+.nl-stat-grid{display:flex;flex-wrap:wrap;gap:16px;margin:24px 0 8px}
+.nl-stat-card{
+  position:relative;overflow:hidden;flex:1 1 160px;min-width:150px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:20px 22px;text-decoration:none;
+  color:var(--ink);box-shadow:var(--elev);
+  transition:transform .2s cubic-bezier(.2,.7,.2,1),border-color .15s,box-shadow .2s ease;
+}
+.nl-stat-card::before{
+  content:"";position:absolute;left:0;right:0;top:0;height:3px;
+  background:linear-gradient(90deg,var(--brand-primary),var(--brand-indigo));
+  transform:scaleX(0);transform-origin:left;transition:transform .25s ease;
+}
+.nl-stat-card:hover{transform:translateY(-3px);border-color:var(--accent);
+  box-shadow:0 18px 40px -22px rgba(16,24,40,.30)}
+.nl-stat-card:hover::before{transform:scaleX(1)}
+.nl-stat-num{
+  font-size:34px;font-weight:500;line-height:1.15;
+  background:linear-gradient(135deg,var(--brand-primary),var(--brand-indigo));
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;color:var(--accent);
+}
+.nl-stat-label{font-size:13px;color:var(--muted);margin-top:6px}
+
+/* 详情面板：浮起 + 悬浮描边高亮 */
+.nl-detail-grid{display:flex;flex-wrap:wrap;gap:16px;margin:24px 0 8px}
+.nl-panel{
+  flex:1 1 360px;min-width:300px;background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--radius);
+  padding:18px 20px;box-shadow:var(--elev);
+  transition:border-color .15s,box-shadow .2s ease;
+}
+.nl-panel:hover{border-color:var(--accent-weak);
+  box-shadow:0 16px 38px -24px rgba(16,24,40,.28)}
+.nl-panel-head{display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:10px;gap:8px;flex-wrap:wrap}
+.nl-panel-head h4{position:relative;padding-left:12px;font-size:16px;font-weight:500;margin:0}
+.nl-panel-head h4::before{content:"";position:absolute;left:0;top:.25em;bottom:.25em;
+  width:3px;border-radius:2px;background:linear-gradient(180deg,var(--brand-primary),var(--brand-indigo))}
+.nl-more{font-size:13px;color:var(--accent);text-decoration:none}
+.nl-more:hover{text-decoration:underline}
+.nl-list{list-style:none;margin:0;padding:0}
+.nl-list-item{padding:10px 0;border-top:1px solid var(--border)}
+.nl-list-item:first-child{border-top:none}
+.nl-title{display:block;font-size:15px;color:var(--ink);text-decoration:none;font-weight:500}
+.nl-title:hover{color:var(--accent)}
+.nl-meta{font-size:12px;color:var(--muted);margin-top:4px;display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+.nl-dot{color:var(--muted);opacity:.6}
+.nl-empty{color:var(--muted);font-size:13px;padding:12px 0}
+.nl-badge{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;line-height:18px;font-weight:500}
+.nl-badge-ok{background:var(--success-tint);color:var(--success-ink)}
+.nl-badge-danger{background:var(--danger-tint);color:var(--danger-ink)}
+.nl-badge-muted{background:var(--surface-2);color:var(--muted)}
+.nl-todo-row{display:flex;gap:16px}
+.nl-todo{flex:1;background:var(--surface-2);border:1px solid var(--border);
+  border-radius:10px;padding:14px 16px;text-decoration:none;color:var(--ink);
+  transition:border-color .15s,transform .15s,box-shadow .15s}
+.nl-todo:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:var(--elev)}
+.nl-todo-num{font-size:26px;font-weight:500;line-height:1.1;
+  background:linear-gradient(135deg,var(--brand-primary),var(--brand-indigo));
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:var(--accent)}
+.nl-todo-label{font-size:13px;color:var(--muted);margin-top:4px}
+.nl-list-sm .nl-list-item{padding:8px 0}
+
+/* 运营趋势 */
+.nl-trend{margin-top:16px}
+.nl-range{display:flex;gap:6px}
+.nl-range a{font-size:12px;color:var(--muted);text-decoration:none;
+  padding:3px 10px;border:1px solid var(--border);border-radius:999px;transition:all .15s}
+.nl-range a:hover{border-color:var(--accent);color:var(--accent)}
+.nl-range a.on{background:linear-gradient(135deg,var(--brand-primary),var(--brand-indigo));
+  color:var(--accent-ink);border-color:transparent}
+.nl-charts{display:flex;flex-wrap:wrap;gap:16px;margin-top:6px}
+.nl-chart{flex:1 1 200px;min-width:160px}
+.nl-chart-title{font-size:13px;color:var(--muted);margin-bottom:6px}
+.nl-chart-title b{color:var(--ink);font-weight:600}
+.nl-bars{display:flex;align-items:flex-end;gap:2px;height:64px;padding-top:4px}
+.nl-bar{flex:1;min-width:2px;border-radius:2px 2px 0 0;opacity:.85;
+  background:linear-gradient(180deg,var(--brand-primary),var(--brand-indigo));
+  transition:opacity .15s,filter .15s}
+.nl-bar:hover{opacity:1;filter:saturate(1.2)}
+.nl-axis{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:6px}
+
+/* 快捷操作 */
+.nl-quick{margin-top:32px}
+.nl-quick h4{font-size:18px;font-weight:500;margin:0 0 12px}
+.nl-quick .btn{margin-right:8px;margin-bottom:8px}
+</style>
+
+<%- include('footer') %>

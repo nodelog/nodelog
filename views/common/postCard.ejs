@@ -1,0 +1,66 @@
+<%
+  // 三种版式：lead（首页首篇，唯一 h1，跨满宽度的 featured 大卡）/ grid（2 列卡片）/ list（归档紧凑行）
+  var v = (typeof variant !== 'undefined' && variant) ? variant
+        : ((typeof lead !== 'undefined' && lead) ? 'lead' : 'grid');
+  var isLead = (v === 'lead');
+  var isList = (v === 'list');
+  var isGrid = (v === 'grid');
+  var _date = format(doc.createTime || doc.modifyTime, 'YYYY-MM-DD');
+  var cls = 'post-card post-card--' + v + (isList ? '' : ' card hov');
+  // WP3：Wiki 文档指向独立知识库路由，博客文章维持原 /content/detail
+  var href = '/content/detail?id=' + doc._id;
+  if (doc.docType === 'wiki') {
+    href = (doc.spaceSlug && doc.slug)
+      ? '/wiki/' + encodeURIComponent(doc.spaceSlug) + '/' + encodeURIComponent(doc.slug)
+      : '/wiki';
+  }
+  // WP3：搜索结果关键词高亮（仅高亮标题/摘要文本，转义后再插 mark，防 XSS）
+  var _kw = (typeof key !== 'undefined' && key) ? String(key).trim() : '';
+  function hl(text) {
+    var s = String(text == null ? '' : text);
+    if (!_kw) return s;
+    var escaped = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    var kw = _kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return escaped.replace(new RegExp(kw, 'gi'), function (m) { return '<mark class="kw">' + m + '</mark>'; });
+  }
+%>
+<article class="<%= cls %>">
+    <% if (!isList && doc.cover) { %>
+    <a class="post-cover" href="<%= href %>" tabindex="-1" aria-hidden="true">
+        <img class="cover" src="<%= doc.cover %>" alt="<%= doc.name %>" width="640" height="360"
+             decoding="async" loading="lazy">
+    </a>
+    <% } %>
+    <% if (isList) { %><time class="post-date" datetime="<%= _date %>"><%= _date %></time><% } %>
+    <div class="post-body">
+        <% if (!isList) { %><span class="cat"><%= doc.categoryName || '未分类' %></span><% } %>
+        <% if (isLead) { %><span class="post-flag">精选</span><% } %>
+        <% if (isLead) { %>
+        <h1><a href="<%= href %>"><%- hl(doc.name) %></a></h1>
+        <% } else if (isGrid) { %>
+        <h3><a href="<%= href %>"><%- hl(doc.name) %></a></h3>
+        <% } else { %>
+        <h2><a href="<%= href %>"><%- hl(doc.name) %></a></h2>
+        <% } %>
+        <div class="meta">
+            <span><%= doc.realName || doc.userName || '佚名' %></span>
+            <span><%= doc.categoryName || '未分类' %></span>
+            <time datetime="<%= _date %>"><%= _date %></time>
+            <span><%= doc.view %> 次阅读</span>
+            <% if (doc.readingTime) { %><span>约 <%= doc.readingTime %> 分钟</span><% } %>
+        </div>
+        <% if (doc.excerpt) { %><p class="excerpt"><%- hl(doc.excerpt) %></p><% } %>
+        <% if (isLead) { %><a class="post-readmore" href="<%= href %>">阅读全文 →</a><% } %>
+        <% if (doc.tags && doc.tags.length) { %>
+        <div class="tag-chips">
+            <% doc.tags.forEach(function(t){ %><a class="chip" href="/tag/<%= encodeURIComponent(t) %>"><%= t %></a><% }); %>
+        </div>
+        <% } %>
+        <% if (typeof isMyContent !== 'undefined' && isMyContent && typeof session !== 'undefined' && session && session.user && session.user._id == doc.author) { %>
+        <div class="post-actions">
+            <a class="btn btn-sm" href="/content/edit?id=<%= doc._id %>&view=editContent">编辑</a>
+            <button type="button" class="btn btn-sm btn-danger js-delete-article" data-id="<%= doc._id %>">删除</button>
+        </div>
+        <% } %>
+    </div>
+</article>

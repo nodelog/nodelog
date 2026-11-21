@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <%- include('../common/meta') %>
+</head>
+<body class="bg-gray js-body manager">
+<%- include('../common/icons') %>
+<a class="skip-link" href="#main">跳到主内容</a>
+<% var adminName = session.user ? (session.user.realName ? session.user.realName : session.user.userName) : ''; %>
+<nav class="navbar nav-bg navbar-fixed-top bottom-border" role="navigation" aria-label="后台顶栏">
+    <div class="navbar-header">
+        <a class="navbar-brand" href="/manager"><%=session.site.name %> · 管理</a>
+        <!-- 「返回前台」是离开管理界面的反向入口，标准位置在品牌旁、独立可见 -->
+        <a class="manager-back-link" href="<%= navConfig.admin.backToSite.href %>" title="返回前台"><%= navConfig.admin.backToSite.label %></a>
+    </div>
+    <ul class="nav navbar-nav manager-top-tools">
+        <% if(session.user != null){ %>
+        <!-- 用户名只作身份标识 + 账号菜单触发器；退出是菜单内的会话操作 -->
+        <li class="dropdown nav-account js-login-toggle js-when-logged-in">
+            <a href="javascript:;" role="button" tabindex="0" data-nav-toggle class="nav-account-toggle color-white" aria-label="账号菜单" aria-haspopup="true" aria-expanded="false"><span class="nav-account-name"><%= adminName %></span> <svg class="nav-caret" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></a>
+            <ul class="dropdown-menu dropdown-menu--right" role="menu" aria-label="账号菜单">
+                <li class="nav-account-head"><span><%= adminName %></span></li>
+                <li><a href="javascript:;" role="button" tabindex="0" class="<%= navConfig.admin.account.logout.className %>"><%= navConfig.admin.account.logout.label %></a></li>
+            </ul>
+        </li>
+        <% } %>
+    </ul>
+</nav>
+
+<div class="manager-shell">
+    <aside class="manager-sidebar" aria-label="后台侧栏">
+        <nav class="manager-nav" role="navigation" aria-label="后台主导航">
+            <% var currentGroup = navConfig.groupOf(navConfig.admin.groups, locals.currentMenu); %>
+            <% navConfig.admin.groups.forEach(function(group){ %>
+            <% var shown = group.items.filter(function(item){ return navConfig.visible(item, session.user); }); %>
+            <% if(shown.length){ %>
+            <details class="manager-nav-group" <% if(currentGroup && currentGroup.id === group.id){ %>open<% } %>>
+                <summary class="manager-nav-group-title"><%= group.label %></summary>
+                <ul class="manager-nav-list">
+                    <% shown.forEach(function(item){ %>
+                    <% var active = navConfig.isCurrent(item, locals.currentMenu); %>
+                    <li><a href="<%= navConfig.hrefFor(item, session.user) %>" class="manager-nav-link <% if(active){ %>current-menu<% } %>" <% if(active){ %>aria-current="page"<% } %>><%= navConfig.labelFor(item, session.user) %></a></li>
+                    <% }); %>
+                </ul>
+            </details>
+            <% } %>
+            <% }); %>
+        </nav>
+    </aside>
+    <main class="manager-main" id="main" tabindex="-1">
+        <div class="l-top-bottom">
+            <article class="l-padding-horizontal">
+                <div class="bg-white jumbotron clear-margin">

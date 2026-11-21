@@ -1,0 +1,33 @@
+<%- include('header') %>
+<p class="kicker">记录，让思考更有温度</p>
+
+<div class="layout">
+    <div class="layout-main">
+        <% if (typeof docs !== 'undefined' && docs && docs.length) { %>
+            <% if (docs[0]) { %>
+            <%- include('common/postCard', { doc: docs[0], variant: 'lead' }) %>
+            <% } %>
+            <% if (docs.length > 1) { %>
+            <div class="section-head">
+                <span class="pill">近期笔耕</span>
+                <h2>最新文章</h2>
+                <p>关于工程、产品与一些慢思考的连续记录。</p>
+            </div>
+            <div class="post-grid">
+                <% docs.slice(1).forEach(function(doc, i){ %>
+                    <%- include('common/postCard', { doc: doc, variant: 'grid', index: i + 2 }) %>
+                <% }); %>
+            </div>
+            <% } %>
+        <% } else { %>
+        <h1 class="sr-only">最新文章</h1>
+        <%- include('common/state', { kind: 'empty', size: 'block', title: '还没有文章', text: '发布第一篇文章后，这里会显示文章列表', actionHref: '/content/addPage', actionText: '去写第一篇' }) %>
+        <% } %>
+
+        <%- include('common/pagination', { page: page, totalPage: totalPage, url: (typeof locals.url === 'string' && locals.url) ? locals.url : '/index?' }) %>
+    </div>
+
+    <%- include('common/sidebar') %>
+</div>
+<input type="hidden" class="js-login-flag" value="<%=login%>"/>
+<%- include('footer') %>

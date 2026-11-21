@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>云笺 · Cloudletter — 高保真预览</title>
+<style>
+/* ============ 令牌（浅色默认 / 深色覆盖，作用域 .cl） ============ */
+.cl{
+  --bg:#EEF2FA; --surface:#FFFFFF; --surface-2:#F4F6FB;
+  --border:#E3E8F0; --border-strong:#CBD5E1; --ink:#1F2937; --muted:#64748B;
+  --accent:#2563EB; --accent-hover:#1D4ED8; --accent-press:#1E40AF;
+  --accent-2:#10B981; --accent-2-hover:#059669; --on-accent:#FFFFFF;
+  --brand-from:#4A54E8; --brand-to:#5B6CFF;
+  --pastel-blue:#E8F0FE; --pastel-green:#E6F6EF; --pastel-peach:#FDEFE6; --pastel-pink:#FCE8F1;
+  --info:#2563EB; --info-bg:#E8F0FE; --success:#10B981; --success-bg:#E6F6EF;
+  --warning:#D97706; --warning-bg:#FEF3E2; --danger:#DC2626; --danger-bg:#FDECEC;
+  --shadow-sm:0 1px 2px rgba(15,23,42,.04),0 1px 3px rgba(15,23,42,.05);
+  --shadow:0 4px 14px rgba(15,23,42,.06),0 2px 4px rgba(15,23,42,.04);
+  --shadow-lg:0 12px 32px rgba(15,23,42,.12);
+  --glow-accent:0 6px 16px rgba(37,99,235,.22);
+  --font-sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Hiragino Sans GB","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --font-mono:"SF Mono","JetBrains Mono","Fira Code",Consolas,"Courier New",monospace;
+  --wrap:1200px; --measure:720px; --aside:280px; --sp1:4px; --sp2:8px; --sp3:12px; --sp4:16px;
+  --sp5:24px; --sp6:32px; --sp7:48px; --sp8:64px; --sp9:96px;
+  --r-pill:999px; --r-lg:16px; --r:12px; --r-sm:8px; --r-xs:6px;
+  --fs-display:40px; --fs-h1:32px; --fs-h2:24px; --fs-h3:20px; --fs-lead:19px;
+  --fs-body:17px; --fs-body-sm:15px; --fs-small:13px;
+}
+.cl[data-theme="dark"]{
+  --bg:#0F172A; --surface:#192334; --surface-2:#121B29;
+  --border:#2A3647; --border-strong:#3C4A5E; --ink:#E8EDF4; --muted:#94A3B8;
+  --accent:#5B8DEF; --accent-hover:#3B6FD6; --accent-press:#2F5BB8;
+  --accent-2:#34D399; --accent-2-hover:#22B07E; --on-accent:#0F172A;
+  --pastel-blue:#1E2A44; --pastel-green:#16302A; --pastel-peach:#33271C; --pastel-pink:#33202F;
+  --info-bg:#1E2A44; --success-bg:#16302A; --warning-bg:#33271C; --danger-bg:#33202A;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.35); --shadow:0 4px 14px rgba(0,0,0,.40);
+  --shadow-lg:0 12px 32px rgba(0,0,0,.55); --glow-accent:0 6px 16px rgba(91,141,239,.30);
+}
+*{box-sizing:border-box;}
+.cl{font-family:var(--font-sans);color:var(--ink);background:var(--bg);line-height:1.7;
+  -webkit-font-smoothing:antialiased;font-size:var(--fs-body);}
+.cl a{color:var(--accent);text-decoration:none;}
+.cl h1,.cl h2,.cl h3{line-height:1.3;margin:0;}
+.cl .hl{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent);
+  border-radius:4px;padding:0 6px;}
+
+/* ============ 预览控制条 ============ */
+.devbar{position:fixed;top:0;left:0;right:0;z-index:999;display:flex;gap:18px;align-items:center;
+  flex-wrap:wrap;padding:10px 18px;background:#0f1115;color:#e7ecf3;font:13px/1 var(--font-sans);
+  box-shadow:0 2px 10px rgba(0,0,0,.3);}
+.devbar .brand{font-weight:700;letter-spacing:.04em;margin-right:6px;}
+.devbar .grp{display:flex;gap:6px;align-items:center;}
+.devbar .grp>span{opacity:.55;margin-right:2px;}
+.devbar button{background:#1c2230;color:#cdd6e3;border:1px solid #2a3346;border-radius:8px;
+  padding:6px 11px;cursor:pointer;font:13px var(--font-sans);transition:.15s;}
+.devbar button:hover{background:#273043;}
+.devbar button.on{background:#2563EB;border-color:#2563EB;color:#fff;}
+
+.stage{margin-top:54px;padding:28px;background:#d7dce6;display:flex;justify-content:center;}
+body{margin:0;}
+.cl-wrap{transition:max-width .2s;width:100%;min-width:0;}
+.cl-wrap.mobile{max-width:390px;}
+.cl{border-radius:18px;overflow:hidden;box-shadow:0 20px 60px rgba(15,23,42,.18);min-height:80vh;}
+
+/* ============ 容器内边距 / 栅格 ============ */
+.container{max-width:var(--wrap);margin:0 auto;padding:0 var(--sp5);}
+.layout{display:flex;gap:var(--sp7);align-items:flex-start;}
+.main{flex:1 1 auto;min-width:0;}
+.aside{flex:0 0 var(--aside);}
+
+/* ============ 导航 ============ */
+.nav{position:sticky;top:0;z-index:50;background:var(--surface);border-bottom:1px solid var(--border);
+  box-shadow:var(--shadow-sm);}
+.nav .row{max-width:var(--wrap);margin:0 auto;padding:0 var(--sp5);height:64px;
+  display:flex;align-items:center;gap:var(--sp5);}
+.logo{display:flex;align-items:center;gap:10px;flex:0 0 auto;}
+.logo .mark{width:36px;height:36px;border-radius:10px;
+  background:linear-gradient(135deg,var(--brand-from),var(--brand-to));color:#fff;
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;}
+.logo .name{font-weight:700;font-size:19px;color:var(--ink);}
+.logo .tag{font-size:11px;font-weight:700;color:var(--accent);background:var(--pastel-blue);
+  border-radius:var(--r-pill);padding:2px 8px;}
+.nav .menu{display:flex;gap:var(--sp5);margin-left:8px;flex:1 1 auto;}
+.nav .menu a{position:relative;color:var(--ink);font-weight:500;font-size:var(--fs-body-sm);padding:6px 0;}
+.nav .menu a::after{content:"";position:absolute;left:0;right:0;bottom:-2px;height:2px;
+  background:var(--accent);transform:scaleX(0);transform-origin:left;transition:transform .15s ease;}
+.nav .menu a:hover{color:var(--accent);}
+.nav .menu a:hover::after,.nav .menu a.cur::after{transform:scaleX(1);}
+.nav .menu a.cur{color:var(--accent);}
+.nav .actions{display:flex;gap:var(--sp3);align-items:center;flex:0 0 auto;}
+.icon-btn{width:38px;height:38px;border-radius:var(--r-pill);border:1px solid var(--border);
+  background:var(--surface);color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.btn{border-radius:var(--r-pill);padding:9px 18px;font-weight:600;font-size:var(--fs-body-sm);
+  cursor:pointer;border:1px solid transparent;transition:.16s;}
+.btn-primary{background:var(--accent);color:var(--on-accent);box-shadow:var(--glow-accent);}
+.btn-primary:hover{background:var(--accent-hover);}
+.btn-accent2{background:var(--accent-2);color:#fff;}
+.btn-accent2:hover{background:var(--accent-2-hover);}
+.btn-ghost{background:transparent;color:var(--ink);border-color:var(--border-strong);}
+.btn-ghost:hover{background:var(--surface-2);}
+
+/* ============ 区块标题范式 ============ */
+.section-head{text-align:center;margin:var(--sp9) 0 var(--sp6);}
+.pill{display:inline-block;border-radius:var(--r-pill);padding:5px 14px;font-size:var(--fs-small);
+  font-weight:600;background:var(--pastel-blue);color:var(--accent);margin-bottom:var(--sp4);}
+.section-head h2{font-size:var(--fs-h1);font-weight:700;}
+.section-head p{color:var(--muted);margin-top:var(--sp3);font-size:var(--fs-body-sm);}
+
+/* ============ 头条卡 / 网格卡 ============ */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);
+  box-shadow:var(--shadow-sm);transition:transform .2s cubic-bezier(.2,.7,.2,1),box-shadow .2s;}
+.card.hov:hover{transform:translateY(-2px);box-shadow:var(--shadow);}
+.cat{display:inline-block;border-radius:var(--r-pill);padding:3px 12px;font-size:var(--fs-small);
+  font-weight:600;background:var(--pastel-blue);color:var(--accent);}
+.cat.g{background:var(--pastel-green);color:var(--accent-2);}
+.cat.p{background:var(--pastel-peach);color:#C2683B;}
+.cat.k{background:var(--pastel-pink);color:#C2457E;}
+.cover{height:200px;border-radius:var(--r-lg) var(--r-lg) 0 0;display:flex;align-items:flex-end;
+  padding:14px;color:#fff;font-weight:700;letter-spacing:.04em;}
+.cover.c1{background:linear-gradient(135deg,#5B6CFF,#2563EB);}
+.cover.c2{background:linear-gradient(135deg,#34D399,#10B981);}
+.cover.c3{background:linear-gradient(135deg,#FBBF77,#F97316);}
+.cover.c4{background:linear-gradient(135deg,#F472B6,#DB2777);}
+.cover.c5{background:linear-gradient(135deg,#60A5FA,#3B82F6);}
+.cover.c6{background:linear-gradient(135deg,#A78BFA,#7C3AED);}
+.featured{margin-top:var(--sp7);}
+.featured .cover{height:320px;border-radius:var(--r-lg);}
+.featured .body{padding:var(--sp6);}
+.featured h1{font-size:30px;font-weight:700;margin:var(--sp4) 0 var(--sp3);line-height:1.28;}
+.featured .excerpt{color:var(--muted);font-size:var(--fs-body);margin-bottom:var(--sp4);}
+.meta{color:var(--muted);font-size:var(--fs-small);display:flex;gap:var(--sp4);flex-wrap:wrap;align-items:center;}
+.meta .dot{width:3px;height:3px;border-radius:50%;background:var(--muted);display:inline-block;}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:var(--sp4);}
+.chip{border-radius:var(--r-pill);padding:4px 12px;font-size:var(--fs-small);
+  background:var(--surface-2);color:var(--muted);border:1px solid var(--border);}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp6);margin-top:var(--sp6);}
+.gcard .body{padding:var(--sp5);}
+.gcard h3{font-size:var(--fs-h3);font-weight:600;margin:var(--sp3) 0 var(--sp2);}
+.gcard .excerpt{color:var(--muted);font-size:var(--fs-body-sm);margin-bottom:var(--sp3);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+
+/* ============ 紧凑列表（归档） ============ */
+.compact{margin-top:var(--sp6);}
+.crow{display:flex;gap:var(--sp5);align-items:baseline;padding:var(--sp5) 0;border-top:1px solid var(--border);}
+.crow:first-child{border-top:0;}
+.crow .date{font-family:var(--font-mono);font-variant-numeric:tabular-nums;color:var(--muted);
+  font-size:var(--fs-small);flex:0 0 92px;}
+.crow .ttl{font-weight:500;flex:1 1 auto;}
+.crow:hover .ttl{color:var(--accent);}
+.crow .cmeta{color:var(--muted);font-size:var(--fs-small);flex:0 0 auto;}
+
+/* ============ 侧栏 ============ */
+.aside .card{padding:var(--sp5);margin-bottom:var(--sp5);}
+.aside h4{font-size:var(--fs-body-sm);font-weight:700;color:var(--ink);margin:0 0 var(--sp4);}
+.about .desc{color:var(--muted);font-size:var(--fs-body-sm);margin-bottom:var(--sp4);}
+.about .btn{width:100%;text-align:center;}
+
+/* ============ 文章正文 ============ */
+.reading{max-width:var(--measure);margin:var(--sp7) auto 0;}
+.breadcrumb{color:var(--muted);font-size:var(--fs-small);display:flex;gap:8px;margin-bottom:var(--sp5);}
+.breadcrumb a:hover{color:var(--accent);}
+.article-title{font-size:var(--fs-display);font-weight:700;line-height:1.25;}
+.article-meta{color:var(--muted);font-size:var(--fs-small);display:flex;gap:var(--sp4);flex-wrap:wrap;
+  margin:var(--sp5) 0 var(--sp6);}
+.progress{position:absolute;}
+.lead{font-size:var(--fs-lead);color:var(--ink);margin-bottom:var(--sp6);}
+.article-body h2{font-size:var(--fs-h2);font-weight:700;margin:var(--sp8) 0 var(--sp4);}
+.article-body h3{font-size:var(--fs-h3);font-weight:600;margin:var(--sp6) 0 var(--sp3);}
+.article-body p{margin:0 0 var(--sp5);}
+.article-body blockquote{border-left:4px solid var(--accent);background:var(--surface-2);
+  border-radius:0 var(--r) var(--r) 0;padding:var(--sp4) var(--sp5);margin:var(--sp6) 0;color:var(--ink);}
+.article-body code{background:var(--surface-2);border-radius:var(--r-xs);padding:2px 6px;
+  font-family:var(--font-mono);font-size:.9em;color:var(--accent);}
+.article-body pre{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);
+  padding:var(--sp5);overflow:auto;font-family:var(--font-mono);font-size:13px;line-height:1.7;margin:var(--sp6) 0;}
+.article-body pre .cm{color:var(--muted);}
+.article-body img{width:100%;border-radius:var(--r);margin:var(--sp6) 0;}
+.figure{background:linear-gradient(135deg,#5B6CFF,#2563EB);height:300px;border-radius:var(--r);
+  display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;margin:var(--sp6) 0;}
+.figcap{color:var(--muted);font-size:var(--fs-small);text-align:center;margin-top:-var(--sp4);margin-bottom:var(--sp6);}
+.article-body table{border-collapse:collapse;width:100%;margin:var(--sp6) 0;font-size:var(--fs-body-sm);}
+.article-body th,.article-body td{border:1px solid var(--border);padding:10px 14px;text-align:left;}
+.article-body th{background:var(--surface-2);font-weight:600;}
+
+/* ============ 评论 ============ */
+.comments{margin-top:var(--sp9);max-width:var(--measure);margin-left:auto;margin-right:auto;}
+.comments h2{font-size:var(--fs-h1);font-weight:700;margin-bottom:var(--sp5);}
+.citem{display:flex;gap:var(--sp4);padding:var(--sp5) 0;border-top:1px solid var(--border);}
+.avatar{width:44px;height:44px;border-radius:var(--r-pill);flex:0 0 auto;display:flex;align-items:center;
+  justify-content:center;font-weight:700;color:#fff;}
+.avatar.b{background:linear-gradient(135deg,#5B6CFF,#2563EB);}
+.avatar.g{background:linear-gradient(135deg,#34D399,#10B981);}
+.avatar.p{background:linear-gradient(135deg,#FBBF77,#F97316);}
+.cbody{flex:1 1 auto;}
+.cbody .who{font-weight:600;}
+.cbody .when{color:var(--muted);font-size:var(--fs-small);margin-left:10px;}
+.cbody p{margin:6px 0 0;font-size:var(--fs-body-sm);}
+.cbody .ops{color:var(--muted);font-size:var(--fs-small);margin-top:8px;}
+.cbody .ops a{margin-right:14px;}
+.cform{margin-top:var(--sp6);}
+.cform textarea{width:100%;min-height:96px;border:1px solid var(--border);border-radius:var(--r);
+  padding:var(--sp4);font:var(--fs-body-sm)/1.7 var(--font-sans);background:var(--surface);color:var(--ink);
+  resize:vertical;}
+.cform textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent);}
+.cform .btn{margin-top:var(--sp4);}
+
+/* ============ 页脚 ============ */
+.footer{background:var(--surface);border-top:1px solid var(--border);margin-top:var(--sp9);padding:var(--sp8) 0;}
+.footer .cols{max-width:var(--wrap);margin:0 auto;padding:0 var(--sp5);display:flex;gap:var(--sp7);flex-wrap:wrap;}
+.footer .fbrand{flex:1 1 240px;}
+.footer .fbrand .desc{color:var(--muted);font-size:var(--fs-body-sm);margin:var(--sp4) 0;}
+.footer .fcol{flex:1 1 140px;}
+.footer .fcol h5{font-size:var(--fs-body-sm);font-weight:700;margin:0 0 var(--sp4);}
+.footer .fcol a{display:block;color:var(--muted);font-size:var(--fs-body-sm);padding:5px 0;}
+.footer .fcol a:hover{color:var(--accent);}
+.footer .sub input{border:1px solid var(--border);border-radius:var(--r-pill);padding:10px 16px;
+  font:var(--fs-body-sm) var(--font-sans);background:var(--surface-2);color:var(--ink);width:100%;margin-bottom:var(--sp3);}
+.footer .bottom{border-top:1px solid var(--border);margin-top:var(--sp7);padding-top:var(--sp5);
+  max-width:var(--wrap);margin-left:auto;margin-right:auto;padding-left:var(--sp5);padding-right:var(--sp5);
+  display:flex;justify-content:space-between;color:var(--muted);font-size:var(--fs-small);flex-wrap:wrap;gap:10px;}
+
+/* ============ 移动端 ============ */
+@media(max-width:1023px){
+  .layout{flex-direction:column;}
+  .aside{flex:0 0 auto;width:100%;}
+  .grid{grid-template-columns:1fr;}
+  .nav .menu{display:flex;overflow-x:auto;flex:1 1 auto;min-width:0;gap:var(--sp4);
+    margin-left:0;scrollbar-width:none;}
+  .nav .menu::-webkit-scrollbar{display:none;}
+}
+@media(max-width:767px){
+  .container{padding:0 var(--sp4);}
+  .stage{padding:14px;}
+  .cl{--fs-display:30px;--fs-h1:26px;--fs-body:16px;}
+  .featured .cover{height:200px;}
+  .reading,.comments{max-width:100%;}
+  .crow .cmeta{display:none;}
+  .nav .row{gap:var(--sp4);}
+  .nav .actions .btn-ghost{display:none;}
+  .logo .tag{display:none;}
+  .nav .actions{gap:var(--sp2);}
+  .article-title,.featured h1,.gcard h3{overflow-wrap:break-word;}
+}
+</style>
+</head>
+<body>
+
+<div class="devbar">
+  <span class="brand">云笺 · Cloudletter</span>
+  <div class="grp"><span>页面</span>
+    <button data-page="home" class="on">首页</button>
+    <button data-page="list">列表</button>
+    <button data-page="article">文章</button>
+  </div>
+  <div class="grp"><span>主题</span>
+    <button data-theme="light" class="on">浅色</button>
+    <button data-theme="dark">深色</button>
+  </div>
+  <div class="grp"><span>视口</span>
+    <button data-vp="desktop" class="on">桌面</button>
+    <button data-vp="mobile">移动</button>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="cl-wrap" id="wrap">
+    <div class="cl" id="view-root" data-theme="light"></div>
+  </div>
+</div>
+
+<!-- ============ 模板：首页 ============ -->
+<template id="tpl-home">
+  <header class="nav"><div class="row">
+    <div class="logo"><div class="mark">N</div><span class="name">NODELOG</span><span class="tag">BLOG</span></div>
+    <nav class="menu">
+      <a class="cur">技术</a><a>产品</a><a>随笔</a><a>归档</a><a>关于</a>
+    </nav>
+    <div class="actions">
+      <button class="icon-btn" title="搜索">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      </button>
+      <button class="btn btn-ghost">登录</button>
+      <button class="btn btn-accent2">订阅 · 写文章</button>
+    </div>
+  </div></header>
+
+  <div class="container">
+    <!-- 头条 -->
+    <article class="card hov featured">
+      <div class="cover c1">封面 · 系统设计</div>
+      <div class="body">
+        <span class="cat">技术</span>
+        <h1>用<span class="hl">事件溯源</span>重做博客的发布管道</h1>
+        <p class="excerpt">当文章从「一行记录」变成「一串不可变事件」，编辑、回滚、灰度与审计都随之变得自然。本文记录一次把写作流改造成事件驱动的实践。</p>
+        <div class="meta"><span>匠子心</span><span class="dot"></span><span>2026-03-15</span><span class="dot"></span><span>约 12 分钟</span><span class="dot"></span><span>3,204 次阅读</span></div>
+        <div class="chips"><span class="chip">架构</span><span class="chip">Node.js</span><span class="chip">Event Sourcing</span></div>
+      </div>
+    </article>
+
+    <!-- 栏目头 -->
+    <div class="section-head">
+      <span class="pill">近期笔耕</span>
+      <h2>最新文章</h2>
+      <p>关于工程、产品与一些慢思考的连续记录。</p>
+    </div>
+
+    <div class="layout">
+      <div class="main">
+        <div class="grid">
+          <article class="card hov gcard">
+            <div class="cover c2">封面</div>
+            <div class="body">
+              <span class="cat g">产品</span>
+              <h3>把「收藏」做成可检索的<span class="hl">第二大脑</span></h3>
+              <p class="excerpt">标签、全文检索与关系图谱三者如何协作，让收藏不再是数字垃圾堆。</p>
+              <div class="meta"><span>2026-03-09</span><span class="dot"></span><span>约 8 分钟</span></div>
+            </div>
+          </article>
+          <article class="card hov gcard">
+            <div class="cover c3">封面</div>
+            <div class="body">
+              <span class="cat p">随笔</span>
+              <h3>为什么我坚持手写<span class="hl">每一篇</span>的摘要</h3>
+              <p class="excerpt">自动摘要再强，也替代不了作者对「这篇到底讲了什么」的一次确认。</p>
+              <div class="meta"><span>2026-02-28</span><span class="dot"></span><span>约 5 分钟</span></div>
+            </div>
+          </article>
+          <article class="card hov gcard">
+            <div class="cover c5">封面</div>
+            <div class="body">
+              <span class="cat">技术</span>
+              <h3>零构建前端：当 SSR 足够好</h3>
+              <p class="excerpt">没有 Webpack、没有 Vite，EJS + Express 也能撑起一个舒适的阅读站。</p>
+              <div class="meta"><span>2026-02-20</span><span class="dot"></span><span>约 10 分钟</span></div>
+            </div>
+          </article>
+          <article class="card hov gcard">
+            <div class="cover c6">封面</div>
+            <div class="body">
+              <span class="cat k">技术</span>
+              <h3>用<span class="hl">阅读时长</span>替用户做减法</h3>
+              <p class="excerpt">在列表里标注时长，是对读者时间的一种尊重。</p>
+              <div class="meta"><span>2026-02-11</span><span class="dot"></span><span>约 6 分钟</span></div>
+            </div>
+          </article>
+        </div>
+      </div>
+      <aside class="aside">
+        <div class="card">
+          <h4>标签</h4>
+          <div class="chips">
+            <span class="chip">架构</span><span class="chip">Node.js</span><span class="chip">产品</span>
+            <span class="chip">随笔</span><span class="chip">SSR</span><span class="chip">MongoDB</span>
+            <span class="chip">设计</span><span class="chip">阅读</span>
+          </div>
+        </div>
+        <div class="card about">
+          <h4>关于本站</h4>
+          <p class="desc">NODELOG 是一份持续累积的技术记录。原生 Markdown 实时渲染、全文检索、自由分类标签——记录，让思考更有温度。</p>
+          <button class="btn btn-primary">订阅更新</button>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="cols">
+      <div class="fbrand">
+        <div class="logo"><div class="mark">N</div><span class="name">NODELOG</span></div>
+        <p class="desc">记录，让思考更有温度。一份关于工程与产品的慢笔记。</p>
+      </div>
+      <div class="fcol"><h5>导航</h5><a>技术</a><a>产品</a><a>随笔</a><a>归档</a></div>
+      <div class="fcol"><h5>关于</h5><a>关于本站</a><a>友链</a><a>RSS</a></div>
+      <div class="fcol sub"><h5>订阅</h5>
+        <input placeholder="你的邮箱"><button class="btn btn-primary">订阅</button>
+        <div class="chips"><span class="chip">微信</span><span class="chip">GitHub</span><span class="chip">邮件</span></div>
+      </div>
+    </div>
+    <div class="bottom"><span>© 2026 NODELOG · 保留所有权利</span><span>主题切换 · 回到顶部 ↑</span></div>
+  </footer>
+</template>
+
+<!-- ============ 模板：列表 ============ -->
+<template id="tpl-list">
+  <header class="nav"><div class="row">
+    <div class="logo"><div class="mark">N</div><span class="name">NODELOG</span><span class="tag">BLOG</span></div>
+    <nav class="menu"><a>技术</a><a>产品</a><a>随笔</a><a class="cur">归档</a><a>关于</a></nav>
+    <div class="actions">
+      <button class="icon-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
+      <button class="btn btn-ghost">登录</button>
+      <button class="btn btn-accent2">订阅 · 写文章</button>
+    </div>
+  </div></header>
+
+  <div class="container">
+    <div class="section-head" style="text-align:left;margin-top:var(--sp8)">
+      <span class="pill">归档</span>
+      <h2>全部文章</h2>
+      <p>共 128 篇 · 按时间倒序排列。</p>
+    </div>
+    <div class="layout">
+      <div class="main">
+        <div class="compact">
+          <div class="crow"><span class="date">2026-03-15</span><span class="ttl">用事件溯源重做博客的发布管道</span><span class="cmeta">12 分钟 · 技术</span></div>
+          <div class="crow"><span class="date">2026-03-09</span><span class="ttl">把「收藏」做成可检索的第二大脑</span><span class="cmeta">8 分钟 · 产品</span></div>
+          <div class="crow"><span class="date">2026-02-28</span><span class="ttl">为什么我坚持手写的每一篇摘要</span><span class="cmeta">5 分钟 · 随笔</span></div>
+          <div class="crow"><span class="date">2026-02-20</span><span class="ttl">零构建前端：当 SSR 足够好</span><span class="cmeta">10 分钟 · 技术</span></div>
+          <div class="crow"><span class="date">2026-02-11</span><span class="ttl">用阅读时长替用户做减法</span><span class="cmeta">6 分钟 · 技术</span></div>
+          <div class="crow"><span class="date">2026-01-30</span><span class="ttl">从 1 万行到 1 万篇：内容站的索引实践</span><span class="cmeta">14 分钟 · 技术</span></div>
+          <div class="crow"><span class="date">2026-01-18</span><span class="ttl">把反馈回路写进产品里</span><span class="cmeta">7 分钟 · 产品</span></div>
+        </div>
+        <div class="chips" style="margin-top:var(--sp6)">
+          <button class="btn btn-primary">上一页</button>
+          <span class="chip" style="background:var(--accent);color:#fff">1</span>
+          <span class="chip">2</span><span class="chip">3</span><span class="chip">…</span>
+          <button class="btn btn-ghost">下一页</button>
+        </div>
+      </div>
+      <aside class="aside">
+        <div class="card"><h4>按分类</h4>
+          <div class="chips"><span class="chip">技术 72</span><span class="chip">产品 31</span><span class="chip">随笔 25</span></div>
+        </div>
+        <div class="card about"><h4>关于本站</h4>
+          <p class="desc">NODELOG 是一份持续累积的技术记录。记录，让思考更有温度。</p>
+          <button class="btn btn-primary">订阅更新</button>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="cols">
+      <div class="fbrand"><div class="logo"><div class="mark">N</div><span class="name">NODELOG</span></div>
+        <p class="desc">记录，让思考更有温度。</p></div>
+      <div class="fcol"><h5>导航</h5><a>技术</a><a>产品</a><a>随笔</a><a>归档</a></div>
+      <div class="fcol sub"><h5>订阅</h5><input placeholder="你的邮箱"><button class="btn btn-primary">订阅</button></div>
+    </div>
+    <div class="bottom"><span>© 2026 NODELOG</span><span>回到顶部 ↑</span></div>
+  </footer>
+</template>
+
+<!-- ============ 模板：文章 ============ -->
+<template id="tpl-article">
+  <header class="nav"><div class="row">
+    <div class="logo"><div class="mark">N</div><span class="name">NODELOG</span><span class="tag">BLOG</span></div>
+    <nav class="menu"><a class="cur">技术</a><a>产品</a><a>随笔</a><a>归档</a><a>关于</a></nav>
+    <div class="actions">
+      <button class="icon-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
+      <button class="btn btn-ghost">登录</button>
+      <button class="btn btn-accent2">订阅 · 写文章</button>
+    </div>
+  </div></header>
+
+  <div class="container">
+    <div class="layout">
+      <div class="main">
+        <article class="reading">
+          <div class="breadcrumb"><a>首页</a> · <a>技术</a> · <span>正文</span></div>
+          <h1 class="article-title">用<span class="hl">事件溯源</span>重做博客的发布管道</h1>
+          <div class="article-meta"><span>匠子心</span><span>2026-03-15</span><span>约 12 分钟</span><span>3,204 次阅读</span></div>
+          <p class="lead">当文章从「一行记录」变成「一串不可变事件」，编辑、回滚、灰度与审计都随之变得自然。本文记录一次把写作流改造成事件驱动的实践。</p>
+          <div class="article-body">
+            <p>大多数博客把一篇文章存成数据库里的一行：标题、正文、状态。每次保存都是一次覆盖。这很简单，但也意味着你永远失去了「它曾经是什么样」的信息。</p>
+            <h2>为什么是事件，而不是状态</h2>
+            <p>事件溯源（Event Sourcing）的核心直觉是：<strong>不要存当前状态，存导致状态变化的事件。</strong>一篇文章的发布历史，就是一串有序的事件——创建、草稿保存、发布、修订、下线。</p>
+            <blockquote>状态是事件折叠后的投影；事件才是真相。</blockquote>
+            <p>有了这串事件，回滚只是「重放到某个版本」，灰度只是「对部分读者重放新事件」，审计则是直接读事件日志。下面是发布事件的简化结构：</p>
+            <pre><code><span class="cm">// 发布事件</span>
+{
+  type: <span class="cm">'Article.Published'</span>,
+  id:   <span class="cm">'a_1024'</span>,
+  at:   <span class="cm">'2026-03-15T09:12:00Z'</span>,
+  by:   <span class="cm">'user_jiang'</span>,
+  title: <span class="cm">'用事件溯源重做博客的发布管道'</span>
+}</code></pre>
+            <h3>对前端意味着什么</h3>
+            <p>前端不再直接写「更新文章」接口，而是发送语义事件。视图层订阅事件流，本地即可重放。这让协作编辑、实时预览与离线草稿都更容易落地。</p>
+            <div class="figure">示意图 · 事件流 → 多视图投影</div>
+            <p class="figcap">图：同一个事件流，投影出阅读视图、管理视图与搜索索引。</p>
+            <h3>一点代价</h3>
+            <p>事件溯源不是银弹。你需要为「当前状态」维护一个读模型，并在事件模式演进时处理旧事件。但对一个以「记录」为内核的博客来说，这笔代价换来的可追溯性，恰好契合它的气质。</p>
+            <table>
+              <thead><tr><th>维度</th><th>传统 CRUD</th><th>事件溯源</th></tr></thead>
+              <tbody>
+                <tr><td>历史</td><td>覆盖丢失</td><td>完整保留</td></tr>
+                <tr><td>回滚</td><td>需备份</td><td>重放即可</td></tr>
+                <tr><td>审计</td><td>额外日志</td><td>事件即日志</td></tr>
+              </tbody>
+            </table>
+            <p>下一步，我会把评论与标签也纳入同一事件流，让整站共享一套可追溯的时间轴。</p>
+          </div>
+          <div class="chips" style="margin-top:var(--sp6)"><span class="chip">架构</span><span class="chip">Node.js</span><span class="chip">Event Sourcing</span></div>
+        </article>
+
+        <section class="comments">
+          <h2>评论 · 3</h2>
+          <div class="citem">
+            <div class="avatar b">林</div>
+            <div class="cbody"><span class="who">林深</span><span class="when">2026-03-15</span>
+              <p>事件溯源落地到博客确实少见，但「记录」这个内核太贴切了。期待评论也事件化的续篇。</p>
+              <div class="ops"><a>回复</a><a>赞 12</a></div></div>
+          </div>
+          <div class="citem">
+            <div class="avatar g">阿</div>
+            <div class="cbody"><span class="who">阿May</span><span class="when">2026-03-16</span>
+              <p>读模型演进那段是痛点，旧事件兼容有没有具体的版本号策略？</p>
+              <div class="ops"><a>回复</a><a>赞 5</a></div></div>
+          </div>
+          <div class="citem">
+            <div class="avatar p">K</div>
+            <div class="cbody"><span class="who">Kevin</span><span class="when">2026-03-16</span>
+              <p>图里的「多视图投影」思路可以直接复用到搜索索引，省去很多双写。</p>
+              <div class="ops"><a>回复</a><a>赞 8</a></div></div>
+          </div>
+          <div class="cform">
+            <textarea placeholder="登录后参与讨论…"></textarea>
+            <button class="btn btn-primary">发表评论</button>
+          </div>
+        </section>
+      </div>
+      <aside class="aside">
+        <div class="card"><h4>目录</h4>
+          <div class="chips" style="flex-direction:column;align-items:flex-start;gap:8px">
+            <a class="chip" style="background:var(--pastel-blue);color:var(--accent)">为什么是事件</a>
+            <a class="chip">对前端意味着什么</a><a class="chip">一点代价</a>
+          </div>
+        </div>
+        <div class="card about"><h4>关于作者</h4>
+          <p class="desc">匠子心 · 写系统，也写写系统之外的事。</p>
+          <button class="btn btn-primary">订阅</button>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="cols">
+      <div class="fbrand"><div class="logo"><div class="mark">N</div><span class="name">NODELOG</span></div>
+        <p class="desc">记录，让思考更有温度。</p></div>
+      <div class="fcol"><h5>导航</h5><a>技术</a><a>产品</a><a>随笔</a><a>归档</a></div>
+      <div class="fcol sub"><h5>订阅</h5><input placeholder="你的邮箱"><button class="btn btn-primary">订阅</button></div>
+    </div>
+    <div class="bottom"><span>© 2026 NODELOG</span><span>回到顶部 ↑</span></div>
+  </footer>
+</template>
+
+<script>
+(function(){
+  var q=new URLSearchParams(location.search);
+  var page=q.get('page')||'home', theme=q.get('theme')||'light', vp=q.get('vp')||'desktop';
+  var root=document.getElementById('view-root');
+  var wrap=document.getElementById('wrap');
+  function render(){
+    var tpl=document.getElementById('tpl-'+page);
+    root.innerHTML='';
+    root.appendChild(tpl.content.cloneNode(true));
+    root.setAttribute('data-theme',theme);
+    wrap.className='cl-wrap'+(vp==='mobile'?' mobile':'');
+    document.querySelectorAll('[data-page]').forEach(function(b){b.classList.toggle('on',b.dataset.page===page);});
+    document.querySelectorAll('[data-theme]').forEach(function(b){b.classList.toggle('on',b.dataset.theme===theme);});
+    document.querySelectorAll('[data-vp]').forEach(function(b){b.classList.toggle('on',b.dataset.vp===vp);});
+  }
+  function bind(sel,attr,val){
+    document.querySelectorAll(sel).forEach(function(b){
+      b.addEventListener('click',function(){
+        document.querySelectorAll(sel).forEach(function(x){x.classList.remove('on');});
+        b.classList.add('on');
+        if(attr==='page')page=val; if(attr==='theme')theme=val; if(attr==='vp')vp=val;
+        render();
+      });
+    });
+  }
+  bind('[data-page]','page',null);
+  bind('[data-theme]','theme',null);
+  bind('[data-vp]','vp',null);
+  render();
+})();
+</script>
+</body>
+</html>

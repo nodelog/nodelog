@@ -1,0 +1,127 @@
+<%- include('_header') %>
+<div class="wiki-shell">
+  <div class="wiki-grid">
+    <aside class="wiki-aside">
+      <div class="wiki-aside__head">
+        <a class="wiki-aside__back" href="/wiki/<%= encodeURIComponent(space.slug) %>" title="返回知识库首页">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>返回知识库
+        </a>
+      </div>
+      <div class="wiki-aside__head">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
+        <h2 class="wiki-aside__title" title="<%= space.name %>"><%= space.name %></h2>
+      </div>
+      <div class="wiki-aside__body">
+        <% if (tree && tree.length) { %>
+          <%- include('_tree', {nodes: tree, currentId: currentId, spaceSlug: space.slug, openIds: (typeof openIds !== 'undefined' ? openIds : {})}) %>
+        <% } else { %>
+          <p class="wiki-aside__empty">暂无目录。</p>
+        <% } %>
+      </div>
+      <button type="button" class="wiki-aside__toggle-mobile" aria-expanded="false">目录</button>
+    </aside>
+
+    <div class="wiki-main">
+      <nav class="wiki-crumb" aria-label="面包屑">
+        <a href="/wiki">知识库</a>
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+        <a href="/wiki/<%= encodeURIComponent(space.slug) %>"><%= space.name %></a>
+        <% (breadcrumb || []).forEach(function (c) { %>
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+          <% if (String(c._id) === String(currentId)) { %><span aria-current="page"><%= c.name %></span>
+          <% } else { %><a href="/wiki/<%= encodeURIComponent(space.slug) %>/<%= encodeURIComponent(c.slug || c._id) %>"><%= c.name %></a><% } %>
+        <% }); %>
+      </nav>
+
+      <article class="wiki-doc">
+        <div class="wiki-doc__head">
+          <h1 class="wiki-doc__title"><%= doc.name %></h1>
+          <button type="button" class="wiki-share-btn" id="wikiShareBtn" aria-label="分享文档" title="分享文档（含二维码）">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"/></svg>
+            分享
+          </button>
+        </div>
+        <div class="wiki-doc__meta">
+          <span>更新于 <%= doc.modifyTime ? new Date(doc.modifyTime).toLocaleDateString('zh-CN') : '—' %></span>
+          <span>阅读约 <%= doc.readingTime || 1 %> 分钟</span>
+        </div>
+        <div class="wiki-doc__body"><%- rendered %></div>
+        <% if (doc.tags && doc.tags.length) { %>
+          <div class="wiki-doc__tags">
+          <% doc.tags.forEach(function (t) { %>
+            <a class="wiki-tag" href="/tag/<%= encodeURIComponent(t) %>?scope=wiki">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41 13.42 20.6a2 2 0 0 1-2.83 0L2 12V4a2 2 0 0 1 2-2h8l8.59 8.59a2 2 0 0 1 0 2.82Z"/><circle cx="7.5" cy="7.5" r="1"/></svg>
+              <%= t %>
+            </a>
+          <% }); %>
+          </div>
+        <% } %>
+      </article>
+    </div>
+
+    <aside class="wiki-rail">
+      <% if (toc && toc.length) { %>
+      <div class="wiki-rail__block wiki-toc">
+        <h3 class="wiki-rail__title">本页目录</h3>
+        <ul class="wiki-toc__list">
+        <% toc.forEach(function (h) { %>
+          <li class="wiki-toc__item <%= h.level === 3 ? 'is-sub' : '' %>"><a href="#<%= h.id %>" data-toc-anchor="<%= h.id %>"><%= h.text %></a></li>
+        <% }); %>
+        </ul>
+      </div>
+      <% } %>
+      <div class="wiki-rail__block">
+        <h3 class="wiki-rail__title">本库信息</h3>
+        <div class="wiki-rail__stat"><span>页面数</span><b><%= pageCount %></b></div>
+        <div class="wiki-rail__stat"><span>可见性</span><b><%= space.visibility === 'private' ? '私有' : '公开' %></b></div>
+      </div>
+      <% if (related && related.length) { %>
+      <div class="wiki-rail__block">
+        <h3 class="wiki-rail__title">相关文档</h3>
+        <ul class="wiki-rail__list">
+        <% related.forEach(function (r) { %>
+          <li><a href="/wiki/<%= encodeURIComponent(space.slug) %>/<%= encodeURIComponent(r.slug || r._id) %>"><%= r.name %></a></li>
+        <% }); %>
+        </ul>
+      </div>
+      <% } %>
+      <% if (tags && tags.length) { %>
+      <div class="wiki-rail__block">
+        <h3 class="wiki-rail__title">标签</h3>
+        <div class="wiki-rail__tags">
+        <% tags.forEach(function (t) { %>
+          <a class="wiki-tag wiki-tag--muted" href="/tag/<%= encodeURIComponent(t.name) %>?scope=wiki" title="<%= t.count %> 篇"><%= t.name %></a>
+        <% }); %>
+        </div>
+      </div>
+      <% } %>
+    </aside>
+  </div>
+</div>
+<% /* 正文图片双击看原图：纯原生、事件委托，不污染 Markdown */ %>
+<div class="nl-lightbox" role="dialog" aria-modal="true" aria-label="查看原图" aria-hidden="true">
+  <button type="button" class="nl-lightbox__close" aria-label="关闭">×</button>
+  <img alt="" src=""/>
+</div>
+<script>
+(function () {
+  var box = document.querySelector('.nl-lightbox');
+  var boxImg = box && box.querySelector('img');
+  var content = document.querySelector('.wiki-doc__body');
+  if (!box || !boxImg || !content) return;
+  function close() { box.classList.remove('is-open'); box.setAttribute('aria-hidden', 'true'); boxImg.removeAttribute('src'); }
+  content.addEventListener('dblclick', function (e) {
+    var img = e.target && e.target.closest && e.target.closest('img');
+    if (!img || !content.contains(img)) return;
+    var src = img.getAttribute('src');
+    if (!src) return;
+    e.preventDefault();
+    boxImg.src = src; boxImg.alt = img.getAttribute('alt') || '';
+    box.classList.add('is-open'); box.setAttribute('aria-hidden', 'false');
+  });
+  box.addEventListener('click', function (e) { if (e.target === box || e.target.closest('.nl-lightbox__close')) close(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && box.classList.contains('is-open')) close(); });
+})();
+</script>
+<%- include('_share') %>
+<%- include('_footer') %>

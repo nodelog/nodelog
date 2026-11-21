@@ -1,0 +1,39 @@
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta http-equiv="cache-control" content="public">
+<meta name="Generator" content="WebStorm">
+<meta name="Author" content="<%=session.site.name%>">
+<meta name="Robots" content="all">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta content="链付收银博客,<%=session.site.name%>,<%if(locals.title){%><%=title%><%}%>,链付收银SAAS,商业SaaS,收银系统,商城,开发实践,nodejs,code,博客,技术" name="keywords" />
+<meta content="<%=session.site.name%> —— 链付收银SAAS 官方博客，记录产品演进、商业观察与开发实践。" name="description" />
+<!--baidu站长验证-->
+<meta name="baidu-site-verification" content="hBcEJxnpRy" />
+<!--sogou-->
+<meta name="sogou_site_verification" content="Ve5KEBC5yH"/>
+<meta property="qc:admins" content="1542100672652272374526367" />
+<!--alexa排名验证-->
+<meta name="alexaVerifyID" content="UmbHL7uQNFzJnFyC4OkkDx5CA3E"/>
+<%if(locals.state){%>
+<meta http-equiv="refresh" content="5;url=/">
+<%}%>
+<title><%if(locals.title){%><%=title%><%}%>-<%=session.site.name%></title>
+<!--<link href="/js/external/google-code-prettify/prettify.css" rel="stylesheet">-->
+<link href="/css/font-awesome.css" rel="stylesheet">
+<link rel="stylesheet" href="/css/tokens.css">
+<link rel='stylesheet' href='/css/style.css?t=20160713'/>
+<link rel="stylesheet" href="/css/theme.css">
+<link rel="stylesheet" href="/css/app.css">
+<link rel="manifest" href="/manifest.json">
+<script>
+  (function () {
+    try {
+      // 始终显式设置 data-theme，保证 CSS 变量、主题按钮图标与系统偏好三者一致
+      var t = localStorage.getItem('nl-theme');
+      if (!t) t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', t);
+    } catch (e) {}
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () { navigator.serviceWorker.register('/sw.js').catch(function () {}); });
+    }
+  })();
+</script>
