@@ -33,6 +33,8 @@ var route = function (app) {
         res.render('about', { title: '关于我们'});
     });
     // 源码商业授权说明（公开；咨询方式取自站点配置）
+    // 注意：入口链接统一用 /license/（带尾斜杠）——生产 nginx 有防源码泄露规则会拦 /license
+    // 精确路径（返回 nginx 原生 404，请求到不了 Node）；带尾斜杠可穿透，Express 同样匹配此路由。
     app.get('/license', function (req, res) {
         res.render('license', { title: '源码授权'});
     });

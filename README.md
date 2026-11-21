@@ -203,5 +203,5 @@ node scripts/verify-open-platform.js             # 开放平台自检
 - GitHub：<https://github.com/nodelog/nodelog>
 
 仓库用于源码展示与个人学习。**商用部署（含企业/客户站点、二次分发）需取得商业授权**，
-授权范围、价格与支持方式见 [`LICENSE`](LICENSE) 或访问项目站点的「源码授权」页（`https://blog.jiangzi.xin/license`）咨询。
+授权范围、价格与支持方式见 [`LICENSE`](LICENSE) 或访问项目站点的「源码授权」页（`https://blog.jiangzi.xin/license/`）咨询。
 历史版本（2026-11-21 前）仍以 Apache 2.0 授权，见 [`LICENSE-APACHE-2.0`](LICENSE-APACHE-2.0)。
