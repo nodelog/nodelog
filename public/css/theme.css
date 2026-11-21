@@ -800,6 +800,10 @@ section.card + section.card { margin-top: var(--space-6); }
 .prose-single p { max-width: var(--measure); }
 .contact-list { padding-left: 1.2em; margin: 0; }
 .contact-list li { margin: var(--space-2) 0; }
+/* 联系信息：电话可点击拨打 + 微信同号标注 */
+.contact-tel { color: var(--accent); text-decoration: none; font-weight: 500; }
+.contact-tel:hover { text-decoration: underline; }
+.contact-tag { display: inline-block; margin-left: 8px; padding: 1px 7px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-2); color: var(--muted); font-size: 12px; white-space: nowrap; }
 .alert { border: 1px solid var(--border); border-left: 3px solid var(--muted); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--ink); padding: var(--space-3) var(--space-4); margin: var(--space-6) 0 0; font-size: var(--fs-body-sm); }
 .alert-warning { border-left-color: var(--warn); }
 .alert-success { border-left-color: var(--success); }

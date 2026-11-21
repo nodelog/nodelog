@@ -20,7 +20,7 @@
             <h2>联系</h2>
             <% if (session.site && (session.site.phone || session.site.address || session.site.email)) { %>
             <ul class="contact-list">
-                <% if (session.site.phone) { %><li>电话：<%= session.site.phone %></li><% } %>
+                <% if (session.site.phone) { %><li>电话：<a class="contact-tel" href="tel:<%= String(session.site.phone).replace(/[^\d+]/g, '') %>"><%= session.site.phone %></a><span class="contact-tag">微信同号</span></li><% } %>
                 <% if (session.site.email) { %><li>邮箱：<%= session.site.email %></li><% } %>
                 <% if (session.site.address) { %><li>所在城市：<%= session.site.address %></li><% } %>
             </ul>
