@@ -1,0 +1,151 @@
+/* ============================================================
+ * 链付收银SAAS · 设计 Token 基线 (tokens.css)
+ * 版本 v1.0 · 2026-11-17
+ *
+ * 用法：在 <head> 中 <link rel="stylesheet" href="tokens.css">，
+ *      然后在自己的样式里只引用变量，不再写死 hex / px。
+ *
+ * 分层依赖：品牌层 -> 语义层 -> 组件层（禁止反向、禁止跨层写死值）。
+ * 来源：全部取自站内真实页面高频值；标注 [新增] 的为治理新定值。
+ * 例外：深色数据大屏用 [data-theme="dark"] 覆盖，不污染浅色体系。
+ * ============================================================ */
+
+:root {
+  /* ---------- 品牌层 Brand / A1-identity（品牌升级才动） ---------- */
+  --brand-primary:        #2563EB;  /* 事实主色，跨 6 页验证 */
+  --brand-primary-hover:  #1D4ED8;  /* checklist --brand-700 现状 */
+  --brand-primary-ink:    #FFFFFF;  /* 主色上的文字 */
+  --brand-indigo:         #4F46E5;  /* 品牌渐变终点 */
+  --brand-gradient:       linear-gradient(135deg, #2563EB 0%, #4F46E5 100%);
+  --brand-accent:         #10B981;  /* 品牌绿：注册/完成/正向 */
+  --brand-secondary:      #F59E0B;  /* 品牌琥珀：方案/价格/进行中 */
+  --brand-ink:            #1E293B;  /* 正文与页脚深色 */
+  --brand-surface:        #F8FAFC;  /* 页面浅底 */
+  --brand-deep:           #0E2A47;  /* 深色营销卡专用 */
+
+  /* ---------- 语义层 Semantic / A2-semantic ---------- */
+  --color-info:           var(--brand-primary);
+  --color-info-bg:        #EFF6FF;
+  --color-info-ink:       #1D4ED8;
+  --color-success:        #10B981;
+  --color-success-bg:     #ECFDF5;
+  --color-success-ink:    #059669;
+  --color-warning:        #F59E0B;
+  --color-warning-dark:   #D97706;
+  --color-warning-bg:     #FFFBEB;
+  --color-warning-ink:    #B45309;
+  --color-danger:         #EF4444;  /* 统一值（原散落 #b91c1c/#b3261e） */
+  --color-danger-bg:      #FEF2F2;  /* [新增] 由 #EF4444 派生 */
+  --color-danger-ink:     #DC2626;  /* [新增] 由 #EF4444 派生 */
+
+  /* ---------- 中性层 Neutral ---------- */
+  --neutral-text:         #1E293B;
+  --neutral-muted:        #64748B;
+  --neutral-faint:        #94A3B8;
+  --neutral-disabled:     #CBD5E1;
+  --neutral-border:       #E2E8F0;
+  --neutral-border-strong:#CBD5E1;
+  --neutral-surface:      #FFFFFF;
+  --neutral-bg:           #F8FAFC;
+
+  /* ---------- 字体 Typography ---------- */
+  --font-sans: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", -apple-system, sans-serif;
+                 /* 5 族标准栈，与存量页 B3 统一后的字面量逐字一致 */
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* 字阶：营销寄存器；工具页正文用 --fs-body-compact（见下方裁决） */
+  --fs-display:  60px;  /* Hero H1，响应式可降 48px */
+  --fs-h1:       36px;
+  --fs-h2:       30px;
+  --fs-h3:       22px;
+  --fs-body:     16px;  /* 营销页正文（Brand 寄存器） */
+  --fs-body-compact: 14px; /* 工具页正文（Product 寄存器，事实档 19 次） */
+  --fs-sm:       13px;  /* 元信息 / 表单标签（事实档 36 次） */
+  --fs-caption:  12px;  /* 辅助说明 / 脚注 / eyebrow（事实最小正文档 52 次） */
+  --fs-micro:    11px;  /* 徽章 / 极小标签（事实档 21 次） */
+
+  --fw-regular:  400;
+  --fw-medium:   500;
+  --fw-semibold: 600;
+  --fw-bold:     700;
+
+  --lh-tight:    1.3;
+  --lh-heading:  1.35;
+  --lh-body:     1.7;
+  --lh-compact:  1.6;
+
+  /* ---------- 间距 Spacing（4px 基准） ---------- */
+  --sp-1:  4px;
+  --sp-2:  8px;
+  --sp-3:  12px;
+  --sp-4:  16px;
+  --sp-6:  24px;
+  --sp-8:  32px;
+  --sp-12: 48px;
+  --sp-16: 64px;
+  --sp-24: 96px;
+
+  /* ---------- 圆角 Radius ---------- */
+  --radius-sm:   8px;    /* 徽章 / 输入框 / 小标签 */
+  --radius-md:   12px;   /* 工具页卡片 / 方角按钮 */
+  --radius-lg:   16px;   /* 主卡片 / 表格容器 */
+  --radius-full: 999px;  /* 胶囊 CTA / section 标签 / 状态点 */
+
+  /* ---------- 阴影 Elevation ---------- */
+  --shadow-sm: 0 1px 3px rgba(16, 24, 40, .06);
+  --shadow-md: 0 1px 2px rgba(16, 24, 40, .04), 0 10px 30px rgba(16, 24, 40, .07);
+  --shadow-lg: 0 20px 40px rgba(37, 99, 235, .12);
+
+  /* ---------- 布局 Layout ---------- */
+  --container-max: 1280px;   /* 主容器；工具页按需收窄（对比 1120 / 计算器 860） */
+  --gutter-desktop: 24px;
+  --gutter-tablet:  16px;
+  --gutter-mobile:  12px;
+  /* 断点用媒体查询，CSS 变量无法承载：统一 768px（全站唯一一致断点） */
+
+  /* ---------- 动效 Motion ---------- */
+  --dur-instant: 100ms;  /* 按下 / 开关 */
+  --dur-state:   150ms;  /* hover 变色 / 选中 */
+  --dur-enter:   250ms;  /* 弹窗 / Toast / 卡片恢复 */
+  --dur-page:    300ms;  /* 跨屏过渡 */
+  --ease-out:    ease-out;
+  --ease-in-out: ease-in-out;
+  --ease-brand:  cubic-bezier(.2, 0, 0, 1);  /* checklist 现状 */
+
+  /* ---------- 图层 Layer [新增] ---------- */
+  --z-base:    0;
+  --z-sticky:  100;
+  --z-drawer:  500;
+  --z-overlay: 900;   /* 禁止再出现 z-index: 9999 孤值 */
+  --z-toast:   1000;
+}
+
+/* ============================================================
+ * 深色数据大屏主题（BI 场景登记例外，独立作用域，不污染浅色）
+ * 用法：<html data-theme="dark"> 或容器 class="theme-dark"
+ * ============================================================ */
+[data-theme="dark"], .theme-dark {
+  --brand-primary:      #3B82F6;   /* 深色底上的可辨识蓝 */
+  --brand-indigo:       #818CF8;
+  --brand-gradient:     linear-gradient(135deg, #3B82F6 0%, #4F46E5 100%);
+  --neutral-text:       #E2E8F0;
+  --neutral-muted:      #94A3B8;
+  --neutral-surface:    #0a0e27;
+  --neutral-bg:         #0a0e27;
+  --neutral-border:     rgba(148, 163, 184, .18);
+  --shadow-sm:          none;
+  --shadow-md:          0 8px 24px rgba(0, 0, 0, .24);
+  --shadow-lg:          0 20px 50px rgba(0, 0, 0, .3);
+}
+
+/* ============================================================
+ * 通用降级：无障碍动效（现状仅 checklist 实现，基线统一补齐）
+ * ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

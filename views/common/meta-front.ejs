@@ -1,0 +1,66 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="cache-control" content="public">
+<meta name="Generator" content="WebStorm">
+<meta name="Author" content="<%=session.site.name%>">
+<meta name="Robots" content="all">
+<meta content="链付收银博客,<%=session.site.name%>,<%if(locals.title){%><%=title%><%}%>,链付收银SAAS,商业SaaS,收银系统,商城,开发实践,nodejs,code,博客,技术" name="keywords" />
+<meta content="<%=session.site.name%> —— 链付收银SAAS 官方博客，记录产品演进、商业观察与开发实践。" name="description" />
+<!--baidu站长验证-->
+<meta name="baidu-site-verification" content="hBcEJxnpRy" />
+<!--sogou-->
+<meta name="sogou_site_verification" content="Ve5KEBC5yH"/>
+<meta property="qc:admins" content="1542100672652272374526367" />
+<!--alexa排名验证-->
+<meta name="alexaVerifyID" content="UmbHL7uQNFzJnFyC4OkkDx5CA3E"/>
+<title><%if(locals.title){%><%=title%><%}%>-<%=session.site.name%></title>
+<!-- 前台样式：tokens.css（链付收银SAAS 设计语言基线变量源）→ theme.css（NODELOG 语义别名 + 组件库）→ app.css（结构层）
+     ?v 用站点版本号破缓存：改版后无需用户手动清缓存即可拿到新 CSS（含移动端图标规则） -->
+<% var cssVer = (session.site && session.site.version) ? encodeURIComponent(String(session.site.version)) : '20261120'; %>
+<link rel="stylesheet" href="/css/tokens.css?v=<%= cssVer %>">
+<link rel="stylesheet" href="/css/theme.css?v=<%= cssVer %>">
+<link rel="stylesheet" href="/css/app.css?v=<%= cssVer %>">
+<% if (typeof needEditor !== 'undefined' && needEditor) { %>
+<!-- 仅编辑页按需加载：编辑器图标 / 旧工具栏 / 代码高亮 -->
+<link rel="stylesheet" href="/css/font-awesome.css">
+<link rel="stylesheet" href="/css/index.css">
+<% } %>
+<link rel="manifest" href="/manifest.json">
+<script>
+  (function () {
+    try {
+      // 始终显式设置 data-theme，保证 CSS 变量、主题按钮图标与系统偏好三者一致
+      var t = localStorage.getItem('nl-theme');
+      if (!t) t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', t);
+    } catch (e) {}
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () { navigator.serviceWorker.register('/sw.js').catch(function () {}); });
+    }
+  })();
+</script>
+<!-- 开放平台：微信自定义分享 / OG / Twitter 元数据（与后台 meta.ejs 保持一致） -->
+<meta property="og:type" content="website">
+<meta property="og:locale" content="zh_CN">
+<% /* 文章页可传 ogTitle/ogDesc/ogImage 覆盖，分享出去就是这篇文章自己的内容；其它页面回退通用值 */ %>
+<meta property="og:title" content="<%= locals.ogTitle ? ogTitle : (locals.title ? title + ' · ' + session.site.name : session.site.name) %>">
+<meta property="og:description" content="<%= locals.ogDesc ? ogDesc : (locals.title ? title + ' · ' + session.site.name : session.site.name) %>">
+<meta property="og:site_name" content="<%= session.site.name %>">
+<% if (locals.ogUrl) { %>
+<meta property="og:url" content="<%= ogUrl %>">
+<% } %>
+<% /* 封面优先级：文章封面 > 后台配置的站点封面 > 代码默认封面 */ %>
+<% var siteCover = (session.site && session.site.shareCover) ? session.site.shareCover : (locals.shareCover || ''); %>
+<% var shareImg = locals.ogImage || siteCover || ''; %>
+<% if (shareImg) { %>
+<meta property="og:image" content="<%= shareImg %>">
+<meta name="twitter:image" content="<%= shareImg %>">
+<% } %>
+<meta property="og:image:width" content="480">
+<meta property="og:image:height" content="480">
+<meta name="twitter:card" content="summary_large_image">
+<script src="/js/jweixin-1.6.0.js" defer></script>
+<script>
+  window.WX_SHARE_CONFIG = { api: '/open/jsConfig', imgUrl: <%- JSON.stringify(shareImg).replace(/</g, '\\u003c') %> };
+</script>
+<script src="/js/wechat-share.js?v=20261111" defer></script>

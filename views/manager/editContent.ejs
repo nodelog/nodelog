@@ -1,0 +1,41 @@
+<%- include('header') %>
+<ol class="breadcrumb">
+    <li><a href="/manager">后台首页</a></li>
+    <li><a href="/manager/content?manager=true&page=1">文章</a></li>
+    <li class="active">编辑</li>
+</ol>
+<h3>编辑文章 · <%= doc.name %></h3>
+
+<form role="form" action="javascript:;">
+    <input type="hidden" class="js-content-type" value="<%= (doc.contentType=='markdown')?'markdown':'html' %>"/>
+    <div class="form-group">
+        <label for="mgrContentTitle">标题 <span class="text-muted">（还可输入 <span class="js-content-name-chars">100</span> 字）</span></label>
+        <input type="text" id="mgrContentTitle" class="form-control js-add-content-name"
+               data-id="<%= doc._id %>" data-name="<%= doc.name %>" value="<%= doc.name %>"
+               placeholder="文章标题" autofocus maxlength="100"/>
+    </div>
+    <div class="form-group">
+        <label>内容</label>
+        <%- include('../editor') %>
+    </div>
+    <div class="form-group">
+        <label for="mgrContentCategory">分类</label>
+        <div class="category-picker js-category-picker">
+            <input type="text" id="mgrContentCategory" class="form-control js-category-input" placeholder="搜索或选择分类" autocomplete="off"/>
+            <input type="hidden" class="js-category-value" value="<%= doc.category || '' %>"/>
+            <ul class="category-picker__menu js-category-menu-list" role="listbox"></ul>
+        </div>
+    </div>
+    <div class="form-group">
+        <label for="mgrContentTags">标签 <span class="text-muted">（逗号分隔，留空则保存时自动提取）</span></label>
+        <div class="tag-field">
+            <input type="text" id="mgrContentTags" class="form-control js-tags-value" value="<%= (doc.tags||[]).join(', ') %>" placeholder="如：Node.js, 运维, 教程"/>
+            <button type="button" class="btn-ghost js-auto-tags" title="根据标题/正文自动提取标签">自动生成</button>
+        </div>
+        <div class="tag-preview js-tag-preview" aria-live="polite"></div>
+        <p class="tag-hint js-tag-hint"></p>
+    </div>
+    <button type="submit" class="btn btn-primary js-save-content">保存修改</button>
+</form>
+
+<%- include('footer') %>

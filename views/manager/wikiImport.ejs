@@ -1,0 +1,107 @@
+<%- include('header') %>
+<ol class="breadcrumb">
+    <li><a href="/manager">后台首页</a></li>
+    <li class="active">导入 Wiki 文档</li>
+</ol>
+<h3>导入 Wiki 文档
+    <a class="btn btn-default btn-sm pull-right" href="/manager/content/admin?page=1">返回文章管理</a>
+</h3>
+<p class="text-muted">
+    导入 Markdown 内容，生成一篇 Wiki 文档（<code>docType=wiki</code>）。标题优先取正文首个 <code># 一级标题</code>，
+    也可在下方显式指定；同名文档已存在时会拒绝，避免重复导入。
+</p>
+<div class="alert alert-warning">
+    单文件上限 2MB。导入的内容同样经过敏感词风控；命中会被拒绝。
+</div>
+<div class="form-group">
+    <label for="wikiFile">选择 .md 文件（可选）</label>
+    <input type="file" id="wikiFile" accept=".md,.markdown,.txt,text/markdown,text/plain"/>
+    <p class="help-block">选中文件后会自动读入下方文本框，仍可编辑。</p>
+</div>
+<div class="form-group">
+    <label for="wikiSpace">目标知识库（可选）</label>
+    <select id="wikiSpace" class="form-control">
+        <option value="">— 不指定（导入为独立 Wiki 文档）—</option>
+        <% (spaces || []).forEach(function (s) { %>
+        <option value="<%= s.slug %>"><%= s.name %>（/<%= s.slug %>）</option>
+        <% }); %>
+    </select>
+    <p class="help-block">选定后文档会归入该知识库，可用语义链接访问；同名文档在同一知识库内不可重复导入。</p>
+</div>
+<div class="form-group">
+    <label for="wikiName">文档标题（留空则取正文一级标题）</label>
+    <input type="text" id="wikiName" class="form-control" placeholder="如：Node.js 部署手册"/>
+</div>
+<div class="form-group">
+    <label for="wikiTags">标签（逗号分隔，可选）</label>
+    <input type="text" id="wikiTags" class="form-control" placeholder="如：教程, 运维"/>
+</div>
+<div class="form-group">
+    <label for="wikiContent">Markdown 正文</label>
+    <textarea id="wikiContent" class="form-control" rows="16" placeholder="# 文档标题&#10;&#10;在这里粘贴或使用上方文件读入 Markdown 内容..."></textarea>
+</div>
+<div class="form-group">
+    <button type="button" id="btn-import" class="btn btn-primary">导入</button>
+    <span id="import-status" class="text-muted" style="margin-left:12px;"></span>
+</div>
+<div id="import-result"></div>
+
+<%- include('footer') %>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>\"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+  $('wikiFile').addEventListener('change', function () {
+    var file = this.files && this.files[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      $('import-status').textContent = '文件超过 2MB';
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = function () {
+      $('wikiContent').value = String(reader.result || '');
+      $('import-status').textContent = '已读入：' + file.name;
+    };
+    reader.onerror = function () { $('import-status').textContent = '文件读取失败'; };
+    reader.readAsText(file, 'utf-8');
+  });
+
+  $('btn-import').addEventListener('click', function () {
+    var text = $('wikiContent').value.trim();
+    var name = $('wikiName').value.trim();
+    var tags = $('wikiTags').value.trim();
+    if (!text) { $('import-status').textContent = '正文不能为空'; return; }
+    $('btn-import').disabled = true;
+    $('import-status').textContent = '导入中...';
+    $('import-result').innerHTML = '';
+    fetch('/manager/wiki/import', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ markdown: text, name: name, tags: tags, spaceSlug: $('wikiSpace').value })
+    }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (r) {
+        var j = r.j || {};
+        if (j.success) {
+          $('import-result').innerHTML = '<div class="alert alert-success">导入成功：' +
+            esc(j.name) + '（id: ' + esc(String(j.id)) + '）</div>';
+          $('wikiContent').value = ''; $('wikiName').value = '';
+        } else {
+          $('import-result').innerHTML = '<div class="alert alert-danger">导入失败：' + esc(j.msg) + '</div>';
+        }
+        $('import-status').textContent = '';
+      })
+      .catch(function (e) {
+        $('import-result').innerHTML = '<div class="alert alert-danger">请求失败：' + esc(e.message) + '</div>';
+        $('import-status').textContent = '';
+      })
+      .finally(function () { $('btn-import').disabled = false; });
+  });
+})();
+</script>

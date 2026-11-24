@@ -1,0 +1,227 @@
+<%- include('header') %>
+<style>
+/* 分享封面上传控件：预览 + 选择/恢复，对齐后台表单样式 */
+.cover-upload { display: flex; align-items: flex-start; gap: var(--space-5); flex-wrap: wrap; }
+.cover-preview {
+    width: 120px; height: 120px; flex: 0 0 auto;
+    object-fit: cover; border-radius: var(--radius);
+    border: 1px solid var(--border); background: var(--surface-2);
+}
+.cover-upload-actions { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); }
+.cover-upload-actions .btn { cursor: pointer; }
+.cover-upload-actions .help-block { margin: 0; color: var(--muted); font-size: var(--fs-small); line-height: 1.6; }
+/* 设置分组 Tab */
+.setting-tabs { display: flex; gap: var(--space-2); margin-bottom: var(--space-6); border-bottom: 1px solid var(--border); }
+.setting-tab {
+    padding: var(--space-3) var(--space-5); border: 0; background: transparent;
+    color: var(--muted); font-size: var(--fs-body); cursor: pointer;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.setting-tab:hover { color: var(--accent); }
+.setting-tab.is-active { color: var(--accent); font-weight: var(--fw-medium); border-bottom-color: var(--accent); }
+.setting-panel[hidden] { display: none; }
+/* 告警面板头：描述在左、测试按钮在右，同一行 */
+.alert-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-5); margin-bottom: var(--space-5); }
+.alert-head .help-block { margin: 0; flex: 1 1 auto; }
+.alert-head .btn { flex: 0 0 auto; }
+#alertTestResult.is-ok { color: var(--color-success-ink); }
+#alertTestResult.is-fail { color: var(--color-danger-ink); }
+</style>
+
+<ol class="breadcrumb">
+    <li><a href="/manager">后台首页</a></li>
+    <li class="active">博客设置</li>
+</ol>
+<div class="bg-white jumbotron clear-margin">
+    <!-- 分组切换：博客设置 / 风控告警，共用同一表单以保留现有保存逻辑 -->
+    <div class="setting-tabs" role="tablist" aria-label="设置分组">
+        <button type="button" class="setting-tab is-active js-setting-tab" data-panel="basic" role="tab" aria-selected="true">博客设置</button>
+        <button type="button" class="setting-tab js-setting-tab" data-panel="alert" role="tab" aria-selected="false">告警通知</button>
+    </div>
+    <form name="siteForm" role="form" action="javascript:;">
+    <div class="setting-panel is-active" id="panel-basic" role="tabpanel">
+        <div class="form-group">
+            <label for="">博客名称</label>
+            <input type="text" class="form-control" name="name" value="<%= session.site.name %>">
+        </div>
+        <div class="form-group">
+            <label for="">版权</label>
+            <input type="text" class="form-control" name="copyRight" value="<%= session.site.copyRight %>">
+        </div>
+
+        <div class="form-group">
+            <label for="">ICP备案</label>
+            <input type="text" class="form-control" name="icp" value="<%= session.site.icp %>">
+        </div>
+        <div class="form-group">
+            <label for="">微信分享封面图</label>
+            <div class="cover-upload">
+                <img class="cover-preview" id="coverPreview" src="<%= session.site.shareCover || '/images/share-cover.png' %>" alt="当前分享封面" />
+                <div class="cover-upload-actions">
+                    <label class="btn btn-default js-cover-pick" for="coverFile">选择图片上传</label>
+                    <input type="file" id="coverFile" accept="image/png,image/jpeg,image/webp" class="hide" />
+                    <button type="button" class="btn btn-default js-cover-reset" id="coverReset">恢复默认</button>
+                    <p class="help-block">建议 480×480 正方形图片，PNG/JPG/WEBP，不超过 5MB。上传后点「更新配置」保存。</p>
+                </div>
+            </div>
+            <input type="hidden" name="shareCover" id="coverUrl" value="<%= session.site.shareCover || '' %>" />
+        </div>
+        <div class="form-group">
+            <label for="">版本</label>
+            <input type="text" class="form-control" name="version" value="<%= session.site.version %>">
+        </div>
+
+        <div class="form-group">
+            <label for="">联系电话</label>
+            <input type="text" class="form-control" name="phone" value="<%= session.site.phone %>">
+        </div>
+
+        <div class="form-group">
+            <label for="">联系地址</label>
+            <input type="text" class="form-control" name="address" value="<%= session.site.address %>">
+        </div>
+        <div class="form-group">
+            <label for="">统计代码</label>
+            <textarea type="text" class="form-control" name="statistical" rows="5">
+                <%= session.site.statistical %>
+            </textarea>
+        </div>
+    </div><!-- /panel-basic -->
+
+    <div class="setting-panel" id="panel-alert" role="tabpanel" hidden>
+        <div class="alert-head">
+            <p class="help-block">配置后，内容风控/系统异常会发邮件通知。留空的项沿用配置文件默认值；环境变量优先级高于此处。</p>
+            <button type="button" class="btn btn-default js-alert-test" id="alertTestBtn">发送测试邮件</button>
+        </div>
+        <div class="form-group">
+            <label for="">启用告警邮件</label>
+            <select class="form-control" name="alertEnabled">
+                <% var aOn = session.site.alert && session.site.alert.enabled !== undefined ? session.site.alert.enabled : true; %>
+                <option value="1" <%= aOn ? 'selected' : '' %>>启用</option>
+                <option value="0" <%= !aOn ? 'selected' : '' %>>关闭</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="">收件邮箱</label>
+            <input type="text" class="form-control" name="alertRecipients" value="<%= (session.site.alert && session.site.alert.recipients) || '' %>" placeholder="多个用英文逗号分隔，如 a@x.com,b@x.com">
+            <p class="help-block">留空则沿用配置文件 / 环境变量 ALERT_RECIPIENTS。</p>
+        </div>
+        <div class="form-group">
+            <label for="">实时告警</label>
+            <select class="form-control" name="alertRealtime">
+                <% var aRt = session.site.alert && session.site.alert.realtime !== undefined ? session.site.alert.realtime : true; %>
+                <option value="1" <%= aRt ? 'selected' : '' %>>实时发送</option>
+                <option value="0" <%= !aRt ? 'selected' : '' %>>仅汇总</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="">节流时间（分钟）</label>
+            <input type="number" class="form-control" name="alertThrottle" min="0" value="<%= (session.site.alert && session.site.alert.throttleMinutes) || 30 %>">
+            <p class="help-block">同一类告警在该时间内只发一次，0 表示不节流。</p>
+        </div>
+        <div class="form-group">
+            <label for="">邮件标题前缀</label>
+            <input type="text" class="form-control" name="alertPrefix" value="<%= (session.site.alert && session.site.alert.subjectPrefix) || '' %>" placeholder="如 [链付收银博客 风控]">
+        </div>
+        <div class="form-group">
+            <label for="">发件人显示名</label>
+            <input type="text" class="form-control" name="alertFromName" value="<%= (session.site.alert && session.site.alert.fromName) || '' %>" placeholder="如 链付收银博客 风控">
+        </div>
+        <div class="form-group">
+            <p class="help-block" id="alertTestResult" aria-live="polite">每分钟内最多测试 5 次。测试会先保存当前配置，再发一封邮件到收件邮箱。</p>
+        </div>
+    </div><!-- /panel-alert -->
+
+    <button type="button" class="btn btn-primary js-site-edit-save">更新配置</button>
+    </form>
+</div>
+<script>
+/* 分享封面上传：复用站内图床 /api/upload，上传后把 URL 写入隐藏字段随配置一起保存 */
+(function () {
+  var fileInput = document.getElementById('coverFile');
+  var preview = document.getElementById('coverPreview');
+  var urlInput = document.getElementById('coverUrl');
+  var resetBtn = document.getElementById('coverReset');
+  if (!fileInput || !preview || !urlInput) return;
+  var MAX = 5 * 1024 * 1024;
+
+  fileInput.addEventListener('change', function () {
+    var file = fileInput.files && fileInput.files[0];
+    if (!file) return;
+    if (file.size > MAX) { if (window.NL && NL.alert) NL.alert('图片不能超过 5MB'); return; }
+    var reader = new FileReader();
+    reader.onerror = function () { if (window.NL && NL.alert) NL.alert('读取图片失败'); };
+    reader.onload = function () {
+      if (window.NL && NL.loading) NL.loading();
+      fetch('/api/upload', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: reader.result })
+      }).then(function (r) { return r.json(); }).then(function (d) {
+        if (window.NL && NL.closeLoading) NL.closeLoading();
+        if (d && d.success && d.url) {
+          urlInput.value = d.url;
+          preview.src = d.url + '?t=' + Date.now();
+        } else if (window.NL && NL.alert) {
+          NL.alert((d && d.msg) || '上传失败，请重试');
+        }
+      }).catch(function () {
+        if (window.NL && NL.closeLoading) NL.closeLoading();
+        if (window.NL && NL.alert) NL.alert('上传失败，请重试');
+      });
+    };
+    reader.readAsDataURL(file);
+  });
+
+  if (resetBtn) resetBtn.addEventListener('click', function () {
+    urlInput.value = '';
+    preview.src = '/images/share-cover.png';
+  });
+
+  /* 分组 Tab 切换 */
+  Array.prototype.forEach.call(document.querySelectorAll('.js-setting-tab'), function (tab) {
+    tab.addEventListener('click', function () {
+      Array.prototype.forEach.call(document.querySelectorAll('.js-setting-tab'), function (t) {
+        var on = t === tab;
+        t.classList.toggle('is-active', on);
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      Array.prototype.forEach.call(document.querySelectorAll('.setting-panel'), function (p) {
+        var on = p.id === 'panel-' + tab.getAttribute('data-panel');
+        p.hidden = !on; p.classList.toggle('is-active', on);
+      });
+    });
+  });
+
+  /* 发送测试邮件：先保存当前配置，再真实发一封，确保测的是刚填的设置 */
+  var testBtn = document.getElementById('alertTestBtn');
+  var testResult = document.getElementById('alertTestResult');
+  if (testBtn && testResult) testBtn.addEventListener('click', function () {
+    var form = document.querySelector('form[name=siteForm]');
+    var body = Array.prototype.map.call(document.querySelectorAll('form[name=siteForm] [name]'), function (el) {
+      return encodeURIComponent(el.name) + '=' + encodeURIComponent(el.value);
+    }).join('&');
+    testBtn.disabled = true;
+    testResult.className = 'help-block';
+    testResult.textContent = '正在保存配置并发送测试邮件…';
+    fetch('/manager/site/update', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body
+    }).then(function (r) { return r.json(); }).then(function (saved) {
+      if (!saved.success) throw new Error(saved.msg || '配置保存失败');
+      return fetch('/manager/alert/test', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: ''
+      });
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      testResult.className = 'help-block ' + (d.sent ? 'is-ok' : 'is-fail');
+      testResult.textContent = d.msg || (d.sent ? '测试邮件已发送' : '发送失败');
+    }).catch(function (e) {
+      testResult.className = 'help-block is-fail';
+      testResult.textContent = '测试失败：' + (e.message || '网络错误，请重试');
+    }).then(function () { testBtn.disabled = false; });
+  });
+})();
+</script>
+
+<%- include('footer') %>

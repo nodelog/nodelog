@@ -1,0 +1,121 @@
+// NODELOG 运行配置模板
+// 用法：复制本文件为 settings.js 并填入真实值。
+// settings.js 已被 .gitignore 忽略，不会进入版本库，避免泄露密钥。
+// 注意：app.js 读取的字段为 port / cookieSecret / url / email。
+// MongoDB 连接串兼容旧键名 dbUrl（来自早期 settings.bak.js），也可通过环境变量 MONGO_URL / MONGODB_URI 注入。
+module.exports = {
+    // HTTP 监听端口
+    port: 3000,
+
+    // Session 签名密钥，请替换为足够随机的长字符串。
+    // 生产环境建议通过环境变量注入：process.env.SESSION_SECRET
+    cookieSecret: 'replace-with-a-long-random-secret',
+
+    // MongoDB 连接串（mongoose 使用）
+    url: 'mongodb://127.0.0.1:27017/ctit',
+
+    // 邮件服务（评论通知 + 风控告警共用同一套 SMTP，nodemailer）
+    email: {
+        host: 'smtp.example.com',
+        port: 465,           // 非加密 25，SSL 465，STARTTLS 587
+        secure: true,        // 端口 465 时 true
+        user: 'sender@example.com',
+        pass: 'smtp-password'
+    },
+
+    // ===== 风控告警通知（收件人单独配置，与发件账号解耦）=====
+    // 触发时机：敏感词命中拒发（实时、带节流）、自动化脚本每轮结果（汇总）。
+    // 推荐用环境变量注入收件地址，配置文件里不落任何收件人：
+    //   ALERT_RECIPIENTS=you@example.com,ops@example.com npm start
+    // 未配置收件人时告警只写服务端日志，绝不发信；ALERT_ENABLED=0 可强制关闭。
+    //
+    // 【收件人 ≠ 发件账号】recipients 只是收件地址；发件账号由 email / alert.smtp /
+    //   ALERT_SMTP_USER 决定，两者域名可以完全不同（收件人 @qq.com，发件可以是阿里云企业邮箱）。
+    //   诊断永远按【发件 host / user】识别服务商，绝不看收件人域名。
+    //
+    // 【SMTP 526 / 535：不需要改这份配置，代码会自动适配】
+    //   企业邮的 "Authentication failure" 常常不是账号密码填错，而是 AUTH 机制（LOGIN/PLAIN）、
+    //   TLS 模式、465/587、密码串里的 BOM / 首尾空白、AUTH 用户名写法等【传输参数】不匹配。
+    //   services/alert.js 会自动枚举这些组合、只做认证校验，找到第一个能成功的组合后
+    //   真实发信，并把组合存到 .alert-smtp-profile.json（只存参数名，不含密码）；
+    //   后续所有告警邮件直接复用。凭据变化会自动重新探测；发送失败也会后台自愈。
+    //   服务商名称只用于兜底日志，绝不作为「配置填错了」的结论。
+    //
+    // 发件通道默认复用上面的 email；临时覆盖（密码不落文件）：
+    //   ALERT_SMTP_HOST=... ALERT_SMTP_PORT=465 ALERT_SMTP_SECURE=1 \
+    //   ALERT_SMTP_USER=... ALERT_SMTP_PASS='...' ALERT_RECIPIENTS=... npm start
+    //
+    // 【自检到发信成功】服务端读真实配置、绝不回显密码：
+    //   npm run automation:probe       # CLI：自动探测可用参数 + 真实发一封测试邮件
+    //   GET  /api/alert/status        # 脱敏配置 + 已保存的可用参数组合
+    //   POST /api/alert/probe         # HTTP：自动探测并真实投递，返回 sent:true 才算成功
+    //   curl -sS -X POST https://your-domain/api/alert/probe \
+    //     -H 'Content-Type: application/json' -H 'Authorization: Bearer <API Token>' \
+    //     -d '{"to":"you@example.com"}'
+    //   to 必须在 recipients 白名单内（留空取第一个）；未配收件人时发给发件账号自己。
+    //   npm run test:alert-api        # 本地起 SMTP 服务跑完整链路，无需生产凭据
+    //   npm run test:automation       # 离线单测
+    // 接口限流 5 次/分钟；密码既不由接口接收，也不出现在任何响应与日志里。
+    alert: {
+        enabled: true,
+        // 可选：告警专用发件配置；不填则复用上面的 email。字段可只写一部分，其余自动回落。
+        // smtp: { host: 'smtp.qq.com', port: 465, secure: true, user: 'you@qq.com', pass: '授权码' },
+        // 收件人数组；也可写 'a@example.com,b@example.com'。环境变量 ALERT_RECIPIENTS 优先。
+        // 例：recipients: ['you@example.com']
+        recipients: [],
+        // 同一事件（相同 key）在该时间窗内只发一次，防命中刷屏；0 = 不去重
+        throttleMinutes: 30,
+        // 实时命中告警开关；关掉后只保留自动化脚本的每轮汇总邮件（ALERT_REALTIME=0 同效）
+        realtime: true,
+        subjectPrefix: '[NODELOG 风控]',
+        fromName: 'NODELOG 风控'
+    },
+
+    // ===== LINK ONE 开放平台（扫码登录 + 公众号 JS-SDK 签名，不含支付）=====
+    // 申请入口：LINK ONE 商家管理后台 →「开放平台」→ 立即申请，得到 AppID / AppSecret。
+    // 强烈建议用环境变量注入密钥，不要把 AppSecret 写进任何会被提交的文件：
+    //   OPEN_APP_ID=xxx OPEN_APP_SECRET=xxx OPEN_ADMIN_PHONES=13800138000 npm start
+    openPlatform: {
+        // 开放平台 API 域名（一般不用改）
+        apiBase: process.env.OPEN_API_BASE || 'https://ai.jiangzi.xin',
+
+        // 开放平台应用 AppID / AppSecret。AppSecret 仅用于服务端 HS256 验签，绝不下发前端。
+        appId: process.env.OPEN_APP_ID || '',
+        appSecret: process.env.OPEN_APP_SECRET || '',
+
+        // 扫码登录后授予管理员(role=0)的手机号白名单，逗号分隔。
+        // 留空 = 所有扫码用户都是普通用户(role=1)，此时后台管理需继续使用原有账号密码登录。
+        adminPhones: (process.env.OPEN_ADMIN_PHONES || '').split(',')
+            .map(function (s) { return s.trim(); }).filter(Boolean),
+
+        // 微信分享卡片封面：必须 HTTPS 绝对地址、>=300x300、静态直连可 GET。
+        // 已随项目提供 public/images/share-cover.png (480x480)。
+        shareCover: process.env.OPEN_SHARE_COVER || 'https://blog.jiangzi.xin/images/share-cover.png',
+
+        // 生成 og:url 时使用的站点域名（反向代理场景取 X-Forwarded-Host 优先）
+        siteHost: process.env.SITE_HOST || 'blog.jiangzi.xin'
+    },
+
+    // ===== 开放文章发布 API（v3：已改为应用凭证鉴权，零配置）=====
+    // 旧静态 token（下面的 tokens / ARTICLE_API_TOKENS）对文章/公告/告警 API 均已废弃，
+    // 保留此块仅为历史兼容占位；实际鉴权走后台「应用管理」创建的 AppID + Secret。
+    // 调用方：AppID + 签名 → POST /api/auth/token 换 token → Bearer token 调 API。
+    articleApi: {
+        tokens: [],
+        defaultAuthor: ''
+    },
+
+    // ===== 开放接口应用凭证（零配置，无需在此文件填写任何密钥）=====
+    // 后台「应用管理」创建应用时生成 AppID 与 Secret；主密钥首次启动随机生成并存 MongoDB，
+    // 每个应用用各自 Secret 派生 JWT 签名密钥（应用间隔离）。settings 中不含任何密钥。
+    // 仅多实例共享主密钥时才需设置环境变量 API_APP_ENCRYPTION_KEY（32 位 hex），一般无需配置。
+
+    // ===== 站点更新公告自动发布 API（v3：已改为应用凭证鉴权）=====
+    // 与文章 API 同样走 AppID + Secret 换 token，且【仅管理员用户绑定的应用】可调用。
+    // 旧静态 token（tokens / ANNOUNCEMENT_API_TOKENS）已废弃，此块仅历史占位。
+    // CI 脚本需改为：用分配给它的应用凭证换 token，再带 Bearer token 调 /api/announcements。
+    // 站点地址可用 ANNOUNCE_API_BASE 覆盖，默认 https://blog.jiangzi.xin。
+    announcementApi: {
+        tokens: []
+    }
+};

@@ -1,0 +1,24 @@
+<button type="button" class="wiki-backtop" id="wikiBackTop" aria-label="返回顶部" title="返回顶部">
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 15-6-6-6 6"/></svg>
+</button>
+</main>
+<footer class="wiki-footer">
+  <span>© <%= new Date().getFullYear() %> <%= session.site.name %> · 知识库</span>
+  <a href="/">返回博客首页</a>
+</footer>
+<div id="nl-toast-host" class="toast-host" role="status" aria-live="polite" aria-atomic="true"></div>
+<script src="/js/wiki.js?v=20261120" defer></script>
+<script defer src="/js/ui.js"></script>
+<!-- WP3 命令面板：知识库页默认只搜文档；右下角开关可开启「同时搜博客文章」 -->
+<script>
+window.CMD_SEARCH_CONFIG = {
+  homeType: 'wiki',
+  // 用不转义输出 JSON：转义会把双引号变成实体，导致 <script> 里 JS 语法错误，
+  // config 丢失 → 面板回退成博客搜索（曾踩坑）
+  spaceId: <%- (typeof space !== 'undefined' && space && space._id) ? JSON.stringify(String(space._id)) : "''" %>,
+  placeholder: <% if (typeof space !== 'undefined' && space && space._id) { %>'搜索本知识库的文档…'<% } else { %>'搜索全部公开知识库…'<% } %>
+};
+</script>
+<script defer src="/js/cmd-search.js?v=20261121b"></script>
+</body>
+</html>

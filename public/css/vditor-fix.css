@@ -1,0 +1,20 @@
+/* Vditor 全屏模式需盖过站点固定导航栏（Bootstrap .navbar-fixed-top 默认 z-index:1030）。
+   否则点「全屏」后，编辑器顶部工具栏被导航栏遮挡、无法点击，整屏「没法用」。
+   Vditor 全屏层 .vditor--fullscreen 自带 z-index:90（见 vendor/vditor/dist/index.css:526），
+   远低于导航栏，这里抬到最高，保证全屏独占视口。 */
+.vditor--fullscreen {
+  z-index: 2147483647 !important;
+}
+
+/* 上传图片限宽居中：Vditor 的 .vditor-reset img 默认只有 max-width:100%，
+   宽原图会撑满整个编辑区、观感很满。图片尺寸无法写进 Markdown（Lute 保存时会
+   丢弃 width/height/style），因此统一在展示层限宽：不超过 760px、不超过容器宽，
+   居中显示。编辑区与前台 .article-content 用同一上限，所见即所得。
+   点图片仍可用 Vditor 自带的 previewImage 看原图（不受此显示宽度影响）。 */
+.vditor-reset img:not(.emoji),
+.vditor-reset--dark img:not(.emoji) {
+  display: block !important;
+  max-width: min(100%, 760px) !important;
+  height: auto !important;
+  margin: .6em auto !important;
+}

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<%- include('../common/meta-front') %>
+<title><%= title || '知识库' %> - <%= session.site.name %></title>
+<link rel="stylesheet" href="/css/wiki.css?v=<%= (session.site && session.site.version) ? encodeURIComponent(String(session.site.version)) : '20261120' %>"/>
+</head>
+<body class="wiki-body js-body">
+<a class="skip-link" href="#wiki-main">跳到主内容</a>
+<header class="wiki-topbar">
+  <div class="wiki-topbar__brand">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
+    <span class="wiki-topbar__name"><%= session.site.name %></span>
+    <span class="wiki-topbar__tag">知识库</span>
+  </div>
+  <div class="wiki-topbar__tools">
+    <!-- 移动端搜索切换按钮 -->
+    <button type="button" class="wiki-topbar__icon wiki-search-toggle" id="wikiSearchToggle" aria-label="搜索文档" aria-keyshortcuts="Control+K Meta+K" title="搜索文档 (Ctrl+K)">
+      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    </button>
+    <form class="wiki-search" action="/content/search" method="get" role="search">
+      <input type="hidden" name="docType" value="wiki"/>
+      <% if (typeof space !== 'undefined' && space && space._id) { %>
+      <input type="hidden" name="spaceId" value="<%= space._id %>"/>
+      <% } %>
+      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input type="search" name="word" class="wiki-search__input" placeholder="搜索文档…" aria-label="搜索文档" maxlength="50"/>
+      <kbd class="wiki-search__kbd" aria-hidden="true">Ctrl K</kbd>
+    </form>
+    <button class="wiki-topbar__icon" id="wikiThemeToggle" title="切换深色/浅色" aria-label="切换深色/浅色"
+      onclick="(function(){var r=document.documentElement;var c=r.getAttribute('data-theme');var n=c==='dark'?'light':'dark';r.setAttribute('data-theme',n);try{localStorage.setItem('nl-theme',n);}catch(e){}})()">
+      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>
+    </button>
+    <a class="wiki-topbar__back" href="/" title="返回博客首页">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg>
+      <span class="wiki-topbar__label">返回博客</span>
+    </a>
+    <% if (session.user) { %>
+    <a class="wiki-topbar__admin" href="/manager/wiki" title="进入我的知识库工作台">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.04 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.56-1.04H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6h.08A1.7 1.7 0 0 0 10.1 3V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15.1 4.6a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9v.08A1.7 1.7 0 0 0 21 10.1h.09a2 2 0 1 1 0 4H21a1.7 1.7 0 0 0-1.6.9Z"/></svg>
+      <span class="wiki-topbar__label">工作台</span>
+    </a>
+    <% } %>
+  </div>
+</header>
+<main id="wiki-main" tabindex="-1">

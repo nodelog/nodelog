@@ -1,0 +1,224 @@
+var bcrypt = require('bcryptjs');
+var mongodb = require('./mongodb');
+var constants = require('./constants');
+
+var Schema = mongodb.mongoose.Schema;
+var ObjectId = Schema.ObjectId;
+var UserSchema = new Schema({
+    userName: {type: 'String', required: true, index: true},
+    realName: {type: 'String', required: true},
+    password: {type: 'String', required: true},
+    email: {type: 'String', required: false},
+    // ===== 开放平台（微信扫码登录）扩展字段 =====
+    // 三者都不设 required，旧文档缺失该字段时不会触发校验失败。
+    // openUserId 只建普通索引、不加 unique：历史文档该字段普遍缺失，唯一索引会冲突；
+    // 重复创建的兜底由 findByOpenUserId 先查后建 + 后续收敛保证。
+    openUserId: {type: 'String', index: true},
+    phone: {type: 'String'},
+    loginType: {type: 'String', default: 'local'},
+    createTime: { type: Date, default: Date.now},
+    modifyTime: {type: Date, default: Date.now},
+    role: {type: 'Number', default: 1, required: true, min: 0, max: 1 },//0 super admin,1 normal user
+    status: {type: 'Number', default: 0, required: true, min: 0, max: 2},//0 enable,1 disable,2 delete
+    // 内容风控七字段（§3.4）：全 optional + default，不回填、不改 status、不进 publicUser 白名单。
+    violationCount: {type: 'Number', default: 0, min: 0},                  // 累计命中次数，拒发 $inc:1
+    muteUntil: {type: Date, default: null},                                // 禁言截止；null/已过期即未禁言
+    disposedLevel: {type: 'Number', default: 0, min: 0, max: 4},           // 当前最高处置级别 0..4
+    lastViolationAt: {type: Date, default: null},                          // 最近命中（非处置）时间
+    moderationNote: {type: String, default: ''},                           // 处置/封禁原因，≤200，无正文/PII
+    bannedAt: {type: Date, default: null},                                 // 封禁时间（level=4 写，level=0 清）
+    disposedBy: {type: ObjectId, default: null}                            // 最后处置人 _id，只从 session 取
+}, {
+    collection: "user"
+});
+
+var UserModel = mongodb.mongoose.model("User", UserSchema);
+//
+var UserDAO = function () {
+};
+UserDAO.prototype.save = function (obj, callback) {
+    var userEntity = new UserModel(obj);
+    userEntity.save(function (err) {
+        // 追加返回新建文档（含 _id）供导入/审计定位；旧调用方只取第 1 个 err，不受影响。
+        callback(err, err ? null : userEntity);
+    });
+};
+UserDAO.prototype.findByName = function (name, callback) {
+    UserModel.findOne(
+        {"userName": name, "status": {$lt: constants.USER_DELETE_STATUS}},
+        function (err, obj) {
+            callback(err, obj);
+        });
+};
+UserDAO.prototype.findById = function (id, callback) {
+    UserModel.findOne(
+        {_id: id, "status": {$lt: constants.USER_DELETE_STATUS}},
+        function (err, obj) {
+            callback(err, obj);
+        });
+};
+UserDAO.prototype.findByPage = function (page, callback) {
+    var query = UserModel.find({"status": {$lt: constants.USER_DELETE_STATUS}});
+    query.sort({"modifyTime": -1});
+    query.limit(constants.PER_PAGE_COUNT);
+    query.skip((page - 1) * constants.PER_PAGE_COUNT);
+    query.exec(function (err, docs) {
+        callback(err, docs);
+    });
+};
+UserDAO.prototype.findAll = function (callback) {
+    UserModel.find(
+        {"status": {$lt: constants.USER_DELETE_STATUS}},
+        function (err, docs) {
+            callback(err, docs);
+        });
+};
+// 按 id 批量拉取（供 Content.enrichDocs 消 N+1，避免逐条查询）
+// 绑定用户远程搜索：只返回关键字匹配的前 20 条，字段固定 _id/userName/role。
+// 12,800 或 1 亿用户都只走一次受限查询，不再把整张表灌进页面。
+// userName 已建索引；用转义后的正则做「开头/包含」匹配，避免正则注入。
+UserDAO.prototype.searchForBinding = function (keyword, callback) {
+    var kw = String(keyword == null ? '' : keyword).trim();
+    if (!kw) return callback(null, []);
+    if (kw.length > 60) kw = kw.slice(0, 60);
+    var escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    var re = new RegExp(escaped, 'i');
+    UserModel.find({
+        userName: re,
+        status: {$lt: constants.USER_DELETE_STATUS}
+    })
+        .select('_id userName role')
+        .sort({userName: 1})
+        .limit(20)
+        .maxTimeMS(1500)
+        .exec(function (err, docs) { callback(err, docs || []); });
+};
+// 已绑定用户回显：按 id 精确取回 userName/role，支持下拉搜索外的历史用户或已停用用户。
+UserDAO.prototype.findByIds = function (ids, callback) {
+    if (!ids || !ids.length) return callback(null, []);
+    // realName 必须一并投影：Content.enrichDocs 用它回填文章作者显示名。
+    // 此前只选 _id/userName/role，导致 u.realName 恒为 undefined、
+    // 作者位回退到账号 userName（显示 nodelog 而非用户真名）。
+    UserModel.find({"_id": {$in: ids}}).select('_id userName realName role').maxTimeMS(3000)
+        .exec(function (err, docs) {
+            callback(err, docs || []);
+        });
+};
+UserDAO.prototype.getCount = function (callback) {
+    UserModel.count(
+        {"status": {$lt: constants.USER_DELETE_STATUS}},
+        function (err, total) {
+            callback(err, total);
+        });
+};
+// 看板用：按 UTC 自然日聚合最近 days 天每日新增注册用户数
+UserDAO.prototype.getTrend = function (days, callback) {
+    var start = new Date(Date.now() - days * 86400000);
+    UserModel.aggregate([
+        {$match: {createTime: {$gte: start}}},
+        {$group: {_id: {$dateToString: {format: '%Y-%m-%d', date: '$createTime'}}, count: {$sum: 1}}},
+        {$sort: {_id: 1}}
+    ]).exec(function (err, rows) { callback(err, rows || []); });
+};
+// 管理员可删除任意用户（含其他管理员、含自己）：不做 role 限制。
+// 用 findOneAndUpdate 并以返回值文档是否存在判定成功，避免依赖驱动版本相关的
+// 返回字段（mongodb 驱动 4.x 是 matchedCount，旧版是 n，直接读 n 会恒为 undefined）。
+UserDAO.prototype.delete = function (id, callback) {
+    UserModel.findOneAndUpdate(
+        {"_id": id},
+        {$set: {'status': constants.USER_DELETE_STATUS}},
+        {new: false},
+        function (err, doc) {
+            if (err) return callback(err);
+            callback(null, !!doc);
+        });
+};
+UserDAO.prototype.update = function (obj, callback) {
+    UserModel.update(
+        {'_id': obj._id},
+        {$set: {
+            'userName': obj.userName,
+            'realName': obj.realName ? obj.realName : obj.userName,
+            'password': obj.password,
+            'status': obj.status,
+            'role': obj.role,
+            'email': obj.email || "",
+            'phone': obj.phone || "",
+            'modifyTime': new Date()}
+        },
+        function (err) {
+            callback(err);
+        });
+};
+// 按开放平台用户 ID 查本地账号（只取未删除的，status < 2）
+UserDAO.prototype.findByOpenUserId = function (openUserId, callback) {
+    UserModel.findOne(
+        {"openUserId": openUserId, "status": {$lt: constants.USER_DELETE_STATUS}},
+        function (err, obj) {
+            callback(err, obj);
+        });
+};
+// 按手机号查本地账号（供微信扫码登录按手机号绑定预置用户；只取未删除的，status < 2）
+// phone 为空时直接回调 null，避免对空串做全表匹配。
+UserDAO.prototype.findByPhone = function (phone, callback) {
+    if (!phone) return callback(null, null);
+    UserModel.findOne(
+        {"phone": phone, "status": {$lt: constants.USER_DELETE_STATUS}},
+        function (err, obj) {
+            callback(err, obj);
+        });
+};
+// 微信扫码命中「手机号预置账号」时，把本次微信身份(openUserId)挂到该账号，
+// 之后即可用 openUserId 稳定复用；同时把微信侧手机号同步进库（若本地缺失）。
+// 只改这 3 个字段，不触碰 role/status/password，避免影响后台既有任命与密码。
+UserDAO.prototype.linkOpenId = function (id, openUserId, phone, callback) {
+    var set = {openUserId: openUserId, modifyTime: new Date()};
+    if (phone) set.phone = phone;
+    UserModel.update({'_id': id}, {$set: set}, function (err) {
+        callback(err);
+    });
+};
+// 创建开放平台用户；回调必须返回保存后的文档（含 _id），供调用方写入 session
+UserDAO.prototype.createOpenUser = function (obj, callback) {
+    var userEntity = new UserModel(obj);
+    userEntity.save(function (err, doc) {
+        callback(err, doc);
+    });
+};
+UserDAO.prototype.updatePassword = function (callback) {
+    var salt = bcrypt.genSaltSync(10);
+    var password = '';
+    UserModel.find({}, function (err, docs) {
+        docs.forEach(function (doc, i) {
+            if (doc.password.length < 30) {
+                password = bcrypt.hashSync(doc.password, salt);
+                UserModel.update(
+                    {'_id': doc._id},
+                    {$set: {
+                        'password': password}
+                    },
+                    function (err) {
+                        callback(err);
+                    });
+            }
+        });
+        callback(err);
+    });
+};
+// 风控（§5.5/§6.5）：命中累计违规（单文档 $inc/$set，无事务）。
+UserDAO.prototype.recordViolation = function (id, at, callback) {
+    UserModel.updateOne({_id: id}, {
+        $inc: {violationCount: 1}, $set: {lastViolationAt: at || new Date()}
+    }, function (err) { callback(err); });
+};
+// 四级处置幂等 $set：fields 白名单由 dispose 组装；同名值重复写无副作用。
+UserDAO.prototype.applyDisposition = function (id, fields, callback) {
+    UserModel.updateOne({_id: id}, {$set: Object.assign({modifyTime: new Date()}, fields || {})},
+        function (err, result) {
+            callback(err, err ? 0 : (result && result.matchedCount != null ? result.matchedCount : 0));
+        });
+};
+// 通用后台 DAO 方法（软删 status=2，与其余资源 status=1 不同 —— I-10）。
+require('./_adminDao').attach(UserDAO, UserModel, {softStatus: constants.USER_DELETE_STATUS});
+
+module.exports = new UserDAO();

@@ -1,0 +1,27 @@
+.idea
+*.iml
+*.out
+*.log
+*.svn
+settings.js
+sitemap.*
+/node_modules/
+/.well-known/
+# 本地工作数据与 QA 产物（含登录凭据、备份、测试报告）：一律不入库
+/evidence/
+/.workbuddy/
+/.playwright-cli/
+/playwright-cli.json
+/.npmrc
+/nul
+/.design/
+/.git-rewrite/
+# 公告自动发布：网络失败时暂存的待重试 payload（本地数据，不入库）
+/.announce-queue/
+# 风控自动化：每轮生成的敏感词候选清单（运行产物，不入库）
+/.automation-out/
+# 邮件告警：自动探测到的可用 SMTP 传输参数组合（只含参数名，不含密码；运行产物）
+/.alert-smtp-profile.json
+# 用户上传的图片：运行时产生，不入库（保留目录占位）
+/public/uploads/*
+!/public/uploads/.gitkeep

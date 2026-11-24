@@ -1,0 +1,224 @@
+<%
+  var edContent = '';
+  if (typeof(doc) !== 'undefined' && doc && doc.content) edContent = doc.content;
+  else if (typeof(template) !== 'undefined' && template) edContent = template;
+%>
+<% if (typeof(doc) !== 'undefined' && doc && doc.legacyHtmlPending) { %>
+<div class="alert">检测到这篇是旧版富文本文章，已临时转换为 Markdown 显示。检查排版后点「保存修改」即完成迁移；原始 HTML 会一并留档，可随时回滚。保存前文章页仍按原格式展示。</div>
+<% } %>
+<div class="vditor-host">
+  <!-- 真实数据源：隐藏文本域，承载 Markdown；保存逻辑（common.js）读取 .js-editor -->
+  <textarea id="editor" class="js-editor" style="display:none" aria-hidden="true"><%= edContent %></textarea>
+  <!-- Vditor 挂载点 -->
+  <div id="vditor"></div>
+  <p class="text-muted vditor-hint"><i class="icon-info-sign"></i> 支持 Markdown / 富文本混排 · 拖拽或粘贴图片自动上传 · 草稿自动存本地</p>
+</div>
+
+<!-- Vditor：本地化，不依赖 CDN（cdn 指向 /vendor/vditor，资源经 /vendor/vditor/dist/js/... 加载） -->
+<link rel="stylesheet" href="/vendor/vditor/dist/index.css" />
+<link rel="stylesheet" href="/css/vditor-fix.css" />
+<script src="/vendor/vditor/dist/index.min.js"></script>
+<script>
+(function () {
+  var $src = document.getElementById('editor');
+  var $title = document.querySelector('.js-add-content-name');
+  var docId = $title ? ($title.getAttribute('data-id') || 'new') : 'new';
+  var isNew = (docId === 'new');
+  var DRAFT_VER = 2;
+  var sid = '';
+
+  /* ---------- 草稿：结构化 + 按编辑会话隔离 + 存量自愈 ----------
+     旧实现让所有新文章共用一个固定的 nl-draft-new，只存裸文本，且只在
+     「保存成功」时清一次：浏览器里一旦留下过一份草稿（保存失败、直接关页、
+     或修复前遗留），之后每次「写新文章」都会把它无条件回灌进来。
+     这里做三件事：① 新文章草稿按会话分槽 ② 草稿带版本/归属/会话，脏数据
+     不回灌且直接删 ③ 发布成功后清全部 new 草稿并关闭后续写入。            */
+  if (isNew) {
+    try {
+      sid = sessionStorage.getItem('nl-draft-sid') || '';
+      if (!sid) {
+        sid = String(Date.now()) + '-' + Math.random().toString(36).slice(2, 8);
+        sessionStorage.setItem('nl-draft-sid', sid);
+      }
+    } catch (e) { sid = String(Date.now()); }
+  }
+  var draftKey = isNew ? ('nl-draft-new-' + sid) : ('nl-draft-' + docId);
+
+  function removeDraftKeys(match) {
+    try {
+      var keys = [], i;
+      for (i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
+      keys.forEach(function (k) { if (k && match(k)) localStorage.removeItem(k); });
+    } catch (e) {}
+  }
+
+  // 自愈：首屏即清掉旧版固定 key 的裸文本草稿（回灌元凶）与其它会话的遗留草稿。
+  // 用户无需手动清浏览器缓存，历史脏数据也不会再被灌回来。
+  removeDraftKeys(function (k) {
+    if (k === 'nl-draft-new') return true;
+    return isNew && k.indexOf('nl-draft-new-') === 0 && k !== draftKey;
+  });
+
+  // 只回灌「本版本 + 本文章 + 本会话」的结构化草稿；旧格式/脏数据一律丢弃。
+  function readDraft() {
+    try {
+      var raw = localStorage.getItem(draftKey);
+      if (!raw) return '';
+      var d;
+      try { d = JSON.parse(raw); } catch (e) { d = null; }
+      if (d && d.v === DRAFT_VER && d.doc === docId && d.sid === sid &&
+          typeof d.text === 'string' && d.text.trim() !== '') return d.text;
+      localStorage.removeItem(draftKey);
+    } catch (e) {}
+    return '';
+  }
+
+  var draftClosed = false;
+  function sync(val) {
+    if ($src) $src.value = val || '';
+    if (draftClosed) return;                 // 保存成功后禁止 Vditor 延迟回调把内容写回
+    try {
+      var text = val || '';
+      if (text.trim() === '') { localStorage.removeItem(draftKey); return; }
+      localStorage.setItem(draftKey, JSON.stringify({
+        v: DRAFT_VER, doc: docId, sid: sid, ts: Date.now(), text: text
+      }));
+    } catch (e) {}
+  }
+
+  // 供 common.js 发布/保存成功后调用：清全部 new 草稿 + 本文章草稿，关闭后续写入，
+  // 并轮换会话 id —— 下一次「写新文章」必定是空白编辑器。
+  window.__nlClearDraft = function () {
+    draftClosed = true;
+    removeDraftKeys(function (k) {
+      return k === 'nl-draft-new' || k.indexOf('nl-draft-new-') === 0 || k === ('nl-draft-' + docId);
+    });
+    try { sessionStorage.removeItem('nl-draft-sid'); } catch (e) {}
+  };
+
+  var initial = ($src && $src.value) || '';
+  if (initial.trim() === '') initial = readDraft();
+
+  if (typeof Vditor === 'undefined') {
+    // 兜底：Vditor 没加载出来时退回纯文本框，保证文章仍能保存
+    if ($src) {
+      $src.style.display = 'block';
+      $src.className = 'js-editor form-control';
+      $src.setAttribute('rows', '20');
+      $src.value = initial;
+      $src.addEventListener('input', function () { sync(this.value); });
+    }
+    return;
+  }
+
+  // 上传：复用现有 /api/upload（base64 -> /uploads），把 {success,url} 适配成 Vditor 要求的结构。
+  // 去 jQuery 后改用原生 fetch；任何失败都必须 resolve，避免 Promise 悬挂导致图片永远上传不出去。
+  function uploadOne(file) {
+    return new Promise(function (resolve) {
+      var fail = function () { resolve({ name: file ? file.name : '', url: null }); };
+      if (!file) { resolve({ name: '', url: null }); return; }
+      if (file.size > 5 * 1024 * 1024) { fail(); return; } // 与服务端 5MB 上限对齐
+      var reader = new FileReader();
+      reader.onerror = fail;
+      reader.onload = function () {
+        fetch('/api/upload', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: reader.result })
+        }).then(function (r) {
+          if (!r.ok) throw new Error('upload HTTP ' + r.status);
+          return r.json();
+        }).then(function (d) {
+          resolve({ name: file.name, url: (d && d.success) ? d.url : null });
+        }).catch(fail);
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  var vd = new Vditor('vditor', {
+    cdn: '/vendor/vditor',
+    // 桌面分屏预览(sv)；移动端屏窄，改即时渲染(ir)避免两栏挤压
+    mode: (window.innerWidth <= 768 ? 'ir' : 'sv'),
+    lang: 'zh_CN',
+    value: initial,
+    height: 540,
+    cache: { enable: false },          // 容器 id 固定，禁用内置缓存，改用按文章 id 的草稿
+    outline: { enable: true, position: 'left' },
+    toolbarConfig: { pin: true },
+    upload: {
+      accept: 'image/*',
+      handler: function (files) {
+        // 自定义 handler 模式下，Vditor 只等待返回值，不会像内置上传那样
+        // 保存光标 + 调 genUploadedLabel 插图（见 vendor/vditor/dist/index.js 的 uploadFiles）。
+        // 所以这里自己：① 上传前记下光标 ② 成功后恢复光标并插入 <img>。
+        var curMode = vd.vditor && vd.vditor.currentMode;
+        var modeObj = vd.vditor && vd.vditor[curMode];
+        var savedRange = null;
+        try {
+          var sel = window.getSelection();
+          if (modeObj && modeObj.element && sel && sel.rangeCount > 0) {
+            var r = sel.getRangeAt(0);
+            if (modeObj.element === r.startContainer || modeObj.element.contains(r.startContainer)) {
+              savedRange = r.cloneRange();
+            }
+          }
+          // 焦点已离开编辑器（点工具栏按钮 / 拖拽）时，退回 Vditor 自己缓存的光标
+          if (!savedRange && modeObj && modeObj.range) savedRange = modeObj.range.cloneRange();
+        } catch (e) {}
+
+        var tasks = [];
+        for (var i = 0; i < files.length; i++) tasks.push(uploadOne(files[i]));
+        return Promise.all(tasks).then(function (results) {
+          var imgHTML = '', errFiles = [], succMap = {}, okCount = 0;
+          results.forEach(function (r) {
+            if (r.url) {
+              // alt 来自文件名，转义掉会破坏标签的字符
+              var name = String(r.name || 'image').replace(/[&<>"']/g, '');
+              imgHTML += '<img alt="' + name + '" src="' + r.url + '">\n';
+              succMap[r.name] = r.url;
+              okCount++;
+            } else if (r.name) {
+              errFiles.push(r.name);
+            }
+          });
+
+          if (imgHTML) {
+            // 先把 selection 恢复成上传前的光标，insertValue 内部据此定位插入点；
+            // insertValue(..., true) 会触发 Vditor 输入渲染，令 getValue() 产出 ![](...) 并同步草稿。
+            try {
+              if (savedRange) {
+                var s = window.getSelection();
+                s.removeAllRanges();
+                s.addRange(savedRange);
+              }
+            } catch (e) {}
+            try {
+              vd.insertValue(imgHTML, true);
+              sync(vd.getValue()); // 兜底：保证保存前隐藏域一定是最新内容
+            } catch (e) {}
+          }
+          if (errFiles.length) vd.tip((okCount ? '已插入 ' + okCount + ' 张；' : '') + '上传失败：' + errFiles.join('、'));
+          else if (okCount) vd.tip('图片已插入', 2000);
+
+          // 仍按 handler 契约返回（Vditor 不消费它插图，仅用于错误提示判断）
+          return { code: errFiles.length ? 1 : 0, msg: '', data: { errFiles: errFiles, succMap: succMap } };
+        });
+      }
+    },
+    input: function (value) { try { sync(value); } catch (e) {} },
+    after: function () { try { sync(this.getValue()); } catch (e) {} }
+  });
+  window.__vditor = vd;
+
+  // 双保险：保存按钮（.js-save-content）在冒泡阶段读取 .js-editor 的值，
+  // 这里用捕获阶段在它之前把 Vditor 最新内容强制同步进隐藏文本域，避免 input 回调漏触发导致丢稿。
+  document.addEventListener('click', function (e) {
+    var t = e.target;
+    if (t && t.closest && t.closest('.js-save-content')) {
+      try { if (window.__vditor) $src.value = window.__vditor.getValue() || ''; } catch (_) {}
+    }
+  }, true);
+})();
+</script>

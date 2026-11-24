@@ -1,0 +1,21 @@
+<% /* 递归目录树片段：nodes=树节点数组, currentId=当前页 id, spaceSlug=知识库 slug
+      图标全部内联 SVG（禁 emoji），折叠状态由 public/js/wiki.js 管理 */ %>
+<ul class="wiki-tree">
+<% (nodes || []).forEach(function (node) { %>
+    <% var isCurrent = String(currentId || '') === String(node._id); %>
+    <% var hasChildren = node.children && node.children.length; %>
+    <% var _open = (typeof openIds !== 'undefined' && openIds) ? openIds : {}; %>
+    <% var isOpen = !!_open[String(node._id)]; %>
+    <li>
+        <div class="wiki-tree__row <%= isCurrent ? 'is-current' : '' %> <%= (hasChildren && !isOpen) ? 'is-collapsed' : '' %>">
+            <button type="button" class="wiki-tree__toggle <%= hasChildren ? '' : 'is-empty' %>"
+                    aria-label="展开或折叠子页面" aria-expanded="<%= isOpen ? 'true' : 'false' %>">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <a class="wiki-tree__link" href="/wiki/<%= spaceSlug %>/<%= encodeURIComponent(node.slug || node._id) %>"
+               <%= isCurrent ? 'aria-current="page"' : '' %> title="<%= node.name %>"><%= node.name %></a>
+        </div>
+        <% if (hasChildren) { %><%- include('_tree', {nodes: node.children, currentId: currentId, spaceSlug: spaceSlug, openIds: _open}) %><% } %>
+    </li>
+<% }); %>
+</ul>

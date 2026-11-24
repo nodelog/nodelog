@@ -1,0 +1,92 @@
+var mongodb = require('./mongodb');
+var constants = require('./constants');
+
+var Schema = mongodb.mongoose.Schema;
+var ObjectId = Schema.ObjectId;
+
+var CommentSchema = new Schema({
+    comment: {type: String, required: true},
+    commenter: {type: ObjectId},
+    content: {type: ObjectId},
+    createTime: { type: Date, default: Date.now},
+    modifyTime: {type: Date, default: Date.now},
+    status: {type: Number, default: 0, required: true, min: 0, max: 1},
+    userName: {type: String}//不保存数据库中，只在页面显示。
+}, {
+    collection: "comment"
+});
+
+var CommentModel = mongodb.mongoose.model("Comment", CommentSchema);
+//
+var CommentDAO = function () {
+};
+CommentDAO.prototype.save = function (obj, callback) {
+    var CommentEntity = new CommentModel(obj);
+    CommentEntity.save(function (err) {
+        // 追加返回新建文档（含 _id）供导入/审计定位；旧调用方只取第 1 个 err，不受影响。
+        callback(err, err ? null : CommentEntity);
+    });
+};
+CommentDAO.prototype.findByName = function (name, callback) {
+    CommentModel.findOne({"name": name, "status": constants.COMMENT_ENABLE_STATUS}, function (err, obj) {
+        callback(err, obj);
+    });
+};
+CommentDAO.prototype.findById = function (id, callback) {
+    CommentModel.findOne({"_id": id, "status": constants.COMMENT_ENABLE_STATUS}, function (err, obj) {
+        callback(err, obj);
+    });
+};
+CommentDAO.prototype.findByPage = function (page, callback) {
+    var query = CommentModel.find({"status": constants.COMMENT_ENABLE_STATUS});
+    query.sort({"createTime": -1});
+    query.limit(constants.PER_PAGE_COUNT);
+    query.skip((page - 1) * constants.PER_PAGE_COUNT);
+    query.exec(function (err, docs) {
+        callback(err, docs);
+    });
+};
+CommentDAO.prototype.findByContent = function (page, content, callback) {
+    var query = CommentModel.find({"content": content, "status": constants.COMMENT_ENABLE_STATUS});
+    query.sort({"createTime": -1});
+    query.limit(constants.PER_PAGE_COUNT);
+    query.skip((page - 1) * constants.PER_PAGE_COUNT);
+    query.exec(function (err, docs) {
+        callback(err, docs);
+    });
+};
+
+CommentDAO.prototype.getCount = function (callback) {
+    CommentModel.count({"status": constants.COMMENT_ENABLE_STATUS}, function (err, total) {
+        callback(err, total);
+    });
+};
+// 看板用：按 UTC 自然日聚合最近 days 天每日新增评论数
+CommentDAO.prototype.getTrend = function (days, callback) {
+    var start = new Date(Date.now() - days * 86400000);
+    CommentModel.aggregate([
+        {$match: {createTime: {$gte: start}}},
+        {$group: {_id: {$dateToString: {format: '%Y-%m-%d', date: '$createTime'}}, count: {$sum: 1}}},
+        {$sort: {_id: 1}}
+    ]).exec(function (err, rows) { callback(err, rows || []); });
+};
+
+CommentDAO.prototype.getCountByContent = function (content, callback) {
+    CommentModel.count({"content": content, "status": constants.COMMENT_ENABLE_STATUS}, function (err, total) {
+        callback(err, total);
+    });
+};
+CommentDAO.prototype.delete = function (id, callback) {
+    CommentModel.update({"_id": id}, {$set: {'status': constants.COMMENT_UNABLE_STATUS}}, function (err) {
+        callback(err);
+    });
+};
+CommentDAO.prototype.update = function (obj, callback) {
+    CommentModel.update({"_id": obj.id}, {$set: {"comment": obj.comment, "modifyTime": new Date()}}, function (err) {
+        callback(err);
+    });
+};
+// 通用后台 DAO 方法（软删 status=1）；findByPage 已是全局后台列表（status:0 + 时间倒序 + 分页），复用不重写。
+require('./_adminDao').attach(CommentDAO, CommentModel, {softStatus: constants.COMMENT_UNABLE_STATUS});
+
+module.exports = new CommentDAO();
